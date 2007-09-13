@@ -2,6 +2,8 @@
 
 xml = dofile'xml.lua'
 
+tmpfile='tmp/auto'
+
 classlist = [[
 QEvent
 ]]
@@ -14,7 +16,7 @@ end
 classlist = clist
 end
 
-f = io.open('auto.cpp', 'w')
+f = io.open(tmpfile..'.cpp', 'w')
 for n in pairs(classlist) do
   f:write('#include <'..n..'>\n')
 end
@@ -26,13 +28,13 @@ f:write'}\n'
 f:close()
 
 --os.execute'gccxml -g -Wall -W -D_REENTRANT -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED -I/usr/share/qt4/mkspecs/linux-g++ -I. -I/usr/include/qt4/QtCore -I/usr/include/qt4/QtCore -I/usr/include/qt4/QtGui -I/usr/include/qt4/QtGui -I/usr/include/qt4 -I. -I. -I. -fxml=auto.xml auto.cpp'
-os.execute'gccxml `pkg-config QtGui QtCore --cflags` -fxml=auto.xml auto.cpp'
+os.execute('gccxml `pkg-config QtGui QtCore --cflags` -fxml='..tmpfile..'.xml '..tmpfile..'.cpp')
 
 --os.remove'auto.cpp'
 
 
 B = dofile'binder.lua'
-B:init'auto.xml'
+B:init(tmpfile..'.xml')
 B.filter = function (m)
 	local n = type(m)=='table' and type(m.attr)=='table' and m.attr.name
 	if n and string.match(n, "[_%w]*[xX]11[_%w]*$") then
@@ -123,7 +125,7 @@ hpp = {
 }
 
 my_file = B:find_id(my_class.attr.file)
-table.insert(hpp.includes, '#include "common_bind.hpp"\n')
+table.insert(hpp.includes, '#include "lqt_common.hpp"\n')
 table.insert(hpp.includes, '#include "'..my_file.attr.name..'"\n')
 
 cpp = { 
@@ -203,7 +205,7 @@ function proto_preamble (n, i)
   -- FIXED?
   i = i or n
   return [[
-#include "common_bind.hpp"
+#include "lqt_common.hpp"
 #include <]]..i..[[>
 
 template <> class ]] .. B.wrapclass(n) .. [[ : public ]]  .. n .. [[ {
