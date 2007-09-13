@@ -106,40 +106,6 @@ function B:enum_push_body(id, c)
 end
 	
 
---[=====[
-my_typename = 'QWidget'
-my_class = B:find_name(my_typename)
-my_context = B.wrapclass(my_typename)..'::'
-my_pointer = B:find(B.pointer_search(my_class.attr.id))
-my_enums = my_enums or {}
---]=====]
-
---lua_proto = B.lua_proto
-
---[[
-hpp = {
-  includes = {  },
-  public = { 'public:\n' },
-  private = { 'private:\n', '  lua_State *L;\n' },
-  protected = { 'protected:\n' },
-}
-
-my_file = B:find_id(my_class.attr.file)
-table.insert(hpp.includes, '#include "lqt_common.hpp"\n')
-table.insert(hpp.includes, '#include "'..my_file.attr.name..'"\n')
-
-cpp = { 
-  includes = {},
-  util = {},
-  pusher = {},
-  wrappers = {},
-  register = {},
-}
---]]
-
---my_virtual_destructor = false
---my_virtual = {}
-
 function B:mangled (f)
   local args = B:arguments_of(f)
   local k = f.attr.name..'('
@@ -172,32 +138,6 @@ function B:get_virtuals (c)
   end
 
   return mang_virtuals
-  --[==[
-
-
-  -- FIXME: deep inheritance tree
-
-  local bvirtuals = {}
-  for i = 1,table.maxn(classes) do
-    local base = classes[i]
-    local bm = B:get_members(base)
-    for n, l in pairs(bm.methods) do
-      for i, f in pairs(l) do
-        if f.attr.virtual=='1' then table.insert(bvirtuals, f) end
-      end
-    end
-    for i, f in pairs(bm.pure_virtuals) do
-      if f.attr.virtual=='1' then table.insert(bvirtuals, f) end
-    end
-  end
-  for i, v in ipairs(bvirtuals) do
-    local args = B:arguments_of(v)
-    local k = self:mange(v)
-    mang_bvirtuals[k] = mang_bvirtuals[k] or v
-  end
-
-  return mang_bvirtuals
---]==]
 end
 
 function proto_preamble (n, i)
@@ -489,85 +429,6 @@ function B:make_namespace(tname, include_file)
 end
 
 
-----------------------------
-----------------------------
-----------------------------
-----------------------------
-
-if false then
-
---[[
-if not my_members then
-  m = B:get_members(my_class)
-  m.virtuals = B:get_virtuals(my_class)
-
-  my_enums = m.enumerations
-  my_members = {}
-  local t = my_members
-  table.foreach(m.methods, function(k, v) t[k] = v end)
-  my_members.new = m.constructors
-  my_members.delete = { m.destructor }
-end
-
-print 'writing preambles'
-
-fullproto = proto_preamble(my_typename)
-fulldef = '#include "bind.hpp"\n\n'
-local metatable_constructor = meta_constr_preamble(my_typename)
-
-print 'binding each member'
-
-for n, l in pairs(my_members) do
-  local fname = B.WRAPCALL..n
-  local proto, def = B:solve_overload(l, fname, my_context)
-  fullproto = fullproto .. proto
-  fulldef = fulldef .. def
-  metatable_constructor = metatable_constructor .. meta_constr_method (n, my_context..B.WRAPCALL)
-end
-
-print'binding virtual methods'
-
-local virtual_methods = m.virtuals
-for s, f in pairs(virtual_methods) do
-  print ('virtual', s)
-  local h, c = B:virtual_overload(f, my_context)
-  fullproto, fulldef = fullproto..h, fulldef..c
-end
-
-print'overriding virtual destructor'
-if m.destructor.attr.virtual == '1' then
-  local h, c = B:virtual_destructor(m.destructor, my_context)
-  fullproto, fulldef = fullproto..h, fulldef..c
-end
-
-print'copying constructors'
-for i, v in ipairs(m.constructors) do
-  fullproto = fullproto..B:copy_constructor(v)
-end
-fullproto = fullproto .. proto_ending(my_typename) .. meta_constr_proto (my_typename)
-
-print'finalizing code'
-metatable_constructor = metatable_constructor .. meta_constr_ending (my_typename)
-fulldef = fulldef .. metatable_constructor
-
-print'writing definition file'
-f = io.open('bind.cpp', 'w')
-f:write(fulldef)
-f:close()
-
-print'writing prototypes file'
-f = io.open('bind.hpp', 'w')
-f:write(fullproto)
-f:close()
-
---]]
-
-
-else
-
-local h, c
-
-
 function BINDQT(n)
   n = tostring(n)
   local h, c = B:make_namespace(n, n)
@@ -615,103 +476,5 @@ end
 for n in pairs(classlist) do
   BINDQT(n)
 end
---BINDQT'QObject'
---BINDQT'QWidget'
---BINDQT'QAbstractButton'
---BINDQT'QFont'
---BINDQT'QLabel'
---BINDQT'QApplication'
-
---[[
-h, c = B:make_namespace('QWidget', 'QWidget')
-print'writing definition file'
-f = io.open('lqt_bind_QWidget.cpp', 'w')
-f:write(c)
-f:close()
-
-print'writing prototypes file'
-f = io.open('lqt_bind_QWidget.hpp', 'w')
-f:write(h)
-f:close()
-
-h, c = B:make_namespace('QObject', 'QObject')
-print'writing definition file'
-f = io.open('lqt_bind_QObject.cpp', 'w')
-f:write(c)
-f:close()
-
-print'writing prototypes file'
-f = io.open('lqt_bind_QObject.hpp', 'w')
-f:write(h)
-f:close()
-
-h, c = B:make_namespace('QAbstractButton', 'QAbstractButton')
-print'writing definition file'
-f = io.open('lqt_bind_QAbstractButton.cpp', 'w')
-f:write(c)
-f:close()
-
-print'writing prototypes file'
-f = io.open('lqt_bind_QAbstractButton.hpp', 'w')
-f:write(h)
-f:close()
-
-h, c = B:make_namespace('QApplication', 'QApplication')
-print'writing definition file'
-f = io.open('lqt_bind_QApplication.cpp', 'w')
-f:write(c)
-f:close()
-
-print'writing prototypes file'
-f = io.open('lqt_bind_QApplication.hpp', 'w')
-f:write(h)
-f:close()
-
-h, c = B:make_namespace('QPushButton', 'QPushButton')
-print'writing definition file'
-f = io.open('lqt_bind_QPushButton.cpp', 'w')
-f:write(c)
-f:close()
-
-print'writing prototypes file'
-f = io.open('lqt_bind_QPushButton.hpp', 'w')
-f:write(h)
-f:close()
-
-h, c = b:make_namespace('qabstractbutton', 'qabstractbutton')
-print'writing definition file'
-f = io.open('lqt_bind_qabstractbutton.cpp', 'w')
-f:write(c)
-f:close()
-
-print'writing prototypes file'
-f = io.open('lqt_bind_qabstractbutton.hpp', 'w')
-f:write(h)
-f:close()
-
-h, c = B:make_namespace('QCoreApplication', 'QCoreApplication')
-print'writing definition file'
-f = io.open('lqt_bind_QCoreApplication.cpp', 'w')
-f:write(c)
-f:close()
-
-print'writing prototypes file'
-f = io.open('lqt_bind_QCoreApplication.hpp', 'w')
-f:write(h)
-f:close()
-
-h, c = B:make_namespace('QFont', 'QFont')
-print'writing definition file'
-f = io.open('lqt_bind_QFont.cpp', 'w')
-f:write(c)
-f:close()
-
-print'writing prototypes file'
-f = io.open('lqt_bind_QFont.hpp', 'w')
-f:write(h)
-f:close()
---]]
 
 
-
-end
