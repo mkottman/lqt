@@ -914,7 +914,7 @@ function binder:make_namespace(tname, include_file, ...)
     bind_file = 'lqt_bind_'..include_file
   end
 
-  local my_class = self:find_name(tname)
+  local my_class = self:find_id(tname) or self:find_name(tname)
   local my_context = self.wrapclass(tname)..'::'
 
   local my = self:get_members(my_class)
