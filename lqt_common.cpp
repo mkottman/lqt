@@ -1,4 +1,4 @@
-#include "common_bind.hpp"
+#include "lqt_common.hpp"
 
 #define LQT_FIXEDINDEX(i)  (i<0?(1+lua_gettop(L)+i):i)
 
@@ -560,7 +560,5 @@ int lqtL_gc (lua_State *L) {
 
   return 0;
 }
-
-
 
 
