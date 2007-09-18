@@ -68,7 +68,7 @@ function make_tree (cl, tf)
 	end
 	f:write'\nmain() {\n'
 	for n in pairs(cl) do
-		f:write('  '..n..' *'..string.lower(n)..';\n')
+		if not ({Qt=true})[n] then f:write('  '..n..' *'..string.lower(n)..';\n') end
 	end
 	f:write'}\n'
 	f:close()
@@ -123,5 +123,5 @@ function make_single_qt(B, class)
 end
 
 make_standard_qt(B, [[
-QLineEdit
+Qt
 ]])

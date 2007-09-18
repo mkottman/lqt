@@ -644,11 +644,12 @@ end
 
 function binder:enum_push_body(id, c)
 	local enum = (type(id)=='string') and self:find_id(id) or id
+	local e_static = (self:find_id(enum.attr.context).tag == 'Class') and 'static ' or ''
 	local e_context = self:context_name(enum)
 	local e_name = 'lqt_pushenum_' .. enum.attr.name
 	local e_proto, e_def = '', ''
 
-	e_proto = e_proto .. '  static ' .. self.lua_proto(e_name) .. ';\n'
+	e_proto = e_proto .. '  ' .. e_static .. self.lua_proto(e_name) .. ';\n'
 	e_def = e_def .. self.lua_proto(c .. e_name) .. ' '
 	e_def = e_def .. '{\n'
 	e_def = e_def .. '  int enum_table = 0;\n'
@@ -962,7 +963,7 @@ function binder:make_namespace(tname, include_file, ...)
   end
 
   print'overriding virtual destructor'
-  if my.destructor.attr.virtual == '1' then
+  if my.destructor and my.destructor.attr.virtual == '1' then
     local h, c = self:virtual_destructor(my.destructor, my_context)
     fullproto, fulldef = fullproto..h, fulldef..c
   end
