@@ -36,39 +36,7 @@ function BINDQT(n)
   f:close()
 end
 
-function make_standard_qt(B, classlist)
-
-  cp_file('lqt_common.hpp', 'src/lqt_common.hpp')
-  cp_file('lqt_common.cpp', 'src/lqt_common.cpp')
-
-	do
-		local clist = {}
-		for s in string.gmatch(classlist, '([%u%l%d]+)') do
-			clist[s] = true
-		end
-		classlist = clist
-	end
-
-  local tmpfile='tmp/auto'
-
-	f = io.open(tmpfile..'.cpp', 'w')
-	for n in pairs(classlist) do
-		f:write('#include <'..n..'>\n')
-	end
-	f:write'\nmain() {\n'
-	for n in pairs(classlist) do
-		f:write('  '..n..' *'..string.lower(n)..';\n')
-	end
-	f:write'}\n'
-	f:close()
-
-	--os.execute'gccxml -g -Wall -W -D_REENTRANT -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED -I/usr/share/qt4/mkspecs/linux-g++ -I. -I/usr/include/qt4/QtCore -I/usr/include/qt4/QtCore -I/usr/include/qt4/QtGui -I/usr/include/qt4/QtGui -I/usr/include/qt4 -I. -I. -I. -fxml=auto.xml auto.cpp'
-	os.execute('gccxml `pkg-config QtGui QtCore --cflags` -fxml='..tmpfile..'.xml '..tmpfile..'.cpp')
-
-	--os.remove'auto.cpp'
-
-	B:init(tmpfile..'.xml')
-
+function init_qt(B)
 	B.filter = function (m)
 		local n = type(m)=='table' and type(m.attr)=='table' and m.attr.name
 		if n and string.match(n, "[_%w]*[xX]11[_%w]*$") then
@@ -91,7 +59,42 @@ function make_standard_qt(B, classlist)
 	B.types_from_stack['QByteArray'] = function(i) return 'QByteArray(lua_tostring(L, '..tostring(i)..'), lua_objlen(L, '..tostring(i)..'))' end
 	B.types_test['QByteArray'] = function(i) return '(lua_type(L, ' .. tostring(i) .. ')==LUA_TSTRING)' end
 	B.types_to_stack['QByteArray'] = function(i) return 'lua_pushlstring(L, '..tostring(i)..'.data(), '..tostring(i)..'.size())' end
+end
 
+function make_tree (cl, tf)
+	f = io.open(tf..'.cpp', 'w')
+	for n in pairs(cl) do
+		f:write('#include <'..n..'>\n')
+	end
+	f:write'\nmain() {\n'
+	for n in pairs(cl) do
+		f:write('  '..n..' *'..string.lower(n)..';\n')
+	end
+	f:write'}\n'
+	f:close()
+	os.execute('gccxml `pkg-config QtGui QtCore --cflags` -fxml='..tf..'.xml '..tf..'.cpp')
+	--os.execute'gccxml -g -Wall -W -D_REENTRANT -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED -I/usr/share/qt4/mkspecs/linux-g++ -I. -I/usr/include/qt4/QtCore -I/usr/include/qt4/QtCore -I/usr/include/qt4/QtGui -I/usr/include/qt4/QtGui -I/usr/include/qt4 -I. -I. -I. -fxml=auto.xml auto.cpp'
+	os.remove(tf..'.cpp')
+end
+
+function make_standard_qt(B, classlist)
+  cp_file('lqt_common.hpp', 'src/lqt_common.hpp')
+  cp_file('lqt_common.cpp', 'src/lqt_common.cpp')
+
+	do
+		local clist = {}
+		for s in string.gmatch(classlist, '([%u%l%d]+)') do
+			clist[s] = true
+		end
+		classlist = clist
+	end
+
+  local tmpfile='tmp/auto'
+
+	make_tree(classlist, tmpfile)
+
+	B:init(tmpfile..'.xml')
+	init_qt(B)
 
 	do
 		local clist = {}
@@ -107,6 +110,18 @@ function make_standard_qt(B, classlist)
 	end
 end
 
+function make_single_qt(B, class)
+	local classlist = { class }
+
+  local tmpfile='tmp/auto'
+
+	make_tree(classlist, tmpfile)
+	B:init(tmpfile..'.xml')
+	init_qt(B)
+
+	BINDQT(class)
+end
+
 make_standard_qt(B, [[
-QObject
+QLineEdit
 ]])
