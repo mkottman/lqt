@@ -268,6 +268,7 @@ int lqtL_derivesfrom (lua_State *L, int i, const char *t) {
 		} else {
 			lua_getfield(L, -1, t);
 			ret = lua_isnil(L, -1)?0:1;
+			//if (ret) qDebug() << (lua_toboolean(L, -1)?"directly":"INDIRECTLY") << "derives from" << t;
 			// DANGER: order of control expression is important
 			while ((ret == 0) && (lua_next(L, -2) != 0)) {
 				if (!lua_istable(L, -1)) {
@@ -474,7 +475,7 @@ int lqtL_baseindex (lua_State *L, int index, int key) {
 			lua_insert(L, -2);
 			// DANGER: order of control expression is important
 			while ((ret == 0) && (lua_next(L, -2) != 0)) {
-				if (!lua_istable(L, -1)) {
+				if (!lua_istable(L, -1) && lua_isboolean(L, -1) && lua_toboolean(L, -1)) {
 					lua_pop(L, 1);
 					lua_pushvalue(L, -1);
 					lua_gettable(L, LUA_REGISTRYINDEX);

@@ -983,12 +983,20 @@ function binder:make_namespace(tname, include_file, ...)
 
   print'specifying bases'
   metatable_constructor = metatable_constructor .. '    lua_newtable(L);\n'
+	local deep_bases = {}
   for s in string.gmatch(my_class.attr.bases or '', '(_%d+) ') do
     local base = self:find_id(s)
     local bname = self:type_name(base)
     metatable_constructor = metatable_constructor .. [[
     lua_pushboolean(L, 1);
     lua_setfield(L, -2, "]]..bname..[[*");
+]]
+		deep_bases = self.set_union(deep_bases, self:tree_of_bases(base))
+  end
+  for n in pairs(deep_bases) do
+    metatable_constructor = metatable_constructor .. [[
+    lua_pushboolean(L, 0);
+    lua_setfield(L, -2, "]]..n..[[*");
 ]]
   end
   metatable_constructor = metatable_constructor .. '    lua_setfield(L, -2, "__base");\n'
