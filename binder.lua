@@ -582,7 +582,7 @@ function binder:code_function (f)
 end
 
 function binder:begin_dispatch(n, m)
-    return self.lua_proto(n) .. ' {\n  int score[' .. m
+    return self.lua_proto(n) .. ' {\n  int score[' .. (m+1)
                      ..'];\n  const int premium = 11+lua_gettop(L);\n'
 end
 
@@ -625,7 +625,8 @@ function binder:solve_overload (f, n, c)
     end
 
     -- TODO: move to a function?
-    fulltest = fulltest .. '  }\n  return -1;\n}\n'
+		-- TODO: trigger an error
+    fulltest = fulltest .. '  }\n  return 0;\n}\n'
 
     proto = proto .. '  static '..self.lua_proto(n)..';\n'
     def = def .. fulltest
@@ -780,8 +781,10 @@ function binder.meta_constr_ending (n)
     lua_setfield(L, -2, "__gc");
     lua_pushstring(L, "]]..n..[[");
     lua_setfield(L, -2, "__qtype");
-  }
-  lua_pop(L, 1);
+		lua_setglobal(L, "]]..n..[[");
+  } else {
+		lua_pop(L, 1);
+	}
   return 0;
 }
 ]]
@@ -973,7 +976,7 @@ function binder:make_namespace(tname, include_file, ...)
 		local e_p, e_d, e_n = self:enum_push_body(e, my_context)
 		fulldef = fulldef .. e_d
 		fullproto = fullproto .. e_p
-		metatable_constructor = metatable_constructor .. '    ' .. my_context .. e_n .. '(L);\n    lua_pop(L, 1);\n'
+		metatable_constructor = metatable_constructor .. '    ' .. my_context .. e_n .. '(L);\n    lua_setfield(L, -2, "'..e.attr.name..'");\n'
 	end
 
   print'copying constructors'
