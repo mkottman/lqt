@@ -456,7 +456,10 @@ function binder:function_body(f)
   body = body .. ');\n'
 
   -- HANDLE RETURN VALUE
-  if ret_type then
+  if f.tag=='Constructor' then
+		body = body .. '  lqtL_passudata(L, ret, "'..f.attr.name..'*");\n'
+    body = body .. '  return 1;\n}\n'
+	elseif ret_type then
     -- print('pushing', binder:type_name(ret_type))
     local ret_to_stack = self:type_to_stack(ret_type)'ret'
     body = body .. '  ' .. ret_to_stack .. ';\n'
