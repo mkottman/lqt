@@ -626,7 +626,13 @@ function binder:solve_overload (f, n, c)
 
     -- TODO: move to a function?
 		-- TODO: trigger an error
-    fulltest = fulltest .. '  }\n  return 0;\n}\n'
+    fulltest = fulltest .. [[
+	}
+	lua_pushstring(L, "no overload of function ]].. n ..[[ matching arguments");
+	lua_error(L);
+	return 0;
+}
+]]
 
     proto = proto .. '  static '..self.lua_proto(n)..';\n'
     def = def .. fulltest
