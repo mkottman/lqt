@@ -17,9 +17,11 @@ function binder:init(filename)
     local xmls = xmlf:read('*a')
     xmlf:close()
     --self.tree = lxp.lom.parse(xmls)
+		xml.id = {}
 		self.tree = xml:collect(xmls)
   end
   
+	self.ids = xml.id
   self.type_names = {}
   self.types_to_stack = {
     ['const char *'] = function(i) return 'lua_pushstring(L, ' .. tostring(i) .. ')' end,
@@ -985,7 +987,7 @@ function binder:make_namespace(tname, include_file, ...)
     local base = self:find_id(s)
     local bname = self:type_name(base)
     metatable_constructor = metatable_constructor .. [[
-    lua_pushboolean(L, 0);
+    lua_pushboolean(L, 1);
     lua_setfield(L, -2, "]]..bname..[[*");
 ]]
   end
