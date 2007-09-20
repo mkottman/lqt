@@ -122,6 +122,68 @@ function make_single_qt(B, class)
 	BINDQT(class)
 end
 
+function B:enum_push_body_plus_qt(id, c)
+	local enum = (type(id)=='string') and self:find_id(id) or id
+	local e_static = (self:find_id(enum.attr.context).tag == 'Class') and 'static ' or ''
+	local e_context = self:context_name(enum)
+	local e_name = 'lqt_pushenum_' .. enum.attr.name
+	local e_proto, e_def = '', ''
+
+	e_proto = e_proto .. '  ' .. e_static .. self.lua_proto(e_name) .. ';\n'
+	e_def = e_def .. self.lua_proto(c .. e_name) .. ' '
+	e_def = e_def .. '{\n'
+	e_def = e_def .. '  int enum_table = 0;\n'
+	e_def = e_def .. '  lua_getfield(L, LUA_REGISTRYINDEX, LQT_ENUMS);\n'
+	e_def = e_def .. '  if (!lua_istable(L, -1)) {\n'
+	e_def = e_def .. '    lua_pop(L, 1);\n'
+	e_def = e_def .. '    lua_newtable(L);\n'
+	e_def = e_def .. '    lua_pushvalue(L, -1);\n'
+	e_def = e_def .. '    lua_setfield(L, LUA_REGISTRYINDEX, LQT_ENUMS);\n'
+	e_def = e_def .. '  }\n'
+
+	e_def = e_def .. '  lua_newtable(L);\n'
+	e_def = e_def .. '  enum_table = lua_gettop(L);\n'
+	for i, e in ipairs(enum) do
+		if (type(e)=='table') and (e.tag=='EnumValue') then
+			e_def = e_def .. '  lua_pushstring(L, "' .. e.attr.name .. '");\n'
+			e_def = e_def .. '  lua_rawseti(L, enum_table, ' .. e.attr.init .. ');\n'
+			e_def = e_def .. '  lua_pushinteger(L, ' .. e.attr.init .. ');\n'
+			e_def = e_def .. '  lua_setfield(L, enum_table, "' .. e.attr.name .. '");\n'
+		end
+	end
+	e_def = e_def .. '  lua_pushcfunction(L, ' .. c .. e_name .. '_QFLAGS_CREATOR' .. ');\n'
+	e_def = e_def .. '  lua_setfield(L, enum_table, "QFlags");\n'
+	e_def = e_def .. '  lua_pushvalue(L, -1);\n'
+	e_def = e_def .. '  lua_setfield(L, -3, "' .. e_context .. enum.attr.name .. '");\n'
+	e_def = e_def .. '  lua_remove(L, -2);\n'
+	e_def = e_def .. '  return 1;\n'
+	e_def = e_def .. '}\n'
+  -- ######## QFLAGS SPECIFIC
+	e_proto = e_proto .. '  ' .. e_static .. self.lua_proto(e_name..'_QFLAGS_CREATOR') .. ';\n'
+	e_def = e_def .. self.lua_proto(c .. e_name .. '_QFLAGS_CREATOR') .. [[ {
+	int argn = lua_gettop(L);
+	int i = 0;
+  void *p  = lua_newuserdata(L, sizeof(QFlags<]]..e_context..enum.attr.name..[[>*) + sizeof(QFlags<]]..e_context..enum.attr.name..[[>));
+  QFlags<]]..e_context..enum.attr.name..[[> *fl = static_cast<QFlags<]]..e_context..enum.attr.name..[[>*>( static_cast<void*>(&static_cast<QFlags<]]..e_context..enum.attr.name..[[>**>(p)[1]) );
+	*(void**)p = fl;
+	for (i=1;i<=argn;i++) {
+    *fl |= static_cast<]]..e_context..enum.attr.name..[[>(lqtL_toenum(L, i, "]]..e_context..enum.attr.name..[["));
+	}
+	if (luaL_newmetatable(L, "QFlags<]]..e_context..enum.attr.name..[[>*")) {
+		lua_pushstring(L, "QFlags<]]..e_context..enum.attr.name..[[>*");
+		lua_setfield(L, -2, "__qtype");
+	}
+	lua_setmetatable(L, -2);
+	return 1;
+}
+]]
+	--print (e_def)
+	return e_proto, e_def, e_name
+end
+
+B.enum_push_body = B.enum_push_body_plus_qt
+
+
 make_standard_qt(B, [[
-Qt
+QMessageBox
 ]])
