@@ -1,5 +1,5 @@
-#ifndef __COMMON_BIND_HPP
-#define __COMMON_BIND_HPP
+#ifndef __LQT_COMMON_HPP
+#define __LQT_COMMON_HPP
 
 extern "C" {
 #include <lua.h>
@@ -39,5 +39,5 @@ extern int lqtL_index (lua_State *);
 extern int lqtL_newindex (lua_State *);
 
 
-#endif // __COMMON_BIND_HPP
+#endif // __LQT_COMMON_HPP
 
