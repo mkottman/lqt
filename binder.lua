@@ -24,6 +24,8 @@ function binder:init(filename)
 	self.ids = xml.id
   self.type_names = {}
   self.types_to_stack = {
+    ['char * *'] = function(i) return 'lqtL_pusharguments(L, ' .. tostring(i) .. ')' end,
+    ['const char * *'] = function(i) return 'lqtL_pusharguments(L, ' .. tostring(i) .. ')' end,
     ['const char *'] = function(i) return 'lua_pushstring(L, ' .. tostring(i) .. ')' end,
     ['short int'] =              function(i) return 'lua_pushinteger(L, ' .. tostring(i) .. ')' end,
     ['unsigned short int'] =     function(i) return 'lua_pushinteger(L, ' .. tostring(i) .. ')' end,
@@ -42,6 +44,9 @@ function binder:init(filename)
     ['void * *'] = function(i) return 'lua_pushlightuserdata(L, ' .. tostring(i) .. ')' end,
   }
   self.types_from_stack = {
+    ['int&'] = function(i) return 'lqtL_tointref(L, ' .. tostring(i) .. ')' end,
+    ['char * *'] = function(i) return 'lqtL_toarguments(L, ' .. tostring(i) .. ')' end,
+    ['const char * *'] = function(i) return 'lqtL_toarguments(L, ' .. tostring(i) .. ')' end,
     ['const char *'] = function(i) return 'lua_tostring(L, ' .. tostring(i) .. ')' end,
     ['short int'] =              function(i) return 'lua_tointeger(L, ' .. tostring(i) .. ')' end,
     ['unsigned short int'] =     function(i) return 'lua_tointeger(L, ' .. tostring(i) .. ')' end,
@@ -60,6 +65,8 @@ function binder:init(filename)
     ['void * *'] = function(i) return 'static_cast<void **>(lua_touserdata(L, ' .. tostring(i) .. '))' end,
   }
   self.types_test = {
+    ['char * *'] = function(i) return 'lqtL_testarguments(L, ' .. tostring(i) .. ')' end,
+    ['const char * *'] = function(i) return 'lqtL_testarguments(L, ' .. tostring(i) .. ')' end,
     ['const char *'] = function(i) return '(lua_type(L, ' .. tostring(i) .. ')==LUA_TSTRING)' end,
     ['short int'] =              function(i) return 'lua_isnumber(L, ' .. tostring(i) .. ')' end,
     ['unsigned short int'] =     function(i) return 'lua_isnumber(L, ' .. tostring(i) .. ')' end,

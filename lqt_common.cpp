@@ -1,6 +1,8 @@
 #include "lqt_common.hpp"
+#include <cstring>
 
 #define LQT_FIXEDINDEX(i)  (i<0?(1+lua_gettop(L)+i):i)
+#define LQT_MAX_ARGS 50
 
 //#include <QDebug>
 #ifndef SEE_STACK
@@ -18,6 +20,79 @@
 
 //#include <iostream>
 //using namespace std;
+
+int check_gc(lua_State*L){
+	lua_newtable(L);
+	lua_getglobal(L, "print");
+	lua_setfield(L, -2, "__gc");
+	lua_setmetatable(L, -2);
+	return 0;
+}
+
+void *get_buffer(lua_State *L, size_t sz) {
+#if 1
+	void *ret = lua_newuserdata(L, sz);
+  //check_gc(L);
+	lua_pushlightuserdata(L, ret);
+	lua_insert(L, -2);
+	lua_settable(L, LUA_REGISTRYINDEX);
+#else
+	void *ret = malloc(sz);
+	cout << ret << endl;
+#endif
+	return ret;
+}
+
+int& lqtL_tointref (lua_State *L, int i) {
+  i = LQT_FIXEDINDEX(i);
+	int *ret = NULL;
+	ret = (int*)get_buffer(L, sizeof(int));
+	*ret = lua_type(L, i)==LUA_TNUMBER?lua_tointeger(L, i):0;
+	//cout << "interef " << ret << endl;
+	return *ret;
+}
+void lqtL_pusharguments (lua_State *L, const char **argv) {
+	int i = 0;
+	lua_newtable(L);
+	for (i=0;*argv && i<LQT_MAX_ARGS;argv++,i++) {
+    lua_pushstring(L, *argv);
+		lua_rawseti(L, -2, i+1);
+	}
+	return;
+}
+char** lqtL_toarguments (lua_State *L, int index) {
+	index = LQT_FIXEDINDEX(index);
+	char **ret;
+	const char *str;
+	int retlen = 0;
+	size_t strlen = 0;
+	int i = 0;
+	retlen = lua_objlen(L, index);
+	ret = (char**)get_buffer(L, sizeof(char*)*(retlen+1));
+	//cout << retlen << endl;
+	for (i=0;i<retlen;i++) {
+		lua_rawgeti(L, index, i+1);
+		if (lua_isstring(L, -1)) {
+			str = lua_tolstring(L, -1, &strlen);
+			ret[i] = (char*)get_buffer(L, sizeof(char)*(strlen+1));
+			strncpy(ret[i], str, strlen+1);
+			//cout << "arg " << (void*)ret[i] << ' ' << ret[i] << endl;
+		} else {
+			strlen = 0;
+      str = "\0";
+			ret[i] = (char*)get_buffer(L, sizeof(char)*(strlen+1));
+			strncpy(ret[i], str, strlen+1);
+			//cout << "Zarg " << (void*)ret[i] << ' ' << ret[i] << endl;
+		}
+		lua_pop(L, 1);
+	}
+  ret[retlen] = NULL;
+	//cout << "arg[] " << ret << endl;
+	return ret;
+}
+bool lqtL_testarguments (lua_State *L, int index) {
+	return (bool)lua_istable(L, index);
+}
 
 void lqtL_setvoidmetatable (lua_State *L, int i, const char *t = 0) {
 	i = LQT_FIXEDINDEX(i);
