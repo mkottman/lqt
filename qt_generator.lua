@@ -52,6 +52,9 @@ function init_qt(B)
 	NOINSTANCE(B, 'QCoreApplication')
 
 
+	B.types_from_stack['const QString&'] = function(i) return 'QString::fromAscii(lua_tostring(L, '..tostring(i)..'), lua_objlen(L, '..tostring(i)..'))' end
+	B.types_test['const QString&'] = function(i) return '(lua_type(L, ' .. tostring(i) .. ')==LUA_TSTRING)' end
+	B.types_to_stack['const QString&'] = function(i) return 'lua_pushlstring(L, '..tostring(i)..'.toAscii().data(), '..tostring(i)..'.toAscii().size())' end
 	B.types_from_stack['QString'] = function(i) return 'QString::fromAscii(lua_tostring(L, '..tostring(i)..'), lua_objlen(L, '..tostring(i)..'))' end
 	B.types_test['QString'] = function(i) return '(lua_type(L, ' .. tostring(i) .. ')==LUA_TSTRING)' end
 	B.types_to_stack['QString'] = function(i) return 'lua_pushlstring(L, '..tostring(i)..'.toAscii().data(), '..tostring(i)..'.toAscii().size())' end
@@ -78,6 +81,7 @@ function make_tree (cl, tf)
 end
 
 function make_standard_qt(B, classlist)
+	print'copying common files'
   cp_file('lqt_common.hpp', 'src/lqt_common.hpp')
   cp_file('lqt_common.cpp', 'src/lqt_common.cpp')
 
@@ -185,5 +189,5 @@ B.enum_push_body = B.enum_push_body_plus_qt
 
 
 make_standard_qt(B, [[
-QMessageBox
+QMenuBar
 ]])
