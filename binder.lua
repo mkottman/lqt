@@ -359,6 +359,10 @@ end
 
 function binder:function_body(f)
   if f.attr.pure_virtual=='1' then error'cannot call pure vitual functions' end
+	-- FIXME could be more precise... problem is copy constructor of QObject if private
+  if f.tag=='Constructor' and f.attr.artificial=='1' then
+		error'refuse to bind implicitly defined constructors'
+	end
 
   local body = '{\n'
   local has_this = 0
@@ -742,6 +746,7 @@ function binder:proto_preamble (n, ...)
 		ret = ret .. '#include <'..i..'>\n'
 	end
 
+	-- FIXME handle namespaces
   ret = ret .. [[
 
 template <> class ]] .. self.wrapclass(n) .. [[ : public ]]  .. n .. [[ {
@@ -760,23 +765,26 @@ function binder:proto_ending (n)
 end
 
 function binder:copy_constructor(c)
-      local constr = '  '
-      local args = self.arguments_of(c)
-      constr = constr .. self.wrapclass(c.attr.name) .. ' (lua_State *l'
-      for argi = 1, table.maxn(args) do
-        local argt = self:find_id(args[argi].attr.type)
-        local argtype = self:type_name(argt)
-        constr = constr .. ', ' .. argtype .. ' arg'..tostring(argi)
-      end
-      constr = constr .. '):'..c.attr.name..'('
-      for argi = 1, table.maxn(args) do
-        constr = constr .. ((argi>1) and ', ' or '') .. 'arg'..tostring(argi)
-      end
-      constr = constr .. '), L(l) {}\n'
-      return constr, nil
+  if c.tag=='Constructor' and c.attr.artificial=='1' then
+		return ''
+	end
+	local constr = '  '
+	local args = self.arguments_of(c)
+	constr = constr .. self.wrapclass(c.attr.name) .. ' (lua_State *l'
+	for argi = 1, table.maxn(args) do
+		local argt = self:find_id(args[argi].attr.type)
+		local argtype = self:type_name(argt)
+		constr = constr .. ', ' .. argtype .. ' arg'..tostring(argi)
+	end
+	constr = constr .. '):'..c.attr.name..'('
+	for argi = 1, table.maxn(args) do
+		constr = constr .. ((argi>1) and ', ' or '') .. 'arg'..tostring(argi)
+	end
+	constr = constr .. '), L(l) {}\n'
+	return constr, nil
 end
 
-function binder.meta_constr_proto (n) return 'int luaopen_'..n..' (lua_State *L);\n' end
+function binder.meta_constr_proto (n) return 'extern "C" int luaopen_'..n..' (lua_State *L);\n' end
 function binder.meta_constr_preamble (n)
   return [[
 int luaopen_]]..n..[[ (lua_State *L) {
@@ -940,6 +948,7 @@ function binder:make_namespace(tname, include_file, ...)
   end
 
   local my_class = self:find_id(tname) or self:find_name(tname)
+	---- FIXME handle namespaces
   local my_context = self.wrapclass(tname)..'::'
 
   local my = self:get_members(my_class)
