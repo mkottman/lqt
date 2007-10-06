@@ -25,6 +25,7 @@
  */
 
 #include "lqt_qt_utils.hpp"
+#include "lqt_common.hpp"
 #include "lqt_function.hpp"
 
 static int qt_slot_from_string (lua_State *L) {
@@ -86,7 +87,28 @@ static int qt_slot (lua_State *L) {
 	return ret;
 }
 
+static int qt_pick (lua_State *L) {
+	int nargs = lua_gettop(L);
+	int i = 0;
+	while (i++<nargs) {
+		lqtL_manageudata(L, i);
+	}
+	return nargs;
+}
+
+static int qt_pass (lua_State *L) {
+	int nargs = lua_gettop(L);
+	int i = 0;
+	while (i++<nargs) {
+		lqtL_unmanageudata(L, i);
+	}
+	return nargs;
+}
+
+
 static luaL_Reg libqt[] = {
+	{ "pick", qt_pick },
+	{ "pass", qt_pass },
 	{ "slot", qt_slot },
 	{ "signal", qt_signal },
 	{ "derive", qt_derive },

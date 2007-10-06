@@ -42,8 +42,8 @@ end
 
 function cp_file(src, dst)
   do
-		src = (type(src)=='string') and io.open(src, 'r') or src
-		check = (type(dst)=='string') and io.open(dst, 'r') or nil
+		local src = (type(src)=='string') and io.open(src, 'r') or src
+		local check = (type(dst)=='string') and io.open(dst, 'r') or nil
 		if type(check)=='userdata' then
 			local a, b = src:read'*a', check:read'*a'
 			if a==b then check:close() src:close() return end
@@ -226,8 +226,8 @@ end
 B.enum_push_body = B.enum_push_body_plus_qt
 
 
-make_standard_qt(B,
-[[
+make_standard_qt(B,'QTimer'
+--[[
 QAbstractScrollArea
 QAction
 QApplication
