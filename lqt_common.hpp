@@ -19,7 +19,7 @@ template<typename T> class LuaBinder;
 
 extern int& lqtL_tointref (lua_State *, int);
 
-extern void lqtL_pusharguments (lua_State *, const char**);
+extern void lqtL_pusharguments (lua_State *, char**);
 extern char** lqtL_toarguments (lua_State *, int);
 extern bool lqtL_testarguments (lua_State *, int);
 

@@ -51,7 +51,7 @@ int& lqtL_tointref (lua_State *L, int i) {
 	//cout << "interef " << ret << endl;
 	return *ret;
 }
-void lqtL_pusharguments (lua_State *L, const char **argv) {
+void lqtL_pusharguments (lua_State *L, char **argv) {
 	int i = 0;
 	lua_newtable(L);
 	for (i=0;*argv && i<LQT_MAX_ARGS;argv++,i++) {
