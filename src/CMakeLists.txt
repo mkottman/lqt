@@ -1,0 +1,29 @@
+#
+#INCLUDE (cmake/FindLua.cmake)
+#
+#SET(CMAKE_VERBOSE_MAKEFILE ON)
+
+PROJECT(lqt)
+
+#INCLUDE (./cmake/FindLua.cmake)
+INCLUDE (${CMAKE_ROOT}/Modules/FindQt4.cmake)
+INCLUDE (${QT_USE_FILE})
+
+INCLUDE_DIRECTORIES(SYSTEM ${LUA_INCLUDE_PATH})
+
+QT_WRAP_CPP(fqt LuaFunction lqt_function.hpp)
+
+ADD_LIBRARY(qt SHARED lqt_qt_utils.cpp lqt_common.cpp lqt_function.cpp ${LuaFunction})
+TARGET_LINK_LIBRARIES(qt ${QT_LIBRARIES})
+SET_SOURCE_FILES_PROPERTIES(lqt_qt_utils.cpp lqt_common.cpp lqt_function.cpp PROPERTIES COMPILE_FLAGS -ggdb)
+
+
+
+FILE(GLOB BINDER_FILES lqt_bind_*.cpp)
+FOREACH(FN ${BINDER_FILES})
+STRING(REGEX REPLACE ".*lqt_bind_(.*).cpp" "\\1" CN ${FN})
+#EXECUTE_PROCESS(COMMAND echo ${FN} ${CN})
+ADD_LIBRARY(${CN} SHARED ${FN})
+TARGET_LINK_LIBRARIES(${CN} ${QT_LIBRARIES})
+SET_SOURCE_FILES_PROPERTIES(${FN} PROPERTIES COMPILE_FLAGS -ggdb)
+ENDFOREACH(FN)
