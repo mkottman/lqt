@@ -14,6 +14,15 @@ function NOINSTANCE(b, name)
 end
 
 function cp_file(src, dst)
+  do
+		src = (type(src)=='string') and io.open(src, 'r') or src
+		check = (type(dst)=='string') and io.open(dst, 'r') or nil
+		if type(check)=='userdata' then
+			local a, b = src:read'*a', check:read'*a'
+			if a==b then check:close() src:close() return end
+			check:close()
+		end
+	end
   src = (type(src)=='string') and io.open(src, 'r') or src
   dst = (type(dst)=='string') and io.open(dst, 'w') or dst
 	local content = src:read('*a')
@@ -24,7 +33,7 @@ end
 
 function BINDQT(n)
   n = tostring(n)
-  local h, c = B:make_namespace(n, n)
+  local h, c = B:make_namespace(n, n, 'QtCore', 'QtGui')
   print(n..': writing definition file')
   f = io.open('src/lqt_bind_'..n..'.cpp', 'w')
   f:write(c)
@@ -82,6 +91,8 @@ end
 
 function make_standard_qt(B, classlist)
 	print'copying common files'
+  cp_file('lqt_qt_utils.hpp', 'src/lqt_qt_utils.hpp')
+  cp_file('lqt_qt_utils.cpp', 'src/lqt_qt_utils.cpp')
   cp_file('lqt_common.hpp', 'src/lqt_common.hpp')
   cp_file('lqt_common.cpp', 'src/lqt_common.cpp')
 
@@ -188,6 +199,52 @@ end
 B.enum_push_body = B.enum_push_body_plus_qt
 
 
-make_standard_qt(B, [[
+make_standard_qt(B,
+[[
+QAbstractScrollArea
+QAction
+QApplication
+QBoxLayout
+QColor
+QCoreApplication
+QDialog
+QEvent
+QFileDialog
+QFont
+QFrame
+QGraphicsItem
+QGraphicsScene
+QGraphicsView
+QHBoxLayout
+QIcon
+QImage
+QInputEvent
+QKeyEvent
+QKeySequence
+QLabel
+QLayout
+QLayoutItem
+QLineEdit
+QMainWindow
 QMenuBar
-]])
+QMenu
+QMessageBox
+QObject
+QPaintDevice
+QShortcut
+QSize
+QSyntaxHighlighter
+Qt
+QTextBlockUserData
+QTextCharFormat
+QTextCursor
+QTextDocument
+QTextEdit
+QTextFormat
+QToolBar
+QVBoxLayout
+QWidget
+]]
+)
+
+
