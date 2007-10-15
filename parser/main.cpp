@@ -42,6 +42,9 @@
 #include <QDebug>
 
 #define ID_STR(i) (QString("_").append(QString::number(i->creationId())))
+#define ATTR_STR(n, v) ( (v).prepend(" " n "=\"").append("\"") )
+#define ATTR_NUM(n, v) ( (QString::number(v)).prepend(" " n "=\"").append("\"") )
+#define ATTR_TRUE(n) ( ATTR_NUM(n, 1) )
 
 using namespace std;
 
@@ -56,7 +59,6 @@ class XMLVisitor {
 		}
 };
 QString XMLVisitor::visit(TypeInfo t) {
-	QStringList s_list = t.qualifiedName();
 	/*
 	qDebug() << "=====";
 	QStringList::const_iterator constIterator;
@@ -76,11 +78,11 @@ QString XMLVisitor::visit(TypeInfo t) {
 	QString ret(" type_name=\"");
 	ret += t.toString().append("\"");
   ret += " type_base=\"";
-	ret += s_list.join("::").append("\"");
-	if (t.isConstant()) ret += " type_constant=\"1\"";
-	if (t.isVolatile()) ret += " type_volatile=\"1\"";
-	if (t.isReference()) ret += " type_reference=\"1\"";
-	if (t.indirections()>0) ret += QString::number(t.indirections()).prepend(" indirections=\"").append("\"");
+	ret += t.qualifiedName().join("::").append("\"");
+	if (t.isConstant()) ret += ATTR_TRUE("type_constant");
+	if (t.isVolatile()) ret += ATTR_TRUE("type_volatile");
+	if (t.isReference()) ret += ATTR_TRUE("type_reference");
+	if (t.indirections()>0) ret += ATTR_NUM("indirections", t.indirections());
 	return ret;
 }
 
@@ -107,19 +109,10 @@ QString XMLVisitor::visit(CodeModelItem i) {
 	QString ret("<");
 	ret += XMLTag(i);
 
-	ret += " id=\"";
-	ret += ID_STR(i);
-	ret += "\"";
-	ret += " name=\"";
-	ret += i->name();
-	ret += "\"";
-
-	ret += " context=\"";
-	foreach(QString s, i->scope()) {
-		ret += s;
-		ret += "::";
-	}
-	ret += "\"";
+	ret += ATTR_STR("id", ID_STR(i));
+	ret += ATTR_STR("name", i->name());
+	ret += ATTR_STR("context", i->scope().join("::").append("::"));
+	ret += ATTR_STR("fullname", i->qualifiedName().join("::"));
 
 	if (i->kind() & _CodeModelItem::Kind_Scope) {
 		ret += " members=\"";
@@ -145,14 +138,14 @@ QString XMLVisitor::visit(CodeModelItem i) {
 	}
 	if (i->kind() & _CodeModelItem::Kind_Member) {
     MemberModelItem m = model_dynamic_cast<MemberModelItem>(i);
-		if (m->isConstant()) ret += " constant=\"1\"";
-		if (m->isVolatile()) ret += " volatile=\"1\"";
-		if (m->isStatic()) ret += " static=\"1\"";
-		if (m->isAuto()) ret += " auto=\"1\"";
-		if (m->isFriend()) ret += " friend=\"1\"";
-		if (m->isRegister()) ret += " register=\"1\"";
-		if (m->isExtern()) ret += " extern=\"1\"";
-		if (m->isMutable()) ret += " mutable=\"1\"";
+		if (m->isConstant()) ret += ATTR_TRUE("constant");
+		if (m->isVolatile()) ret += ATTR_TRUE("volatile");
+		if (m->isStatic()) ret += ATTR_TRUE("static");
+		if (m->isAuto()) ret += ATTR_TRUE("auto");
+		if (m->isFriend()) ret += ATTR_TRUE("friend");
+		if (m->isRegister()) ret += ATTR_TRUE("register");
+		if (m->isExtern()) ret += ATTR_TRUE("extern");
+		if (m->isMutable()) ret += ATTR_TRUE("mutable");
 
 		ret += " access=\"";
 		switch (m->accessPolicy()) {
@@ -172,20 +165,20 @@ QString XMLVisitor::visit(CodeModelItem i) {
 	}
 	if ((i->kind() & _CodeModelItem::Kind_Function) == _CodeModelItem::Kind_Function) {
     FunctionModelItem m = model_dynamic_cast<FunctionModelItem>(i);
-		if (m->isVirtual()) ret += " virtual=\"1\"";
-		if (m->isInline()) ret += " inline=\"1\"";
-		if (m->isExplicit()) ret += " explicit=\"1\"";
-		if (m->isAbstract()) ret += " abstract=\"1\"";
-		if (m->isVariadics()) ret += " variadics=\"1\"";
-		if (i->name()=="destroyed") qDebug() << CodeModel::Normal << CodeModel::Slot << CodeModel::Signal << m->functionType() << i->qualifiedName();
+		if (m->isVirtual()) ret += ATTR_TRUE("virtual");
+		if (m->isInline()) ret += ATTR_TRUE("inline");
+		if (m->isExplicit()) ret += ATTR_TRUE("explicit");
+		if (m->isAbstract()) ret += ATTR_TRUE("abstract");
+		if (m->isVariadics()) ret += ATTR_TRUE("variadics");
+		//if (i->name()=="destroyed") qDebug() << CodeModel::Normal << CodeModel::Slot << CodeModel::Signal << m->functionType() << i->qualifiedName();
 		switch(m->functionType()) {
 			case CodeModel::Normal:
 				break;
 			case CodeModel::Slot:
-				ret += " slot=\"1\"";
+				ret += ATTR_TRUE("slot");
 				break;
 			case CodeModel::Signal:
-				ret += " signal=\"1\"";
+				ret += ATTR_TRUE("signal");
 				break;
 		}
 	}
@@ -193,27 +186,24 @@ QString XMLVisitor::visit(CodeModelItem i) {
 		ArgumentModelItem a = model_dynamic_cast<ArgumentModelItem>(i);
 		ret += visit(a->type());
 		if (a->defaultValue()) {
-			ret += " default=\"1\"";
-			ret += " defaultvalue=\"";
-			ret += a->defaultValueExpression();
-			ret += "\"";
+			ret += ATTR_TRUE("default");
+			ret += ATTR_STR("defaultvalue", a->defaultValueExpression());
 		}
 	}
 	if (i->kind() == _CodeModelItem::Kind_Class) {
 		ClassModelItem c = model_dynamic_cast<ClassModelItem>(i);
 		if (c->baseClasses().size()>0) {
-			ret += " bases=\"";
-			ret += c->baseClasses().join(";").append(";\"");
+			ret += ATTR_STR("bases", c->baseClasses().join(";").append(";"));
 		}
 		switch(c->classType()) {
 			case CodeModel::Class:
-				ret += " class_type=\"class\"";
+				ret += ATTR_STR("class_type", QString("class"));
 				break;
 			case CodeModel::Struct:
-				ret += " class_type=\"struct\"";
+				ret += ATTR_STR("class_type", QString("struct"));
 				break;
 			case CodeModel::Union:
-				ret += " class_type=\"union\"";
+				ret += ATTR_STR("class_type", QString("union"));
 				break;
 		}
 		// TODO also list templateParameters (maybe in content?)
@@ -261,11 +251,12 @@ QString XMLVisitor::visit(CodeModelItem i) {
 			ret += visit(model_static_cast<CodeModelItem>(n));
 	}
 	if (i->kind() == _CodeModelItem::Kind_Enum) {
-		int val = 0;
+		QString last = "0";
 		EnumModelItem e = model_dynamic_cast<EnumModelItem>(i);
 		foreach(EnumeratorModelItem n, model_dynamic_cast<EnumModelItem>(i)->enumerators()) {
-			if (n->value() == QString()) n->setValue(QString::number(val++));
+			if (n->value() == QString()) n->setValue(last.append("+1"));
 			ret += visit(model_static_cast<CodeModelItem>(n));
+			last = n->value();
 		}
 	}
 
