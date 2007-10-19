@@ -106,7 +106,7 @@ QString XMLVisitor::XMLTag(CodeModelItem i) {
 	return "";
 }
 QString XMLVisitor::visit(CodeModelItem i) {
-	QString ret("<");
+	QString ret("");
 	ret += XMLTag(i);
 
 	ret += ATTR_STR("id", ID_STR(i));
@@ -222,7 +222,9 @@ QString XMLVisitor::visit(CodeModelItem i) {
 		ret += visit(a->type());
 	}
 
-	ret += " >\n";
+	ret.replace('>', "&gt;");
+	ret.replace('<', "&lt;");
+	ret = "<" + ret + " >\n";
 
 	//
 	// content of the entry:
