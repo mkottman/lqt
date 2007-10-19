@@ -113,7 +113,7 @@ function make_tree (cl, tf)
 	f:close()
 	os.execute('gccxml `pkg-config QtGui QtCore --cflags` -fxml='..tf..'.xml '..tf..'.cpp')
 	--os.execute'gccxml -g -Wall -W -D_REENTRANT -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED -I/usr/share/qt4/mkspecs/linux-g++ -I. -I/usr/include/qt4/QtCore -I/usr/include/qt4/QtCore -I/usr/include/qt4/QtGui -I/usr/include/qt4/QtGui -I/usr/include/qt4 -I. -I. -I. -fxml=auto.xml auto.cpp'
-	os.remove(tf..'.cpp')
+	--os.remove(tf..'.cpp')
 end
 
 function make_standard_qt(B, classlist)
@@ -226,8 +226,9 @@ end
 B.enum_push_body = B.enum_push_body_plus_qt
 
 
-make_standard_qt(B,'QTimer'
---[[
+make_standard_qt(B,
+--'QTimer'
+[[
 QAbstractScrollArea
 QAction
 QApplication
