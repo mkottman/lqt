@@ -2,8 +2,7 @@
 
 local parseargs, collect, strip_escapes
 
-
-strip_escapes = function (self, s)
+strip_escapes = function (s)
 	s = string.gsub(s, '&gt;', '>')
 	s = string.gsub(s, '&lt;', '<')
 	return s
