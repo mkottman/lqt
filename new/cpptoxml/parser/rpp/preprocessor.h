@@ -58,7 +58,8 @@ public:
     Preprocessor();
     ~Preprocessor();
 
-    void processFile(const QString &fileName);
+    void processFile(const QString &fileName, const QString& configName = QString());
+    //void processFile(const QString &fileName);
     void processString(const QByteArray &str);
 
     void addIncludePaths(const QStringList &includePaths);

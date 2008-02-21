@@ -31,6 +31,7 @@
 #include "codemodel.h"
 #include "control.h"
 #include "parser.h"
+#include "preprocessor.h"
 
 #include <QByteArray>
 #include <QFile>
@@ -38,6 +39,7 @@
 #include <QTextStream>
 
 #include <QObject>
+#include <QDir>
 
 #include <QDebug>
 
@@ -327,33 +329,89 @@ QString XMLVisitor::visit<NamespaceModelItem>(NamespaceModelItem n) {
 }
 */
 int main (int argc, char **argv) {
-	if (argc<2) {}
+				bool onlyPreprocess = false;
+				QString configName;
+				QString sourceName;
 
-	QFile file(argv[1]);
+				QStringList options;
+				for (int i=1;i<argc;i++) options << argv[i];
+				int i;
+				if ((i=options.indexOf("-C"))!=-1) {
+								if (options.count() > i+1) {
+												configName = options.at(i+1);
+												options.removeAt(i+1);
+								}
+								options.removeAt(i);
+				}
+				if ((i=options.indexOf("-P"))!=-1) {
+								onlyPreprocess = true;
+								options.removeAt(i);
+				}
+				if (options.count()>1) return 37;
+				sourceName = options.at(0);
 
-	if (!file.open(QFile::ReadOnly))
-		return false;
+				QByteArray contents;
+				if (0) {
+								QFile file(argv[1]);
 
-	QTextStream stream(&file);
-	stream.setCodec(QTextCodec::codecForName("UTF-8"));
-	QByteArray contents = stream.readAll().toUtf8();
-	file.close();
+								if (!file.open(QFile::ReadOnly))
+												return false;
 
+								QTextStream stream(&file);
+								stream.setCodec(QTextCodec::codecForName("UTF-8"));
+								contents = stream.readAll().toUtf8();
+								file.close();
+				} else {
+								Preprocessor pp;
+								QStringList inclist;
 
-	Control control;
-	Parser p(&control);
-	pool __pool;
+								QString qtdir = getenv ("QTDIR");
+								if (qtdir.isEmpty()) {
+												fprintf(stderr, "Generator requires QTDIR to be set\n");
+												return false;
+								}
 
-	TranslationUnitAST *ast = p.parse(contents, contents.size(), &__pool);
+								qtdir += "/include";
 
-	CodeModel model;
-	Binder binder(&model, p.location());
-	FileModelItem f_model = binder.run(ast);
+								QString currentDir = QDir::current().absolutePath();
+								QFileInfo sourceInfo(sourceName);
+								//QDir::setCurrent(sourceInfo.absolutePath());
 
-	XMLVisitor visitor;
-	QTextStream(stdout) << visitor.visit(model_static_cast<CodeModelItem>(f_model));
+								inclist << (sourceInfo.absolutePath());
+								inclist << (QDir::convertSeparators(qtdir));
+								inclist << (QDir::convertSeparators(qtdir + "/QtXml"));
+								inclist << (QDir::convertSeparators(qtdir + "/QtNetwork"));
+								inclist << (QDir::convertSeparators(qtdir + "/QtCore"));
+								inclist << (QDir::convertSeparators(qtdir + "/QtGui"));
+								inclist << (QDir::convertSeparators(qtdir + "/QtOpenGL"));
+								//qDebug() << inclist;
 
-	return 0;
+								pp.addIncludePaths(inclist);
+								pp.processFile(sourceName, configName);
+								//qDebug() << pp.macroNames();
+								contents = pp.result();
+								//qDebug() << contents;
+								//QTextStream(stdout) << contents;
+				}
+
+				if (onlyPreprocess) {
+								QTextStream(stdout) << contents;
+				} else {
+								Control control;
+								Parser p(&control);
+								pool __pool;
+
+								TranslationUnitAST *ast = p.parse(contents, contents.size(), &__pool);
+
+								CodeModel model;
+								Binder binder(&model, p.location());
+								FileModelItem f_model = binder.run(ast);
+
+								XMLVisitor visitor;
+								QTextStream(stdout) << visitor.visit(model_static_cast<CodeModelItem>(f_model));
+				}
+
+				return 0;
 }
 
 

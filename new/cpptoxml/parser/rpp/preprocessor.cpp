@@ -88,6 +88,30 @@ Preprocessor::~Preprocessor()
     delete d;
 }
 
+void Preprocessor::processFile(const QString &fileName, const QString& configName)
+{
+    pp proc(d->env);
+    d->initPP(proc);
+
+		QFile configFile(configName);
+		if (configFile.exists()) {
+				if (!configFile.open(QFile::ReadOnly)) {
+								// ERROR!
+								return;
+				}
+				QByteArray ba = configFile.readAll();
+				configFile.close();
+				proc.operator() (ba.constData(), ba.constData() + ba.size(), rpp::pp_null_output_iterator());
+		} else {
+		}
+
+    d->result.reserve(d->result.size() + 20 * 1024);
+
+    d->result += "# 1 \"" + fileName.toLatin1() + "\"\n"; // ### REMOVE ME
+    proc.file(fileName.toLocal8Bit().constData(), std::back_inserter(d->result));
+}
+
+/*
 void Preprocessor::processFile(const QString &fileName)
 {
     pp proc(d->env);
@@ -98,6 +122,7 @@ void Preprocessor::processFile(const QString &fileName)
     d->result += "# 1 \"" + fileName.toLatin1() + "\"\n"; // ### REMOVE ME
     proc.file(fileName.toLocal8Bit().constData(), std::back_inserter(d->result));
 }
+*/
 
 void Preprocessor::processString(const QByteArray &str)
 {
