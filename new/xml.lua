@@ -66,7 +66,7 @@ function collect(s)
   end
   local text = string.sub(s, i)
   if not string.find(text, "^%s*$") then
-    table.insert(stack[stack.n], text)
+    table.insert(stack[#stack], text)
   end
   if #stack > 1 then
     error("unclosed "..stack[stack.n].label)

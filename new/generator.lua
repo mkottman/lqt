@@ -1,5 +1,7 @@
 #!/usr/bin/lua
 
+local my = { readfile = function(fn) local f = assert(io.open(fn)) local s = f:read'*a' f:close() return s end }
+
 
 local filename = ...
 local path = string.match(arg[0], '(.*/)[^%/]+') or ''
