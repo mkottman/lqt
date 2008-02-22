@@ -61,6 +61,10 @@ function collect(s)
 					top.byname[toclose.xarg.name] = toclose
 				end
 			end
+			if toclose.xarg.id then
+							stack[1].byid = stack[1].byid or {}
+							stack[1].byid[toclose.xarg.id] = toclose
+			end
     end
     i = j+1
   end
