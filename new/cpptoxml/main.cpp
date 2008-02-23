@@ -85,6 +85,11 @@ QString XMLVisitor::visit(TypeInfo t) {
 	if (t.isVolatile()) ret += ATTR_TRUE("type_volatile");
 	if (t.isReference()) ret += ATTR_TRUE("type_reference");
 	if (t.indirections()>0) ret += ATTR_NUM("indirections", t.indirections());
+
+	QStringList arr = t.arrayElements();
+	QString tmp = arr.join(",");
+	if (!tmp.isEmpty()) ret += " array=\"" + tmp + "\"";
+
 	return ret;
 }
 
