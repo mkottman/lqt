@@ -65,25 +65,37 @@ type_name = function(base, constant, volatile, reference, indirections)
 end
 --]]
 
-pushassimplepointer = function(n)
+assimplepointer = function(n)
 								return function(x)
 												return 'lqt_pushpointer(L, '..tostring(x)..', "'..tostring(n)..'")'
 								end
 end
 
+printtype = function(n)
+				return function(x) return '('..tostring(n)..' type) '..tostring(x) end
+end
+
 issimplepointer = function(t)
 				if string.match(t.xarg.type_name, '%(%*%)') then
-								return pushassimplepointer(t.xarg.type_name)
-				elseif string.match(t.xarg.type_name, '%[%d+%]$')
-								or string.match(t.xarg.type_name, '%*$') then
-								return pushassimplepointer(t.xarg.type_name:gsub(' const', ''):gsub(' volatile',''))
+								return assimplepointer(t.xarg.type_name)
+				elseif string.match(t.xarg.type_name, '%[%d+%]$') then
+								-- TODO: error'Don\'t know what to do with arrays'
+								return printtype'array'
+				elseif string.match(t.xarg.type_name, '%*$') then
+								return assimplepointer(t.xarg.type_name:gsub(' const', ''):gsub(' volatile',''))
 				end
+end
+
+isreference = function(t)
+end
+
+isinstance = function(t)
 end
 
 pushtype = function(t)
 				if type(t)~='table' or type(t.xarg)~='table' or type(t.xarg.type_name)~='string' then
 								-- TODO: throw error
-								return function(x) return '(not type)'..tostring(x) end
+								return printtype'not'
 				end
 				if pushtype_table[t.xarg.type_name] then return pushtype_table[t.xarg.type_name] end
 				-- TODO throw error
