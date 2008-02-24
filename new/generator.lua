@@ -65,45 +65,59 @@ type_name = function(base, constant, volatile, reference, indirections)
 end
 --]]
 
-assimplepointer = function(n)
+
+is = {
+				function_pointer = function(t)
+								return string.match(t.xarg.type_name, '%(%*%)')
+				end,
+				array = function(t)
+								return string.match(t.xarg.type_name, '%[%d+%]$')
+				end,
+				pointer = function(t)
+								return string.match(t.xarg.type_name, '%*$')
+				end,
+				reference = function(t)
+								return string.match(t.xarg.type_name, '%&$')
+				end,
+}
+push = {
+				function_pointer = function(t)
 								return function(x)
-												return 'lqt_pushpointer(L, '..tostring(x)..', "'..tostring(n)..'")'
+												return 'lqt_pushpointer(L, '..tostring(x)..', "'..tostring(t.xarg.type_name)..'")'
 								end
-end
-
-printtype = function(n)
-				return function(x) return '('..tostring(n)..' type) '..tostring(x) end
-end
-
-issimplepointer = function(t)
-				if string.match(t.xarg.type_name, '%(%*%)') then
-								return assimplepointer(t.xarg.type_name)
-				elseif string.match(t.xarg.type_name, '%[%d+%]$') then
-								-- TODO: error'Don\'t know what to do with arrays'
-								return printtype'array'
-				elseif string.match(t.xarg.type_name, '%*$') then
-								return assimplepointer(t.xarg.type_name:gsub(' const', ''):gsub(' volatile',''))
-				end
-end
-
-isreference = function(t)
-end
-
-isinstance = function(t)
-end
+				end,
+				array = function(t)
+								return function(x) return '(array type) '..tostring(x) end
+				end,
+				pointer = function(t)
+								return function(x)
+												return 'lqt_pushpointer(L, &'..tostring(x)..', "'
+												..t.xarg.type_name:gsub(' const',''):gsub(' volatile','')..'")'
+								end
+				end,
+				reference = function(t)
+								return function(x)
+												return 'lqt_pushpointer(L, &'..tostring(x)..', "'
+												..t.xarg.type_name:gsub(' const',''):gsub(' volatile',''):gsub('%&$', '*')..'")'
+								end
+				end,
+}
 
 pushtype = function(t)
 				if type(t)~='table' or type(t.xarg)~='table' or type(t.xarg.type_name)~='string' then
 								-- TODO: throw error
-								return printtype'not'
+								return function(x) return '(not type) '..tostring(x) end
 				end
 				if pushtype_table[t.xarg.type_name] then return pushtype_table[t.xarg.type_name] end
 				-- TODO throw error
-				return issimplepointer(t)
-				or function(x) return '=== UNKNOWN TYPE === '..(t.xarg.type_name)..' '..tostring(x) end
+				for i, p in pairs(is) do
+								if p(t) then return push[i](t) end
+				end
+				return function(x) return '=== UNKNOWN TYPE === '..(t.xarg.type_name)..' '..tostring(x) end
 end
 
 for _, v in pairs(xmlstream.byid) do
+				--if v.xarg.scope~=v.xarg.context..'::' then print(v.label, v.xarg.id, v.xarg.type_name) end
 				print(pushtype(v)(v.xarg.name), ' // '.._..': '..v.label..' : '..(v.xarg.type_name or ''))
 				--assert(type_name(v.xarg.type_base, v.xarg.type_constant, v.xarg.type_volatile, v.xarg.type_reference, v.xarg.indirections or 0)==v.xarg.type_name)
 end
