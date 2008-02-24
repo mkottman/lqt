@@ -44,13 +44,15 @@
 #include <QDebug>
 
 #define ID_STR(i) (QString("_").append(QString::number(i->creationId())))
-#define ATTR_STR(n, v) ( (v).prepend(" " n "=\"").append("\"") )
+#define ATTR_STR(n, v) ( QString(" ") + n + QString("=\"") + v + QString("\"") )
 #define ATTR_NUM(n, v) ( (QString::number(v)).prepend(" " n "=\"").append("\"") )
 #define ATTR_TRUE(n) ( ATTR_NUM(n, 1) )
 
 using namespace std;
 
 class XMLVisitor {
+	private:
+		QStringList current_context;
 	public:
 		QString XMLTag(CodeModelItem);
 		QString visit(TypeInfo);
@@ -118,7 +120,8 @@ QString XMLVisitor::visit(CodeModelItem i) {
 
 	ret += ATTR_STR("id", ID_STR(i));
 	ret += ATTR_STR("name", i->name());
-	ret += ATTR_STR("context", i->scope().join("::").append("::"));
+	ret += ATTR_STR("scope", i->scope().join("::").append("::"));
+	ret += ATTR_STR("context", current_context.join("::"));
 	ret += ATTR_STR("fullname", i->qualifiedName().join("::"));
 
 	if (i->kind() & _CodeModelItem::Kind_Scope) {
@@ -244,6 +247,8 @@ QString XMLVisitor::visit(CodeModelItem i) {
 			ret += visit(model_static_cast<CodeModelItem>(n));
 	}
 	if (i->kind() & _CodeModelItem::Kind_Scope) {
+		//qDebug() << ID_STR(i) << i->name() << current_context;
+		if (!i->name().isEmpty()) current_context << i->name();
 		foreach(ClassModelItem n, model_dynamic_cast<ScopeModelItem>(i)->classes())
 			ret += visit(model_static_cast<CodeModelItem>(n));
 		foreach(EnumModelItem n, model_dynamic_cast<ScopeModelItem>(i)->enums())
@@ -254,6 +259,7 @@ QString XMLVisitor::visit(CodeModelItem i) {
 			ret += visit(model_static_cast<CodeModelItem>(n));
 		foreach(VariableModelItem n, model_dynamic_cast<ScopeModelItem>(i)->variables())
 			ret += visit(model_static_cast<CodeModelItem>(n));
+		if (!i->name().isEmpty()) current_context.removeLast();
 	}
 	if ((i->kind() & _CodeModelItem::Kind_Function) == _CodeModelItem::Kind_Function) {
 		foreach(ArgumentModelItem n, model_dynamic_cast<FunctionModelItem>(i)->arguments())
