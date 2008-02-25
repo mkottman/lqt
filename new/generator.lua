@@ -65,6 +65,37 @@ type_name = function(base, constant, volatile, reference, indirections)
 end
 --]]
 
+next_scope = function(path, i)
+				local ns, te, j = string.match(path, "([^:<>]+)(%b<>)()", i)
+				if not ns then ns, te, j = string.match(path, "([^:<>]+)(%z?)()", i) end
+				return ns, te, j
+end
+
+find_element = function(t, path, err)
+				local ns, te, i = next_scope(path)
+				while ns and ns~='' do
+								print ('===>', ns, '`'..te..'\'', i, path)
+								if te=='' then
+												if not t.byname[ns] then
+																print(path..' broken at '..ns..' -- '..err)
+																break
+												else
+																t = t.byname[ns]
+												end
+								else
+												local ot = t
+												for k, v in pairs(t.byname) do
+																if string.find(k, ns..'<')==1 then
+																				t = v
+																				break
+																end
+												end
+												if t==ot then print('broken template ' ..ns..te) end
+								end
+								ns, te, i = next_scope(path, i)
+				end
+				return t
+end
 
 is = {
 				function_pointer = function(t)
@@ -108,6 +139,7 @@ pushtype = function(t)
 								-- TODO: throw error
 								return function(x) return '(not type) '..tostring(x) end
 				end
+				print('===>', find_element(code, t.xarg.type_base, t.xarg.id).label)
 				if pushtype_table[t.xarg.type_name] then return pushtype_table[t.xarg.type_name] end
 				-- TODO throw error
 				for i, p in pairs(is) do
@@ -115,6 +147,7 @@ pushtype = function(t)
 				end
 				return function(x) return '=== UNKNOWN TYPE === '..(t.xarg.type_name)..' '..tostring(x) end
 end
+
 
 for _, v in pairs(xmlstream.byid) do
 				--if v.xarg.scope~=v.xarg.context..'::' then print(v.label, v.xarg.id, v.xarg.type_name) end

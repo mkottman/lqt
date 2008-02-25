@@ -14,3 +14,11 @@ int * const &h;
 int * &const i;
 int * const &j;
 
+namespace A {
+class B {
+class C {
+				typedef B T;
+};
+};
+};
+
