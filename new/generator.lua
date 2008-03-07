@@ -1,12 +1,21 @@
 #!/usr/bin/lua
 
-local my = { readfile = function(fn) local f = assert(io.open(fn)) local s = f:read'*a' f:close() return s end }
+local my = {
+				readfile = function(fn) local f = assert(io.open(fn)) local s = f:read'*a' f:close() return s end
+}
 
 
 local filename = ...
 local path = string.match(arg[0], '(.*/)[^%/]+') or ''
 local xmlstream = dofile(path..'xml.lua')(my.readfile(filename))
 local code = xmlstream[1]
+
+local types_on_stack = dofile'types.lua'
+setmetatable(types_on_stack, {
+				__index = function(t, k)
+						return nil
+				end,
+})
 
 --[[
 table.foreach(code.byname.hello.xarg, print)
@@ -74,10 +83,10 @@ end
 find_element = function(t, path, err)
 				local ns, te, i = next_scope(path)
 				while ns and ns~='' do
-								print ('===>', ns, '`'..te..'\'', i, path)
+								print ('===>', ns, '`'..te..'\'', i, path, t.xarg.name)
 								if te=='' then
 												if not t.byname[ns] then
-																print(path..' broken at '..ns..' -- '..err)
+																print(path..' broken at '..ns..' -- '..tostring(err))
 																break
 												else
 																t = t.byname[ns]
@@ -92,9 +101,18 @@ find_element = function(t, path, err)
 												end
 												if t==ot then print('broken template ' ..ns..te) end
 								end
+								t = solve_typedefs(t)
 								ns, te, i = next_scope(path, i)
 				end
 				return t
+end
+solve_typedefs = function(t)
+				if t.label=="TypeAlias" then
+								print('solving', t.xarg.name)
+								return find_element(t, t.xarg.type_base, "solve typedef")
+				else
+								return t
+				end
 end
 
 is = {
@@ -149,11 +167,14 @@ pushtype = function(t)
 end
 
 
+local cache = {}
 for _, v in pairs(xmlstream.byid) do
-				--if v.xarg.scope~=v.xarg.context..'::' then print(v.label, v.xarg.id, v.xarg.type_name) end
-				print(pushtype(v)(v.xarg.name), ' // '.._..': '..v.label..' : '..(v.xarg.type_name or ''))
+				if v.xarg.scope~=v.xarg.context..'::' then print(v.label, v.xarg.id, v.xarg.type_name, v.xarg.scope, v.xarg.context) end
+				cache[v.xarg.context] = true
+				--print(pushtype(v)(v.xarg.name), ' // '.._..': '..v.label..' : '..(v.xarg.type_name or ''))
 				--assert(type_name(v.xarg.type_base, v.xarg.type_constant, v.xarg.type_volatile, v.xarg.type_reference, v.xarg.indirections or 0)==v.xarg.type_name)
 end
+table.foreach(cache, print)
 
 
 
