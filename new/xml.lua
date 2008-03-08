@@ -51,12 +51,12 @@ function collect(s)
 				if overload then
 					-- FIXME: most probably a case of overload: check
 					if overload.tag~='Overloaded' then
-						print('created overload '..toclose.xarg.name)
+						--print('created overload '..toclose.xarg.name)
 						overload = { tag='Overloaded', xargs={ name=toclose.xarg.name }, overload }
 						top.byname[toclose.xarg.name] = overload
 					end
 					table.insert(overload, toclose)
-					print('used overload '..toclose.xarg.name)
+					--print('used overload '..toclose.xarg.name)
 				else
 					top.byname[toclose.xarg.name] = toclose
 				end
