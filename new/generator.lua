@@ -13,7 +13,26 @@ local code = xmlstream[1]
 local types_on_stack = dofile'types.lua'
 setmetatable(types_on_stack, {
 				__index = function(t, k)
-						return nil
+						if string.match(k, '<') then
+										return nil -- explicitly won't support templates yet
+						end
+						local space = code
+						for n in string.gmatch(k, '[^:]+') do
+										if space.byname and space.byname[n] then
+														space = space.byname[n]
+										else
+														break
+										end
+						end
+						if type(space)~='table' then
+						elseif space.label=='Enum' then
+										t[k] = 'integer'
+						elseif space.label=='Class' then
+										t[k] = 'userdata'
+						else
+										t[k] = space.label
+						end
+						return t[k]
 				end,
 })
 
@@ -76,7 +95,7 @@ end
 
 next_scope = function(path, i)
 				local ns, te, j = string.match(path, "([^:<>]+)(%b<>)()", i)
-				if not ns then ns, te, j = string.match(path, "([^:<>]+)(%z?)()", i) end
+				if not ns then ns, te, j = string.match(path, "([^:<>]+)()()", i) end
 				return ns, te, j
 end
 
@@ -84,7 +103,7 @@ find_element = function(t, path, err)
 				local ns, te, i = next_scope(path)
 				while ns and ns~='' do
 								print ('===>', ns, '`'..te..'\'', i, path, t.xarg.name)
-								if te=='' then
+								if type(te)=='number' then
 												if not t.byname[ns] then
 																print(path..' broken at '..ns..' -- '..tostring(err))
 																break
@@ -169,12 +188,14 @@ end
 
 local cache = {}
 for _, v in pairs(xmlstream.byid) do
-				if v.xarg.scope~=v.xarg.context..'::' then print(v.label, v.xarg.id, v.xarg.type_name, v.xarg.scope, v.xarg.context) end
-				cache[v.xarg.context] = true
+				local __ = types_on_stack[v.xarg.type_base or 'none']
+				--if v.xarg.scope~=v.xarg.context..'::' then print(v.label, v.xarg.id, v.xarg.type_name, v.xarg.scope, v.xarg.context) end
+				--cache[v.xarg.context] = true
 				--print(pushtype(v)(v.xarg.name), ' // '.._..': '..v.label..' : '..(v.xarg.type_name or ''))
 				--assert(type_name(v.xarg.type_base, v.xarg.type_constant, v.xarg.type_volatile, v.xarg.type_reference, v.xarg.indirections or 0)==v.xarg.type_name)
 end
-table.foreach(cache, print)
+--table.foreach(cache, print)
+table.foreach(types_on_stack, print)
 
 
 
