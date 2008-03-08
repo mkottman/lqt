@@ -14,14 +14,19 @@ return {
 				['int'] =                    'integer',
 				['unsigned int'] =           'integer',
 
+				['short'] =                  'integer',
 				['short int'] =              'integer',
 				['unsigned short int'] =     'integer',
 				['short unsigned int'] =     'integer',
 
+				['long'] =                   'integer',
+				['unsigned long'] =          'integer',
 				['long int'] =               'integer',
 				['unsigned long int'] =      'integer',
 				['long unsigned int'] =      'integer',
 
+				['long long'] =              'integer',
+				['unsigned long long'] =     'integer',
 				['long long int'] =          'integer',
 				['unsigned long long int'] = 'integer',
 
