@@ -16,6 +16,7 @@ return {
 
 				['short'] =                  'integer;',
 				['short int'] =              'integer;',
+				['unsigned short'] =         'integer;',
 				['unsigned short int'] =     'integer;',
 				['short unsigned int'] =     'integer;',
 
