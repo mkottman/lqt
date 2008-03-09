@@ -17,20 +17,34 @@ setmetatable(types_on_stack, {
 										return nil -- explicitly won't support templates yet
 						end
 						local space = code
-						for n in string.gmatch(k, '[^:]+') do
+						local iter = string.gmatch(k, '[^:]+')
+						for n in iter do
 										if space.byname and space.byname[n] then
 														space = space.byname[n]
+														if type(space)=='table' and space.label=='TypeAlias' then
+																		n = space.xarg.type_name
+																		for i in iter do
+																						n = n..'::'..i
+																		end
+																		--print ('----', k, 'is alias for', n)
+																		local ret = t[n]
+																		if ret then t[k] = ret end
+																		--print ('++++', k, 'is alias for', n, 'and is', ret)
+																		return ret
+														end
 										else
+														--t[k] = 'at '..n..' FAIL in '..space.xarg.fullname
 														break
 										end
+										n = iter()
 						end
 						if type(space)~='table' then
 						elseif space.label=='Enum' then
-										t[k] = 'integer'
+										t[k] = 'integer;'
 						elseif space.label=='Class' then
-										t[k] = 'userdata'
+										t[k] = 'userdata;'
 						else
-										t[k] = space.label
+										t[k] = space.xarg.fullname..' '..space.label
 						end
 						return t[k]
 				end,
