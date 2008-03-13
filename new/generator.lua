@@ -10,58 +10,50 @@ local path = string.match(arg[0], '(.*/)[^%/]+') or ''
 local xmlstream = dofile(path..'xml.lua')(my.readfile(filename))
 local code = xmlstream[1]
 
-local types_on_stack = dofile'types.lua'
-setmetatable(types_on_stack, {
+
+
+local base_types = dofile'types.lua'
+setmetatable(base_types,{
 				__index = function(t, k)
-						if string.match(k, '<') then
-										return nil -- explicitly won't support templates yet
-						end
-						local space = code
-						local iter = string.gmatch(k, '[^:]+')
-						for n in iter do
-										if space.byname and space.byname[n] then
-														space = space.byname[n]
-														if type(space)=='table' and space.label=='TypeAlias' then
-																		n = space.xarg.type_name
-																		if space.xarg.type_base~=n then
-																						-- if it is not a pure class name, it should not have members
-																						if iter() then
-																										error'compound type shouldn\'t have members'
-																						else
-																										return 'userdata;'
-																						end
-																		end
-																		for i in iter do
-																						n = n..'::'..i
-																		end
-																		--print ('----', k, 'is alias for', n)
-																		local ret = t[n]
-																		if ret then t[k] = ret end
-																		print ('++++', k, 'is alias for', n, 'and is', ret)
-																		return ret
-														end
-										else
-														--t[k] = 'at '..n..' FAIL in '..space.xarg.fullname
-														t[k] = 'FAIL' -- FIXME: this is only for debugging, should remain nil
-														return nil
-										end
-						end
-						if type(space)~='table' then
-						elseif space.label=='Enum' then
-										t[k] = 'integer;'
-						elseif space.label=='Class' then
-										t[k] = 'userdata;'
-						else
-										t[k] = space.xarg.fullname..' '..space.label
-						end
-						return t[k]
+								-- exclude base types
+								if rawget(base_types, k) then
+												t[k] = k
+												return k
+								end
+								-- exclude templates
+								if string.match(k, '<') then
+												return nil -- explicitly won't support templates yet
+								end
+
+								-- traverse namespace tree
+								local space = code
+								local iter = string.gmatch(k, '[^:]+')
+								for n in iter do if space.byname and space.byname[n] then
+												space = space.byname[n]
+												if type(space)=='table' and space.label=='TypeAlias' then
+																error'you should resolve aliases before calling this function'
+												end -- is an alias?
+								else
+												--t[k] = 'at '..n..' FAIL in '..space.xarg.fullname
+												t[k] = 'FAIL' -- FIXME: this is only for debugging, should remain nil
+												return nil
+								end	end
+
+								-- make use of final result
+								if type(space)~='table' then
+												t[k] = 'FAIL' -- FIXME: this is only for debugging, should remain nil
+								else
+												t[k] = space.xarg.fullname
+								end
+								return t[k]
 				end,
 })
 
+local base_types = dofile'types.lua'
 local types_name = setmetatable({},{
 				__index = function(t, k)
 								-- exclude base types
-								if rawget(types_on_stack, k) then
+								if rawget(base_types, k) then
 												t[k] = k
 												return k
 								end
