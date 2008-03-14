@@ -10,15 +10,21 @@ local path = string.match(arg[0], '(.*/)[^%/]+') or ''
 local xmlstream = dofile(path..'xml.lua')(my.readfile(filename))
 local code = xmlstream[1]
 
+local decompound = function(n)
+				-- test function pointer
+				local r, a = string.match(n, '(.-) %(%*%) (%b())')
+end
 
 
 local base_types = dofile'types.lua'
-setmetatable(base_types,{
+
+-- this only works on resolved types (no typedefs) and no compound types
+local types_desc = setmetatable({}, {
 				__index = function(t, k)
 								-- exclude base types
 								if rawget(base_types, k) then
-												t[k] = k
-												return k
+												t[k] = rawget(base_types, k)
+												return rawget(base_types, k)
 								end
 								-- exclude templates
 								if string.match(k, '<') then
@@ -34,23 +40,20 @@ setmetatable(base_types,{
 																error'you should resolve aliases before calling this function'
 												end -- is an alias?
 								else
-												--t[k] = 'at '..n..' FAIL in '..space.xarg.fullname
-												t[k] = 'FAIL' -- FIXME: this is only for debugging, should remain nil
 												return nil
 								end	end
 
 								-- make use of final result
 								if type(space)~='table' then
-												t[k] = 'FAIL' -- FIXME: this is only for debugging, should remain nil
+												return nil
 								else
-												t[k] = space.xarg.fullname
+												t[k] = space
 								end
 								return t[k]
 				end,
 })
 
-local base_types = dofile'types.lua'
-local types_name = setmetatable({},{
+local types_name = setmetatable({}, {
 				__index = function(t, k)
 								-- exclude base types
 								if rawget(base_types, k) then
@@ -75,8 +78,8 @@ local types_name = setmetatable({},{
 																								error'compound type shouldn\'t have members'
 																				else
 																								local sub = t[space.xarg.type_base]
-																								local ret = sub and string.gsub(alias, space.xarg.type_base, sub) or 'FAIL'
-																								print('----', ret)
+																								local ret = sub and string.gsub(alias, space.xarg.type_base, sub) or nil
+																								print('++++', ret)
 																								t[k] = ret
 																								return ret
 																				end
@@ -90,14 +93,13 @@ local types_name = setmetatable({},{
 																end -- alias to compound type?
 												end -- is an alias?
 								else
-												--t[k] = 'at '..n..' FAIL in '..space.xarg.fullname
-												t[k] = 'FAIL' -- FIXME: this is only for debugging, should remain nil
+												t[k] = nil
 												return nil
 								end	end
 
 								-- make use of final result
 								if type(space)~='table' then
-												t[k] = 'FAIL' -- FIXME: this is only for debugging, should remain nil
+												t[k] = nil
 								else
 												t[k] = space.xarg.fullname
 								end
@@ -264,7 +266,11 @@ for _, v in pairs(xmlstream.byid) do
 				--assert(type_name(v.xarg.type_base, v.xarg.type_constant, v.xarg.type_volatile, v.xarg.type_reference, v.xarg.indirections or 0)==v.xarg.type_name)
 end
 --table.foreach(cache, print)
-table.foreach(types_name, print)
+do
+				local t = {}
+				table.foreach(types_name, function(i, j) t[j] = true end)
+				table.foreach(types_name, print)
+end
 
 
 
