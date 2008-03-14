@@ -1,10 +1,11 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2007 Trolltech ASA. All rights reserved.
+** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2002-2005 Roberto Raggi <roberto@kdevelop.org>
 **
-** This file is part of Qt Jambi.
+** This file is part of the Qt Script Generator project on Trolltech Labs.
 **
-** ** This file may be used under the terms of the GNU General Public
+** This file may be used under the terms of the GNU General Public
 ** License version 2.0 as published by the Free Software Foundation
 ** and appearing in the file LICENSE.GPL included in the packaging of
 ** this file.  Please review the following information to ensure GNU
@@ -15,33 +16,12 @@
 ** review the following information:
 ** http://www.trolltech.com/products/qt/licensing.html or contact the
 ** sales department at sales@trolltech.com.
-
 **
 ** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
 ** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 **
 ****************************************************************************/
 
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-
-/* This file is part of KDevelop
-    Copyright (C) 2002-2005 Roberto Raggi <roberto@kdevelop.org>
-    Copyright (C) 2005 Trolltech AS
-
-   This library is free software; you can redistribute it and/or
-   modify it under the terms of the GNU Library General Public
-   License version 2 as published by the Free Software Foundation.
-
-   This library is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   Library General Public License for more details.
-
-   You should have received a copy of the GNU Library General Public License
-   along with this library; see the file COPYING.LIB.  If not, write to
-   the Free Software Foundation, Inc., 51 Franklin Steet, Fifth Floor,
-   Boston, MA 02110-1301, USA.
-*/
 
 #ifndef CODEMODEL_H
 #define CODEMODEL_H
@@ -310,6 +290,9 @@ public:
   TypeAliasModelItem findTypeAlias(const QString &name) const;
   VariableModelItem findVariable(const QString &name) const;
 
+  void addEnumsDeclaration(const QString &enumsDeclaration);
+  QStringList enumsDeclarations() const { return _M_enumsDeclarations; }
+
   inline QHash<QString, ClassModelItem> classMap() const { return _M_classes; }
   inline QHash<QString, EnumModelItem> enumMap() const { return _M_enums; }
   inline QHash<QString, TypeAliasModelItem> typeAliasMap() const { return _M_typeAliases; }
@@ -334,6 +317,8 @@ private:
 private:
   _ScopeModelItem(const _ScopeModelItem &other);
   void operator = (const _ScopeModelItem &other);
+
+  QStringList _M_enumsDeclarations;
 };
 
 class _ClassModelItem: public _ScopeModelItem

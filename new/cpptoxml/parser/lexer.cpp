@@ -1,10 +1,11 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2007 Trolltech ASA. All rights reserved.
+** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2002-2005 Roberto Raggi <roberto@kdevelop.org>
 **
-** This file is part of Qt Jambi.
+** This file is part of the Qt Script Generator project on Trolltech Labs.
 **
-** ** This file may be used under the terms of the GNU General Public
+** This file may be used under the terms of the GNU General Public
 ** License version 2.0 as published by the Free Software Foundation
 ** and appearing in the file LICENSE.GPL included in the packaging of
 ** this file.  Please review the following information to ensure GNU
@@ -15,30 +16,12 @@
 ** review the following information:
 ** http://www.trolltech.com/products/qt/licensing.html or contact the
 ** sales department at sales@trolltech.com.
-
 **
 ** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
 ** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 **
 ****************************************************************************/
 
-/* This file is part of KDevelop
-    Copyright (C) 2002-2005 Roberto Raggi <roberto@kdevelop.org>
-
-   This library is free software; you can redistribute it and/or
-   modify it under the terms of the GNU Library General Public
-   License version 2 as published by the Free Software Foundation.
-
-   This library is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   Library General Public License for more details.
-
-   You should have received a copy of the GNU Library General Public License
-   along with this library; see the file COPYING.LIB.  If not, write to
-   the Free Software Foundation, Inc., 51 Franklin Steet, Fifth Floor,
-   Boston, MA 02110-1301, USA.
-*/
 
 #include "lexer.h"
 #include "tokens.h"
@@ -150,7 +133,7 @@ void Lexer::tokenize(const char *contents, std::size_t size)
     current_token->position = cursor - begin_buffer;
     (this->*s_scan_table[*cursor])();
     current_token->size = cursor - begin_buffer - current_token->position;
-  } while (cursor < end_buffer-1);
+  } while (cursor < end_buffer);
 
   if (index == token_stream.size())
       token_stream.resize(token_stream.size() * 2);
@@ -1489,6 +1472,20 @@ void Lexer::scanKeyword7()
 	  return;
 	}
       break;
+
+    case 'Q':
+      if (*(cursor + 1) == '_' &&
+      *(cursor + 2) == 'E' &&
+      *(cursor + 3) == 'N' &&
+      *(cursor + 4) == 'U' &&
+      *(cursor + 5) == 'M' &&
+      *(cursor + 6) == 'S')
+      {
+        token_stream[(int) index++].kind = Token_Q_ENUMS;
+        return;
+      }
+        break;
+
     }
   token_stream[(int) index++].kind = Token_identifier;
 }
@@ -1710,8 +1707,10 @@ void Lexer::scanKeyword10()
             token_stream[(int) index++].kind = Token_Q_PROPERTY;
             return;
           }
+
         break;
     }
+
   token_stream[(int) index++].kind = Token_identifier;
 }
 

@@ -1,10 +1,11 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2007 Trolltech ASA. All rights reserved.
+** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2002-2005 Roberto Raggi <roberto@kdevelop.org>
 **
-** This file is part of Qt Jambi.
+** This file is part of the Qt Script Generator project on Trolltech Labs.
 **
-** ** This file may be used under the terms of the GNU General Public
+** This file may be used under the terms of the GNU General Public
 ** License version 2.0 as published by the Free Software Foundation
 ** and appearing in the file LICENSE.GPL included in the packaging of
 ** this file.  Please review the following information to ensure GNU
@@ -15,33 +16,11 @@
 ** review the following information:
 ** http://www.trolltech.com/products/qt/licensing.html or contact the
 ** sales department at sales@trolltech.com.
-
 **
 ** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
 ** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 **
 ****************************************************************************/
-
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-
-/* This file is part of KDevelop
-    Copyright (C) 2002-2005 Roberto Raggi <roberto@kdevelop.org>
-    Copyright (C) 2005 Trolltech AS
-
-   This library is free software; you can redistribute it and/or
-   modify it under the terms of the GNU Library General Public
-   License version 2 as published by the Free Software Foundation.
-
-   This library is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   Library General Public License for more details.
-
-   You should have received a copy of the GNU Library General Public License
-   along with this library; see the file COPYING.LIB.  If not, write to
-   the Free Software Foundation, Inc., 51 Franklin Steet, Fifth Floor,
-   Boston, MA 02110-1301, USA.
-*/
 
 #include "binder.h"
 #include "lexer.h"
@@ -436,61 +415,73 @@ void Binder::visitFunctionDefinition(FunctionDefinitionAST *node)
 
 void Binder::visitTemplateDeclaration(TemplateDeclarationAST *node)
 {
-  const ListNode<TemplateParameterAST*> *it = node->template_parameters;
-  if (it == 0)
-    return;
+    const ListNode<TemplateParameterAST*> *it = node->template_parameters;
+    if (it == 0)
+        return;
 
-  TemplateParameterList savedTemplateParameters = changeTemplateParameters(TemplateParameterList());
+    TemplateParameterList savedTemplateParameters = changeTemplateParameters(TemplateParameterList());
 
-  it = it->toFront();
-  const ListNode<TemplateParameterAST*> *end = it;
+    it = it->toFront();
+    const ListNode<TemplateParameterAST*> *end = it;
 
-  TemplateParameterList templateParameters;
-  do
-    {
-      TemplateParameterAST *parameter = it->element;
-      TypeParameterAST *type_parameter = parameter->type_parameter;
-      if (! type_parameter)
-        {
-//           std::cerr << "** WARNING template declaration not supported ``";
-//           Token const &tk = _M_token_stream->token ((int) node->start_token);
-//           Token const &end_tk = _M_token_stream->token ((int) node->declaration->start_token);
+    TemplateParameterList templateParameters;
+    do {
+        TemplateParameterAST *parameter = it->element;
+        TypeParameterAST *type_parameter = parameter->type_parameter;
 
-//           std::cerr << std::string (&tk.text[tk.position], (end_tk.position) - tk.position) << "''"
-//                     << std::endl << std::endl;
+        NameAST *name;
+        if (!type_parameter) {
+            // A hacky hack to work around missing support for parameter declarations in
+            // templates. We just need the to get the name of the variable, since we
+            // aren't actually compiling these anyway. We are still not supporting much
+            // more, but we are refusing to fail for a few more declarations
+            if (parameter->parameter_declaration == 0 ||
+                parameter->parameter_declaration->declarator == 0 ||
+                parameter->parameter_declaration->declarator->id == 0) {
 
-          changeTemplateParameters(savedTemplateParameters);
-          return;
+                    /*std::cerr << "** WARNING template declaration not supported ``";
+                    Token const &tk = _M_token_stream->token ((int) node->start_token);
+                    Token const &end_tk = _M_token_stream->token ((int) node->declaration->start_token);
+
+                    std::cerr << std::string (&tk.text[tk.position], (end_tk.position) - tk.position) << "''"
+                        << std::endl << std::endl;*/
+
+                    changeTemplateParameters(savedTemplateParameters);
+                    return;
+
+            }
+
+            name = parameter->parameter_declaration->declarator->id;
+        } else {
+            int tk = decode_token(type_parameter->type);
+            if (tk != Token_typename && tk != Token_class)
+            {
+                /*std::cerr << "** WARNING template declaration not supported ``";
+                Token const &tk = _M_token_stream->token ((int) node->start_token);
+                Token const &end_tk = _M_token_stream->token ((int) node->declaration->start_token);
+
+                std::cerr << std::string (&tk.text[tk.position], (end_tk.position) - tk.position) << "''"
+                << std::endl << std::endl;*/
+
+                changeTemplateParameters(savedTemplateParameters);
+                return;
+            }
+            assert(tk == Token_typename || tk == Token_class);
+
+            name = type_parameter->name;
         }
-      assert(type_parameter != 0);
 
-      TemplateParameterModelItem p = model()->create<TemplateParameterModelItem>();
-      int tk = decode_token(type_parameter->type);
-      if (tk != Token_typename && tk != Token_class)
-        {
-//           std::cerr << "** WARNING template declaration not supported ``";
-//           Token const &tk = _M_token_stream->token ((int) node->start_token);
-//           Token const &end_tk = _M_token_stream->token ((int) node->declaration->start_token);
+        TemplateParameterModelItem p = model()->create<TemplateParameterModelItem>();
+        name_cc.run(name);
+        p->setName(name_cc.name());
 
-//           std::cerr << std::string (&tk.text[tk.position], (end_tk.position) - tk.position) << "''"
-//                     << std::endl << std::endl;
+        _M_current_template_parameters.append(p);
+        it = it->next;
+    } while (it != end);
 
-          changeTemplateParameters(savedTemplateParameters);
-          return;
-        }
-      assert(tk == Token_typename || tk == Token_class);
+    visit(node->declaration);
 
-      name_cc.run(type_parameter->name);
-      p->setName(name_cc.name());
-
-      _M_current_template_parameters.append(p);
-      it = it->next;
-    }
-  while (it != end);
-
-  visit(node->declaration);
-
-  changeTemplateParameters(savedTemplateParameters);
+    changeTemplateParameters(savedTemplateParameters);
 }
 
 void Binder::visitTypedef(TypedefAST *node)
@@ -603,6 +594,16 @@ void Binder::visitNamespace(NamespaceAST *node)
     }
 }
 
+void Binder::visitForwardDeclarationSpecifier(ForwardDeclarationSpecifierAST *node)
+{
+    name_cc.run(node->name);
+    if (name_cc.name().isEmpty())
+        return;
+
+    ScopeModelItem scope = currentScope();
+    _M_qualified_types[(scope->qualifiedName() + name_cc.qualifiedName()).join(".") ] = QString();
+}
+
 void Binder::visitClassSpecifier(ClassSpecifierAST *node)
 {
   ClassCompiler class_cc(this);
@@ -621,7 +622,15 @@ void Binder::visitClassSpecifier(ClassSpecifierAST *node)
   ClassModelItem old = changeCurrentClass(_M_model->create<ClassModelItem>());
   updateItemPosition (_M_current_class->toItem(), node);
   _M_current_class->setName(class_cc.name());
-  _M_current_class->setBaseClasses(class_cc.baseClasses());
+
+  QStringList baseClasses = class_cc.baseClasses(); TypeInfo info;
+  for (int i=0; i<baseClasses.size(); ++i)
+    {
+        info.setQualifiedName(baseClasses.at(i).split("::"));
+        baseClasses[i] = qualifyType(info, scope->qualifiedName()).qualifiedName().join("::");
+    }
+
+  _M_current_class->setBaseClasses(baseClasses);
   _M_current_class->setClassType(decode_class_type(node->class_key));
   _M_current_class->setTemplateParameters(_M_current_template_parameters);
 
@@ -646,6 +655,7 @@ void Binder::visitClassSpecifier(ClassSpecifierAST *node)
 
   _M_current_class->setScope(scope->qualifiedName());
   _M_qualified_types[_M_current_class->qualifiedName().join(".")] = QString();
+
   scope->addClass(_M_current_class);
 
   name_cc.run(node->name->unqualified_name);
@@ -701,6 +711,17 @@ void Binder::visitEnumSpecifier(EnumSpecifierAST *node)
   _M_current_enum = 0;
 }
 
+static QString strip_preprocessor_lines(const QString &name)
+{
+    QStringList lst = name.split("\n");
+    QString s;
+    for (int i=0; i<lst.size(); ++i) {
+        if (!lst.at(i).startsWith('#'))
+            s += lst.at(i);
+    }
+    return s.trimmed();
+}
+
 void Binder::visitEnumerator(EnumeratorAST *node)
 {
   Q_ASSERT(_M_current_enum != 0);
@@ -713,8 +734,8 @@ void Binder::visitEnumerator(EnumeratorAST *node)
       const Token &start_token = _M_token_stream->token((int) expr->start_token);
       const Token &end_token = _M_token_stream->token((int) expr->end_token);
 
-      e->setValue(QString::fromUtf8(&start_token.text[start_token.position],
-                                    (int) (end_token.position - start_token.position)).trimmed());
+      e->setValue(strip_preprocessor_lines(QString::fromUtf8(&start_token.text[start_token.position],
+                                    (int) (end_token.position - start_token.position)).trimmed()).remove(' '));
     }
 
   _M_current_enum->addEnumerator(e);
@@ -723,6 +744,18 @@ void Binder::visitEnumerator(EnumeratorAST *node)
 void Binder::visitUsingDirective(UsingDirectiveAST *node)
 {
   DefaultVisitor::visitUsingDirective(node);
+}
+
+void Binder::visitQEnums(QEnumsAST *node)
+{
+  const Token &start = _M_token_stream->token((int) node->start_token);
+  const Token &end = _M_token_stream->token((int) node->end_token);
+  QStringList enum_list = QString::fromLatin1(start.text + start.position,
+                                              end.position - start.position).split(' ');
+
+  ScopeModelItem scope = currentScope();
+  for (int i=0; i<enum_list.size(); ++i)
+    scope->addEnumsDeclaration(enum_list.at(i));
 }
 
 void Binder::visitQProperty(QPropertyAST *node)

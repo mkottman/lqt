@@ -1,10 +1,11 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2007 Trolltech ASA. All rights reserved.
+** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2002-2005 Roberto Raggi <roberto@kdevelop.org>
 **
-** This file is part of Qt Jambi.
+** This file is part of the Qt Script Generator project on Trolltech Labs.
 **
-** ** This file may be used under the terms of the GNU General Public
+** This file may be used under the terms of the GNU General Public
 ** License version 2.0 as published by the Free Software Foundation
 ** and appearing in the file LICENSE.GPL included in the packaging of
 ** this file.  Please review the following information to ensure GNU
@@ -15,7 +16,6 @@
 ** review the following information:
 ** http://www.trolltech.com/products/qt/licensing.html or contact the
 ** sales department at sales@trolltech.com.
-
 **
 ** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
 ** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
@@ -24,23 +24,6 @@
 
 /* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 
-/* This file is part of KDevelop
-    Copyright (C) 2002-2005 Roberto Raggi <roberto@kdevelop.org>
-
-   This library is free software; you can redistribute it and/or
-   modify it under the terms of the GNU Library General Public
-   License version 2 as published by the Free Software Foundation.
-
-   This library is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   Library General Public License for more details.
-
-   You should have received a copy of the GNU Library General Public License
-   along with this library; see the file COPYING.LIB.  If not, write to
-   the Free Software Foundation, Inc., 51 Franklin Steet, Fifth Floor,
-   Boston, MA 02110-1301, USA.
-*/
 
 // c++ support
 #include "parser.h"
@@ -460,6 +443,9 @@ bool Parser::parseDeclaration(DeclarationAST *&node)
     case Token_asm:
       return parseAsmDefinition(node);
 
+    case Token_Q_ENUMS:
+        return parseQ_ENUMS(node);
+
     case Token_template:
     case Token_export:
       return parseTemplateDeclaration(node);
@@ -476,7 +462,8 @@ bool Parser::parseDeclaration(DeclarationAST *&node)
 
         TypeSpecifierAST *spec = 0;
         if (parseEnumSpecifier(spec)
-            || parseClassSpecifier(spec))
+            || parseClassSpecifier(spec)
+            || parseForwardDeclarationSpecifier(spec))
           {
             parseCvQualify(cv);
 
@@ -1745,12 +1732,12 @@ bool Parser::parseParameterDeclaration(ParameterDeclarationAST *&node)
 
 bool Parser::parse_Attribute__() {
     token_stream.nextToken();
-	    
+
     ADVANCE('(', "(");
-	    
+
     ExpressionAST *expr = 0;
     parseExpression(expr);
-	    
+
     if (token_stream.lookAhead() != ')')
 	{
 	    reportError(("')' expected"));
@@ -1763,6 +1750,62 @@ bool Parser::parse_Attribute__() {
     return true;
 }
 
+QString Parser::tokenText(AST *ast) const
+{
+    if (ast == 0) return QString();
+
+    int start_token = ast->start_token;
+    int end_token = ast->end_token;
+
+    Token const &tk = token_stream.token (start_token);
+    Token const &end_tk = token_stream.token(end_token);
+
+    return QString::fromLatin1 (&tk.text[tk.position],(int) (end_tk.position - tk.position)).trimmed();
+}
+
+bool Parser::parseForwardDeclarationSpecifier(TypeSpecifierAST *&node)
+{
+  std::size_t start = token_stream.cursor();
+
+  int kind = token_stream.lookAhead();
+  if (kind != Token_class && kind != Token_struct && kind != Token_union)
+    return false;
+
+  std::size_t class_key = token_stream.cursor();
+  token_stream.nextToken();
+
+  NameAST *name = 0;
+  if (!parseName(name, false)) {
+      token_stream.rewind((int) start);
+      return false;
+  }
+
+  BaseClauseAST *bases = 0;
+  if (token_stream.lookAhead() == ':')
+    {
+      if (!parseBaseClause(bases))
+        {
+          token_stream.rewind((int) start);
+          return false;
+        }
+    }
+
+  if (token_stream.lookAhead() != ';')
+    {
+        token_stream.rewind((int) start);
+        return false;
+    }
+
+  ForwardDeclarationSpecifierAST *ast = CreateNode<ForwardDeclarationSpecifierAST>(_M_pool);
+  ast->class_key = class_key;
+  ast->name = name;
+  ast->base_clause = bases;
+
+  UPDATE_POS(ast, start, token_stream.cursor());
+  node = ast;
+
+  return true;
+}
 
 bool Parser::parseClassSpecifier(TypeSpecifierAST *&node)
 {
@@ -1778,7 +1821,7 @@ bool Parser::parseClassSpecifier(TypeSpecifierAST *&node)
   WinDeclSpecAST *winDeclSpec = 0;
   parseWinDeclSpec(winDeclSpec);
 
-  if (token_stream.lookAhead() == Token___attribute__) {       
+  if (token_stream.lookAhead() == Token___attribute__) {
       parse_Attribute__();
   }
 
@@ -1792,6 +1835,7 @@ bool Parser::parseClassSpecifier(TypeSpecifierAST *&node)
   parseName(name, true);
 
   BaseClauseAST *bases = 0;
+
   if (token_stream.lookAhead() == ':')
     {
       if (!parseBaseClause(bases))
@@ -1802,6 +1846,7 @@ bool Parser::parseClassSpecifier(TypeSpecifierAST *&node)
 
   if (token_stream.lookAhead() != '{')
     {
+
       token_stream.rewind((int) start);
       return false;
     }
@@ -1912,6 +1957,10 @@ bool Parser::parseMemberSpecification(DeclarationAST *&node)
       return true;
     }
   else if (parseQ_PROPERTY(node))
+    {
+      return true;
+    }
+  else if (parseQ_ENUMS(node))
     {
       return true;
     }
@@ -4303,6 +4352,30 @@ bool Parser::parseThrowExpression(ExpressionAST *&node)
 
   UPDATE_POS(ast, start, token_stream.cursor());
   node = ast;
+
+  return true;
+}
+
+bool Parser::parseQ_ENUMS(DeclarationAST *&node)
+{
+  if (token_stream.lookAhead() != Token_Q_ENUMS)
+    return false;
+
+  if (token_stream.lookAhead(1) != '(')
+    return false;
+
+  token_stream.nextToken();
+  token_stream.nextToken();
+
+  int firstToken = token_stream.cursor();
+  while (token_stream.lookAhead() != ')') {
+    token_stream.nextToken();
+  }
+  QEnumsAST *ast = CreateNode<QEnumsAST>(_M_pool);
+  UPDATE_POS(ast, firstToken, token_stream.cursor());
+  node = ast;
+
+  token_stream.nextToken();
 
   return true;
 }

@@ -1,46 +1,16 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2007 Trolltech ASA. All rights reserved.
+** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright 2005 Roberto Raggi <roberto@kdevelop.org>
 **
-** This file is part of Qt Jambi.
+** This file is part of $PRODUCT$.
 **
-** ** This file may be used under the terms of the GNU General Public
-** License version 2.0 as published by the Free Software Foundation
-** and appearing in the file LICENSE.GPL included in the packaging of
-** this file.  Please review the following information to ensure GNU
-** General Public Licensing requirements will be met:
-** http://www.trolltech.com/products/qt/opensource.html
-**
-** If you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://www.trolltech.com/products/qt/licensing.html or contact the
-** sales department at sales@trolltech.com.
-
+** $CPP_LICENSE$
 **
 ** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
 ** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 **
 ****************************************************************************/
-
-/*
-  Copyright 2005 Roberto Raggi <roberto@kdevelop.org>
-
-  Permission to use, copy, modify, distribute, and sell this software and its
-  documentation for any purpose is hereby granted without fee, provided that
-  the above copyright notice appear in all copies and that both that
-  copyright notice and this permission notice appear in supporting
-  documentation.
-
-  The above copyright notice and this permission notice shall be included in
-  all copies or substantial portions of the Software.
-
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
-  KDEVELOP TEAM BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
-  AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
 
 #ifndef PP_ENGINE_BITS_H
 #define PP_ENGINE_BITS_H
@@ -198,8 +168,12 @@ inline pp::PP_DIRECTIVE_TYPE pp::find_directive (char const *__directive, std::s
           return PP_IFDEF;
         else if (__directive[0] == 'u' && !strcmp (__directive, "undef"))
           return PP_UNDEF;
-        else if (__directive[0] == 'e' && !strcmp (__directive, "endif"))
-          return PP_ENDIF;
+        else if (__directive[0] == 'e') {
+          if (!strcmp (__directive, "endif"))
+            return PP_ENDIF;
+          else if (!strcmp (__directive, "error"))
+            return PP_ERROR;
+        }
         break;
 
       case 6:
@@ -207,11 +181,13 @@ inline pp::PP_DIRECTIVE_TYPE pp::find_directive (char const *__directive, std::s
           return PP_IFNDEF;
         else if (__directive[0] == 'd' && !strcmp (__directive, "define"))
           return PP_DEFINE;
+        else if (__directive[0] == 'p' && !strcmp (__directive, "pragma"))
+          return PP_PRAGMA;
         break;
 
       case 7:
         if (__directive[0] == 'i' && !strcmp (__directive, "include"))
-          return PP_INCLUDE;
+            return PP_INCLUDE;
         break;
 
       case 12:
@@ -222,8 +198,24 @@ inline pp::PP_DIRECTIVE_TYPE pp::find_directive (char const *__directive, std::s
       default:
         break;
     }
-
+  std::cerr << "** WARNING unknown directive '#" << __directive << "' at " << env.current_file << ":" << env.current_line << std::endl;
   return PP_UNKNOWN_DIRECTIVE;
+}
+
+inline bool pp::file_isdir (std::string const &__filename) const
+{
+    struct stat __st;
+#if defined(PP_OS_WIN)
+    if (stat(__filename.c_str (), &__st) == 0)
+        return (__st.st_mode & _S_IFDIR) == _S_IFDIR;
+    else
+        return false;
+#else
+    if (lstat (__filename.c_str (), &__st) == 0)
+        return (__st.st_mode & S_IFDIR) == S_IFDIR;
+    else
+        return false;
+#endif
 }
 
 inline bool pp::file_exists (std::string const &__filename) const
@@ -255,7 +247,7 @@ inline FILE *pp::find_include_file(std::string const &__input_filename, std::str
       std::string __tmp (*__filepath);
       __tmp += __input_filename;
 
-      if (file_exists (__tmp))
+      if (file_exists (__tmp) && !file_isdir(__tmp))
         {
           __filepath->append (__input_filename);
           return fopen (__filepath->c_str (), "r");
@@ -283,7 +275,7 @@ inline FILE *pp::find_include_file(std::string const &__input_filename, std::str
       __filepath->assign (*it);
       __filepath->append (__input_filename);
 
-      if (file_exists (*__filepath))
+      if (file_exists (*__filepath) && !file_isdir(*__filepath))
         return fopen (__filepath->c_str(), "r");
     }
 

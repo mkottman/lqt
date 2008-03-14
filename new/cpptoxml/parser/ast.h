@@ -1,10 +1,11 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2007 Trolltech ASA. All rights reserved.
+** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2002-2005 Roberto Raggi <roberto@kdevelop.org>
 **
-** This file is part of Qt Jambi.
+** This file is part of the Qt Script Generator project on Trolltech Labs.
 **
-** ** This file may be used under the terms of the GNU General Public
+** This file may be used under the terms of the GNU General Public
 ** License version 2.0 as published by the Free Software Foundation
 ** and appearing in the file LICENSE.GPL included in the packaging of
 ** this file.  Please review the following information to ensure GNU
@@ -15,30 +16,12 @@
 ** review the following information:
 ** http://www.trolltech.com/products/qt/licensing.html or contact the
 ** sales department at sales@trolltech.com.
-
 **
 ** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
 ** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 **
 ****************************************************************************/
 
-/* This file is part of KDevelop
-    Copyright (C) 2002-2005 Roberto Raggi <roberto@kdevelop.org>
-
-   This library is free software; you can redistribute it and/or
-   modify it under the terms of the GNU Library General Public
-   License version 2 as published by the Free Software Foundation.
-
-   This library is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   Library General Public License for more details.
-
-   You should have received a copy of the GNU Library General Public License
-   along with this library; see the file COPYING.LIB.  If not, write to
-   the Free Software Foundation, Inc., 51 Franklin Steet, Fifth Floor,
-   Boston, MA 02110-1301, USA.
-*/
 
 #ifndef AST_H
 #define AST_H
@@ -131,6 +114,7 @@ struct UsingDirectiveAST;
 struct WhileStatementAST;
 struct WinDeclSpecAST;
 struct QPropertyAST;
+struct QEnumsAST;
 
 struct AST
 {
@@ -212,6 +196,8 @@ struct AST
       Kind_WhileStatement,
       Kind_WinDeclSpec,
       Kind_QPropertyAST,
+      Kind_ForwardDeclarationSpecifier,
+      Kind_QEnumsAST,
 
       NODE_KIND_COUNT
     };
@@ -305,6 +291,15 @@ struct ClassSpecifierAST: public TypeSpecifierAST
   NameAST *name;
   BaseClauseAST *base_clause;
   const ListNode<DeclarationAST*> *member_specs;
+};
+
+struct ForwardDeclarationSpecifierAST: public TypeSpecifierAST
+{
+    DECLARE_AST_NODE(ForwardDeclarationSpecifier)
+
+    std::size_t class_key;
+    NameAST *name;
+    BaseClauseAST *base_clause;
 };
 
 struct CompoundStatementAST: public StatementAST
@@ -858,6 +853,11 @@ struct WinDeclSpecAST: public AST
 struct QPropertyAST : public DeclarationAST
 {
   DECLARE_AST_NODE(QPropertyAST)
+};
+
+struct QEnumsAST : public DeclarationAST
+{
+  DECLARE_AST_NODE(QEnumsAST)
 };
 
 template <class _Tp>

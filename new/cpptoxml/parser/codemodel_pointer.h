@@ -1,10 +1,11 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2007 Trolltech ASA. All rights reserved.
+** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2006 Roberto Raggi <roberto@kdevelop.org>
 **
-** This file is part of Qt Jambi.
+** This file is part of the Qt Script Generator project on Trolltech Labs.
 **
-** ** This file may be used under the terms of the GNU General Public
+** This file may be used under the terms of the GNU General Public
 ** License version 2.0 as published by the Free Software Foundation
 ** and appearing in the file LICENSE.GPL included in the packaging of
 ** this file.  Please review the following information to ensure GNU
@@ -15,41 +16,36 @@
 ** review the following information:
 ** http://www.trolltech.com/products/qt/licensing.html or contact the
 ** sales department at sales@trolltech.com.
-
 **
 ** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
 ** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 **
 ****************************************************************************/
 
-/* This file is part of KDevelop
-    Copyright (C) 2006 Roberto Raggi <roberto@kdevelop.org>
-    Copyright (C) 2006 Trolltech AS
-
-   This library is free software; you can redistribute it and/or
-   modify it under the terms of the GNU Library General Public
-   License version 2 as published by the Free Software Foundation.
-
-   This library is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   Library General Public License for more details.
-
-   You should have received a copy of the GNU Library General Public License
-   along with this library; see the file COPYING.LIB.  If not, write to
-   the Free Software Foundation, Inc., 51 Franklin Steet, Fifth Floor,
-   Boston, MA 02110-1301, USA.
-*/
 #ifndef CODEMODEL_POINTER_H
 #define CODEMODEL_POINTER_H
 
 #include <QtCore/QSharedData>
 
+// Since the atomic API changed in 4.4 we need to hack a little here
+// to make it work with both 4.3 and 4.4 until that is not required
+
+#if QT_VERSION >= 0x040400
+
+#   include <QtCore/qatomic.h>
+template <class T> class CodeModelPointer: public QAtomicPointer<T>
+
+#else
+
 template <class T> class CodeModelPointer
+
+#endif // QT_VERSION >= 0x040400
+
 {
 public:
     typedef T Type;
 
+#if QT_VERSION < 0x040400
     inline T &operator*() { return *d; }
     inline const T &operator*() const { return *d; }
     inline T *operator->() { return d; }
@@ -94,12 +90,25 @@ public:
     inline bool operator!() const { return !d; }
 
 private:
-
     T *d;
+#else // QT_VERSION < 0x040400
+    inline CodeModelPointer(T *value = 0) : QAtomicPointer<T>(value) {}
+
+    inline CodeModelPointer &operator=(T *o) {
+        QAtomicPointer<T>::operator=(o);
+        return *this;
+    }
+
+    inline T *data() { return (T *) *this; }
+    inline const T *data() const { return (const T *) *this; }
+    inline const T *constData() const { return (const T *) *this; }
+#endif
 };
 
+#if QT_VERSION < 0x040400
 template <class T>
 Q_INLINE_TEMPLATE CodeModelPointer<T>::CodeModelPointer(T *adata) : d(adata)
 { if (d) d->ref.ref(); }
+#endif
 
 #endif // CODEMODEL_POINTER_H
