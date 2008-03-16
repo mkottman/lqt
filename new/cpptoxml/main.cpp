@@ -63,22 +63,8 @@ class XMLVisitor {
 		}
 };
 QString XMLVisitor::visit(TypeInfo t) {
-	/*
-	qDebug() << "=====";
-	QStringList::const_iterator constIterator;
-	for (constIterator = s_list.constBegin(); constIterator != s_list.constEnd(); ++constIterator)
-		qDebug() << *constIterator << "::";
-	qDebug() << "const " << t.isConstant();
-	qDebug() << "volatile " << t.isVolatile();
-	qDebug() << "reference " << t.isReference();
-	qDebug() << "indir " << t.indirections();
-	qDebug() << "fp? " << t.isFunctionPointer();
-	//QStringList arrayElements();
-	//QList<TypeInfo> arguments();
-	qDebug() << t.toString();
-	*/
-	//if (s_list.size()>1) qDebug() << t.toString() << s_list;
-	//if (s_list.join("::")!=t.toString()) qDebug() << s_list.join("::") << t.toString();
+	//t = t.resolveType(t, t.scope());
+	
 	QString ret(" type_name=\"");
 	ret += t.toString().append("\"");
   ret += " type_base=\"";
@@ -281,64 +267,7 @@ QString XMLVisitor::visit(CodeModelItem i) {
 	ret += ">\n";
 	return ret;
 }
-/*
-template<>
-QString XMLVisitor::visit<CodeModelItem>(CodeModelItem i) {
-	QString ret;
-	ret += "unknown CodeModelItem"; ret += i->name();
-	QStringList s_list = i->qualifiedName();
-	QStringList::const_iterator constIterator;
-	for (constIterator = s_list.constBegin(); constIterator != s_list.constEnd(); ++constIterator) ret += *constIterator;
-	return ret;
-}
-template<>
-QString XMLVisitor::visit<ClassModelItem>(ClassModelItem i) {
-	QString buf("<");
-	switch (i->classType()) {
-		case CodeModel::Struct: buf += "Struct"; break;
-		case CodeModel::Class: buf += "Class"; break;
-		case CodeModel::Union: buf += "Union"; break;
-	}
-	buf.append(" id=\"").append(ID_STR(i)).append("\"");
-	buf += QString(" name=\"").append(i->name().isEmpty()?QString("::"):i->name()).append("\"");
-	buf += " members=\"";
-	foreach (ClassModelItem m, i->classes()) buf += ID_STR(m).append(" ");
-	foreach (EnumModelItem m, i->enums()) buf += ID_STR(m).append(" ");
-	foreach (FunctionModelItem m, i->functions()) buf += ID_STR(m).append(" ");
-	foreach (TypeAliasModelItem m, i->typeAliases()) buf += ID_STR(m).append(" ");
-	foreach (VariableModelItem m, i->variables()) buf += ID_STR(m).append(" ");
-	buf.append("\" />\n");
 
-	foreach (ClassModelItem m, i->classes()) visit(m);
-	foreach (EnumModelItem m, i->enums()) visit(m);
-	foreach (FunctionModelItem m, i->functions()) visit(m);
-	foreach (TypeAliasModelItem m, i->typeAliases()) visit(m);
-	foreach (VariableModelItem m, i->variables()) visit(m);
-	return buf;
-}
-template<>
-QString XMLVisitor::visit<NamespaceModelItem>(NamespaceModelItem n) {
-	QString buf("<Namespace");
-	buf.append(" id=\"").append(ID_STR(n)).append("\"");
-	buf += QString(" name=\"").append(n->name().isEmpty()?QString("::"):n->name()).append("\"");
-	buf += " members=\"";
-	foreach (NamespaceModelItem m, n->namespaces()) buf += ID_STR(m).append(" ");
-	foreach (ClassModelItem m, n->classes()) buf += ID_STR(m).append(" ");
-	foreach (EnumModelItem m, n->enums()) buf += ID_STR(m).append(" ");
-	foreach (FunctionModelItem m, n->functions()) buf += ID_STR(m).append(" ");
-	foreach (TypeAliasModelItem m, n->typeAliases()) buf += ID_STR(m).append(" ");
-	foreach (VariableModelItem m, n->variables()) buf += ID_STR(m).append(" ");
-	buf.append("\" />\n");
-
-	foreach (NamespaceModelItem m, n->namespaces()) buf += visit(m);
-	foreach (ClassModelItem m, n->classes()) buf += visit(m);
-	foreach (EnumModelItem m, n->enums()) buf += visit(m);
-	foreach (FunctionModelItem m, n->functions()) buf += visit(m);
-	foreach (TypeAliasModelItem m, n->typeAliases()) buf += visit(m);
-	foreach (VariableModelItem m, n->variables()) buf += visit(m);
-	return buf;
-}
-*/
 int main (int argc, char **argv) {
 				bool onlyPreprocess = false;
 				QString configName;
