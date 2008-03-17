@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Mauro Iazzi
+ * Copyright (c) 2007-2008 Mauro Iazzi
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -52,18 +52,31 @@ using namespace std;
 
 class XMLVisitor {
 	private:
+		QString current_id;
 		QStringList current_context;
+		CodeModelItem current_scope;
+		CodeModelItem outer_scope;
 	public:
+		XMLVisitor(CodeModelItem c): current_scope(c), outer_scope(c) {}
 		QString XMLTag(CodeModelItem);
-		QString visit(TypeInfo);
+		QString visit(const TypeInfo&, QStringList);
 		QString visit(CodeModelItem);
+		/*
 		template <typename T> QString visit(T) {
 			std::cerr << "unimplemented CodeModelItem: " << typeid(T).name() << std::endl;
 			return "";
 		}
+		*/
 };
-QString XMLVisitor::visit(TypeInfo t) {
+QString XMLVisitor::visit(const TypeInfo& t, QStringList scope) {
 	//t = t.resolveType(t, t.scope());
+	
+	TypeInfo tt = t.resolveType(t, outer_scope);
+	if (tt!=t) {
+					qDebug() << "+++" << t.toString() << tt.toString() << current_id << scope.join("::") << current_context.join("::");
+	} else {
+					qDebug() << "---" << t.toString() << current_id << scope.join("::") << current_context.join("::");
+	}
 	
 	QString ret(" type_name=\"");
 	ret += t.toString().append("\"");
@@ -82,6 +95,7 @@ QString XMLVisitor::visit(TypeInfo t) {
 }
 
 #define TAG_CASE(s) case _CodeModelItem::Kind_##s: return #s
+
 QString XMLVisitor::XMLTag(CodeModelItem i) {
 	switch (i->kind()) {
 		TAG_CASE(Scope);
@@ -104,9 +118,11 @@ QString XMLVisitor::visit(CodeModelItem i) {
 	QString ret("");
 	ret += XMLTag(i);
 
+	current_id = ID_STR(i) + " => " + XMLTag(i) + " => " + i->qualifiedName().join("::"); // FIXME: this is debug code
+
 	ret += ATTR_STR("id", ID_STR(i));
 	ret += ATTR_STR("name", i->name());
-	ret += ATTR_STR("scope", i->scope().join("::").append("::"));
+	ret += ATTR_STR("scope", i->scope().join("::"));
 	ret += ATTR_STR("context", current_context.join("::"));
 	ret += ATTR_STR("fullname", i->qualifiedName().join("::"));
 
@@ -157,7 +173,7 @@ QString XMLVisitor::visit(CodeModelItem i) {
 		};
 		ret += "\"";
 
-		ret += visit(m->type());
+		ret += visit(m->type(), m->scope());
 	}
 	if ((i->kind() & _CodeModelItem::Kind_Function) == _CodeModelItem::Kind_Function) {
     FunctionModelItem m = model_dynamic_cast<FunctionModelItem>(i);
@@ -180,7 +196,7 @@ QString XMLVisitor::visit(CodeModelItem i) {
 	}
 	if (i->kind() == _CodeModelItem::Kind_Argument) {
 		ArgumentModelItem a = model_dynamic_cast<ArgumentModelItem>(i);
-		ret += visit(a->type());
+		ret += visit(a->type(), a->scope());
 		if (a->defaultValue()) {
 			ret += ATTR_TRUE("default");
 			ret += ATTR_STR("defaultvalue", a->defaultValueExpression());
@@ -215,7 +231,7 @@ QString XMLVisitor::visit(CodeModelItem i) {
 	}
 	if (i->kind() == _CodeModelItem::Kind_TypeAlias) {
 		TypeAliasModelItem a = model_dynamic_cast<TypeAliasModelItem>(i);
-		ret += visit(a->type());
+		ret += visit(a->type(), a->scope());
 	}
 
 	ret.replace('>', "&gt;");
@@ -234,7 +250,8 @@ QString XMLVisitor::visit(CodeModelItem i) {
 	}
 	if (i->kind() & _CodeModelItem::Kind_Scope) {
 		//qDebug() << ID_STR(i) << i->name() << current_context;
-		if (!i->name().isEmpty()) current_context << i->name();
+		CodeModelItem os = current_scope; // save old outer scope
+		if (!i->name().isEmpty()) { current_context << i->name(); current_scope = i; }
 		foreach(ClassModelItem n, model_dynamic_cast<ScopeModelItem>(i)->classes())
 			ret += visit(model_static_cast<CodeModelItem>(n));
 		foreach(EnumModelItem n, model_dynamic_cast<ScopeModelItem>(i)->enums())
@@ -245,7 +262,7 @@ QString XMLVisitor::visit(CodeModelItem i) {
 			ret += visit(model_static_cast<CodeModelItem>(n));
 		foreach(VariableModelItem n, model_dynamic_cast<ScopeModelItem>(i)->variables())
 			ret += visit(model_static_cast<CodeModelItem>(n));
-		if (!i->name().isEmpty()) current_context.removeLast();
+		if (!i->name().isEmpty()) { current_context.removeLast(); current_scope = os; }
 	}
 	if ((i->kind() & _CodeModelItem::Kind_Function) == _CodeModelItem::Kind_Function) {
 		foreach(ArgumentModelItem n, model_dynamic_cast<FunctionModelItem>(i)->arguments())
@@ -347,7 +364,7 @@ int main (int argc, char **argv) {
 								Binder binder(&model, p.location());
 								FileModelItem f_model = binder.run(ast);
 
-								XMLVisitor visitor;
+								XMLVisitor visitor((CodeModelItem)f_model);
 								QTextStream(stdout) << visitor.visit(model_static_cast<CodeModelItem>(f_model));
 				}
 
