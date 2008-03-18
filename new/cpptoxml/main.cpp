@@ -52,12 +52,14 @@ using namespace std;
 
 class XMLVisitor {
 	private:
+		bool resolve_types;
 		QString current_id;
 		QStringList current_context;
 		CodeModelItem current_scope;
 		CodeModelItem outer_scope;
 	public:
-		XMLVisitor(CodeModelItem c): current_scope(c), outer_scope(c) {}
+		XMLVisitor(CodeModelItem c, bool r = true):
+			resolve_types(r), current_scope(c), outer_scope(c) {}
 		QString XMLTag(CodeModelItem);
 		TypeInfo solve(const TypeInfo&, QStringList);
 		QString visit(const TypeInfo&, QStringList);
@@ -71,6 +73,7 @@ class XMLVisitor {
 };
 
 TypeInfo XMLVisitor::solve(const TypeInfo& t, QStringList scope) {
+	if (!resolve_types) return t;
 	TypeInfo tt = t.resolveType(t, outer_scope);
 	if (tt==t) {
 		tt = t.resolveType(t, current_scope);
@@ -93,15 +96,15 @@ QString XMLVisitor::visit(const TypeInfo& t, QStringList scope) {
 	TypeInfo tt = solve(t, scope);
 
 	QString ret(" type_name=\"");
-	ret += t.toString().append("\"");
+	ret += tt.toString().append("\"");
 	ret += " type_base=\"";
-	ret += t.qualifiedName().join("::").append("\"");
-	if (t.isConstant()) ret += ATTR_TRUE("type_constant");
-	if (t.isVolatile()) ret += ATTR_TRUE("type_volatile");
-	if (t.isReference()) ret += ATTR_TRUE("type_reference");
-	if (t.indirections()>0) ret += ATTR_NUM("indirections", t.indirections());
+	ret += tt.qualifiedName().join("::").append("\"");
+	if (tt.isConstant()) ret += ATTR_TRUE("type_constant");
+	if (tt.isVolatile()) ret += ATTR_TRUE("type_volatile");
+	if (tt.isReference()) ret += ATTR_TRUE("type_reference");
+	if (tt.indirections()>0) ret += ATTR_NUM("indirections", tt.indirections());
 
-	QStringList arr = t.arrayElements();
+	QStringList arr = tt.arrayElements();
 	QString tmp = arr.join(",");
 	if (!tmp.isEmpty()) ret += " array=\"" + tmp + "\"";
 
@@ -301,6 +304,7 @@ QString XMLVisitor::visit(CodeModelItem i) {
 
 int main (int argc, char **argv) {
 	bool onlyPreprocess = false;
+	bool dontResolve = false;
 	QString configName;
 	QString sourceName;
 
@@ -318,52 +322,45 @@ int main (int argc, char **argv) {
 		onlyPreprocess = true;
 		options.removeAt(i);
 	}
+	if ((i=options.indexOf("-R"))!=-1) {
+		dontResolve = true;
+		options.removeAt(i);
+	}
 	if (options.count()>1) return 37;
 	sourceName = options.at(0);
 
 	QByteArray contents;
-	if (0) {
-		QFile file(argv[1]);
 
-		if (!file.open(QFile::ReadOnly))
-			return false;
+	Preprocessor pp;
+	QStringList inclist;
 
-		QTextStream stream(&file);
-		stream.setCodec(QTextCodec::codecForName("UTF-8"));
-		contents = stream.readAll().toUtf8();
-		file.close();
-	} else {
-		Preprocessor pp;
-		QStringList inclist;
-
-		QString qtdir = getenv ("QTDIR");
-		if (qtdir.isEmpty()) {
-			fprintf(stderr, "Generator requires QTDIR to be set\n");
-			return false;
-		}
-
-		qtdir += "/include";
-
-		QString currentDir = QDir::current().absolutePath();
-		QFileInfo sourceInfo(sourceName);
-		//QDir::setCurrent(sourceInfo.absolutePath());
-
-		inclist << (sourceInfo.absolutePath());
-		inclist << (QDir::convertSeparators(qtdir));
-		inclist << (QDir::convertSeparators(qtdir + "/QtXml"));
-		inclist << (QDir::convertSeparators(qtdir + "/QtNetwork"));
-		inclist << (QDir::convertSeparators(qtdir + "/QtCore"));
-		inclist << (QDir::convertSeparators(qtdir + "/QtGui"));
-		inclist << (QDir::convertSeparators(qtdir + "/QtOpenGL"));
-		//qDebug() << inclist;
-
-		pp.addIncludePaths(inclist);
-		pp.processFile(sourceName, configName);
-		//qDebug() << pp.macroNames();
-		contents = pp.result();
-		//qDebug() << contents;
-		//QTextStream(stdout) << contents;
+	QString qtdir = getenv ("QTDIR");
+	if (qtdir.isEmpty()) {
+		fprintf(stderr, "Generator requires QTDIR to be set\n");
+		return false;
 	}
+
+	qtdir += "/include";
+
+	QString currentDir = QDir::current().absolutePath();
+	QFileInfo sourceInfo(sourceName);
+	//QDir::setCurrent(sourceInfo.absolutePath());
+
+	inclist << (sourceInfo.absolutePath());
+	inclist << (QDir::convertSeparators(qtdir));
+	inclist << (QDir::convertSeparators(qtdir + "/QtXml"));
+	inclist << (QDir::convertSeparators(qtdir + "/QtNetwork"));
+	inclist << (QDir::convertSeparators(qtdir + "/QtCore"));
+	inclist << (QDir::convertSeparators(qtdir + "/QtGui"));
+	inclist << (QDir::convertSeparators(qtdir + "/QtOpenGL"));
+	//qDebug() << inclist;
+
+	pp.addIncludePaths(inclist);
+	pp.processFile(sourceName, configName);
+	//qDebug() << pp.macroNames();
+	contents = pp.result();
+	//qDebug() << contents;
+	//QTextStream(stdout) << contents;
 
 	if (onlyPreprocess) {
 		QTextStream(stdout) << contents;
@@ -378,7 +375,7 @@ int main (int argc, char **argv) {
 		Binder binder(&model, p.location());
 		FileModelItem f_model = binder.run(ast);
 
-		XMLVisitor visitor((CodeModelItem)f_model);
+		XMLVisitor visitor((CodeModelItem)f_model, !dontResolve);
 		QTextStream(stdout) << visitor.visit(model_static_cast<CodeModelItem>(f_model));
 	}
 
