@@ -59,28 +59,42 @@ class XMLVisitor {
 	public:
 		XMLVisitor(CodeModelItem c): current_scope(c), outer_scope(c) {}
 		QString XMLTag(CodeModelItem);
+		TypeInfo solve(const TypeInfo&, QStringList);
 		QString visit(const TypeInfo&, QStringList);
 		QString visit(CodeModelItem);
 		/*
-		template <typename T> QString visit(T) {
-			std::cerr << "unimplemented CodeModelItem: " << typeid(T).name() << std::endl;
-			return "";
-		}
-		*/
+		   template <typename T> QString visit(T) {
+		   std::cerr << "unimplemented CodeModelItem: " << typeid(T).name() << std::endl;
+		   return "";
+		   }
+		   */
 };
+
+TypeInfo XMLVisitor::solve(const TypeInfo& t, QStringList scope) {
+	TypeInfo tt = t.resolveType(t, outer_scope);
+	if (tt==t) {
+		tt = t.resolveType(t, current_scope);
+		if (tt!=t) {
+			tt = tt.resolveType(tt, outer_scope);
+			qDebug() << "***" << t.toString() << tt.toString() << current_id << scope.join("::") << current_context.join("::");
+		}
+	}
+	if (tt!=t) {
+		qDebug() << "+++" << t.toString() << tt.toString() << current_id << scope.join("::") << current_context.join("::");
+	} else {
+		qDebug() << "---" << t.toString() << current_id << scope.join("::") << current_context.join("::");
+	}
+	return tt;
+}
+
 QString XMLVisitor::visit(const TypeInfo& t, QStringList scope) {
 	//t = t.resolveType(t, t.scope());
-	
-	TypeInfo tt = t.resolveType(t, outer_scope);
-	if (tt!=t) {
-					qDebug() << "+++" << t.toString() << tt.toString() << current_id << scope.join("::") << current_context.join("::");
-	} else {
-					qDebug() << "---" << t.toString() << current_id << scope.join("::") << current_context.join("::");
-	}
-	
+
+	TypeInfo tt = solve(t, scope);
+
 	QString ret(" type_name=\"");
 	ret += t.toString().append("\"");
-  ret += " type_base=\"";
+	ret += " type_base=\"";
 	ret += t.qualifiedName().join("::").append("\"");
 	if (t.isConstant()) ret += ATTR_TRUE("type_constant");
 	if (t.isVolatile()) ret += ATTR_TRUE("type_volatile");
@@ -149,7 +163,7 @@ QString XMLVisitor::visit(CodeModelItem i) {
 		ret += "\"";
 	}
 	if (i->kind() & _CodeModelItem::Kind_Member) {
-    MemberModelItem m = model_dynamic_cast<MemberModelItem>(i);
+		MemberModelItem m = model_dynamic_cast<MemberModelItem>(i);
 		if (m->isConstant()) ret += ATTR_TRUE("constant");
 		if (m->isVolatile()) ret += ATTR_TRUE("volatile");
 		if (m->isStatic()) ret += ATTR_TRUE("static");
@@ -176,7 +190,7 @@ QString XMLVisitor::visit(CodeModelItem i) {
 		ret += visit(m->type(), m->scope());
 	}
 	if ((i->kind() & _CodeModelItem::Kind_Function) == _CodeModelItem::Kind_Function) {
-    FunctionModelItem m = model_dynamic_cast<FunctionModelItem>(i);
+		FunctionModelItem m = model_dynamic_cast<FunctionModelItem>(i);
 		if (m->isVirtual()) ret += ATTR_TRUE("virtual");
 		if (m->isInline()) ret += ATTR_TRUE("inline");
 		if (m->isExplicit()) ret += ATTR_TRUE("explicit");
@@ -286,89 +300,89 @@ QString XMLVisitor::visit(CodeModelItem i) {
 }
 
 int main (int argc, char **argv) {
-				bool onlyPreprocess = false;
-				QString configName;
-				QString sourceName;
+	bool onlyPreprocess = false;
+	QString configName;
+	QString sourceName;
 
-				QStringList options;
-				for (int i=1;i<argc;i++) options << argv[i];
-				int i;
-				if ((i=options.indexOf("-C"))!=-1) {
-								if (options.count() > i+1) {
-												configName = options.at(i+1);
-												options.removeAt(i+1);
-								}
-								options.removeAt(i);
-				}
-				if ((i=options.indexOf("-P"))!=-1) {
-								onlyPreprocess = true;
-								options.removeAt(i);
-				}
-				if (options.count()>1) return 37;
-				sourceName = options.at(0);
+	QStringList options;
+	for (int i=1;i<argc;i++) options << argv[i];
+	int i;
+	if ((i=options.indexOf("-C"))!=-1) {
+		if (options.count() > i+1) {
+			configName = options.at(i+1);
+			options.removeAt(i+1);
+		}
+		options.removeAt(i);
+	}
+	if ((i=options.indexOf("-P"))!=-1) {
+		onlyPreprocess = true;
+		options.removeAt(i);
+	}
+	if (options.count()>1) return 37;
+	sourceName = options.at(0);
 
-				QByteArray contents;
-				if (0) {
-								QFile file(argv[1]);
+	QByteArray contents;
+	if (0) {
+		QFile file(argv[1]);
 
-								if (!file.open(QFile::ReadOnly))
-												return false;
+		if (!file.open(QFile::ReadOnly))
+			return false;
 
-								QTextStream stream(&file);
-								stream.setCodec(QTextCodec::codecForName("UTF-8"));
-								contents = stream.readAll().toUtf8();
-								file.close();
-				} else {
-								Preprocessor pp;
-								QStringList inclist;
+		QTextStream stream(&file);
+		stream.setCodec(QTextCodec::codecForName("UTF-8"));
+		contents = stream.readAll().toUtf8();
+		file.close();
+	} else {
+		Preprocessor pp;
+		QStringList inclist;
 
-								QString qtdir = getenv ("QTDIR");
-								if (qtdir.isEmpty()) {
-												fprintf(stderr, "Generator requires QTDIR to be set\n");
-												return false;
-								}
+		QString qtdir = getenv ("QTDIR");
+		if (qtdir.isEmpty()) {
+			fprintf(stderr, "Generator requires QTDIR to be set\n");
+			return false;
+		}
 
-								qtdir += "/include";
+		qtdir += "/include";
 
-								QString currentDir = QDir::current().absolutePath();
-								QFileInfo sourceInfo(sourceName);
-								//QDir::setCurrent(sourceInfo.absolutePath());
+		QString currentDir = QDir::current().absolutePath();
+		QFileInfo sourceInfo(sourceName);
+		//QDir::setCurrent(sourceInfo.absolutePath());
 
-								inclist << (sourceInfo.absolutePath());
-								inclist << (QDir::convertSeparators(qtdir));
-								inclist << (QDir::convertSeparators(qtdir + "/QtXml"));
-								inclist << (QDir::convertSeparators(qtdir + "/QtNetwork"));
-								inclist << (QDir::convertSeparators(qtdir + "/QtCore"));
-								inclist << (QDir::convertSeparators(qtdir + "/QtGui"));
-								inclist << (QDir::convertSeparators(qtdir + "/QtOpenGL"));
-								//qDebug() << inclist;
+		inclist << (sourceInfo.absolutePath());
+		inclist << (QDir::convertSeparators(qtdir));
+		inclist << (QDir::convertSeparators(qtdir + "/QtXml"));
+		inclist << (QDir::convertSeparators(qtdir + "/QtNetwork"));
+		inclist << (QDir::convertSeparators(qtdir + "/QtCore"));
+		inclist << (QDir::convertSeparators(qtdir + "/QtGui"));
+		inclist << (QDir::convertSeparators(qtdir + "/QtOpenGL"));
+		//qDebug() << inclist;
 
-								pp.addIncludePaths(inclist);
-								pp.processFile(sourceName, configName);
-								//qDebug() << pp.macroNames();
-								contents = pp.result();
-								//qDebug() << contents;
-								//QTextStream(stdout) << contents;
-				}
+		pp.addIncludePaths(inclist);
+		pp.processFile(sourceName, configName);
+		//qDebug() << pp.macroNames();
+		contents = pp.result();
+		//qDebug() << contents;
+		//QTextStream(stdout) << contents;
+	}
 
-				if (onlyPreprocess) {
-								QTextStream(stdout) << contents;
-				} else {
-								Control control;
-								Parser p(&control);
-								pool __pool;
+	if (onlyPreprocess) {
+		QTextStream(stdout) << contents;
+	} else {
+		Control control;
+		Parser p(&control);
+		pool __pool;
 
-								TranslationUnitAST *ast = p.parse(contents, contents.size(), &__pool);
+		TranslationUnitAST *ast = p.parse(contents, contents.size(), &__pool);
 
-								CodeModel model;
-								Binder binder(&model, p.location());
-								FileModelItem f_model = binder.run(ast);
+		CodeModel model;
+		Binder binder(&model, p.location());
+		FileModelItem f_model = binder.run(ast);
 
-								XMLVisitor visitor((CodeModelItem)f_model);
-								QTextStream(stdout) << visitor.visit(model_static_cast<CodeModelItem>(f_model));
-				}
+		XMLVisitor visitor((CodeModelItem)f_model);
+		QTextStream(stdout) << visitor.visit(model_static_cast<CodeModelItem>(f_model));
+	}
 
-				return 0;
+	return 0;
 }
 
 
