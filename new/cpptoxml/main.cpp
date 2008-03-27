@@ -79,13 +79,13 @@ TypeInfo XMLVisitor::solve(const TypeInfo& t, QStringList scope) {
 		tt = t.resolveType(t, current_scope);
 		if (tt!=t) {
 			tt = tt.resolveType(tt, outer_scope);
-			qDebug() << "***" << t.toString() << tt.toString() << current_id << scope.join("::") << current_context.join("::");
+			//qDebug() << "***" << t.toString() << tt.toString() << current_id << scope.join("::") << current_context.join("::");
 		}
 	}
 	if (tt!=t) {
-		qDebug() << "+++" << t.toString() << tt.toString() << current_id << scope.join("::") << current_context.join("::");
+		//qDebug() << "+++" << t.toString() << tt.toString() << current_id << scope.join("::") << current_context.join("::");
 	} else {
-		qDebug() << "---" << t.toString() << current_id << scope.join("::") << current_context.join("::");
+		//qDebug() << "---" << t.toString() << current_id << scope.join("::") << current_context.join("::");
 	}
 	return tt;
 }
