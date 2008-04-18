@@ -55,11 +55,13 @@ class XMLVisitor {
 		bool resolve_types;
 		QString current_id;
 		QStringList current_context;
-		CodeModelItem current_scope;
+		QList<CodeModelItem> current_scope;
 		CodeModelItem outer_scope;
 	public:
 		XMLVisitor(CodeModelItem c, bool r = true):
-			resolve_types(r), current_scope(c), outer_scope(c) {}
+			resolve_types(r), current_scope(), outer_scope(c) {
+				current_scope << c;
+			}
 		QString XMLTag(CodeModelItem);
 		TypeInfo solve(const TypeInfo&, QStringList);
 		QString visit(const TypeInfo&, QStringList);
@@ -72,11 +74,34 @@ class XMLVisitor {
 		   */
 };
 
+
+TypeInfo simplifyType (TypeInfo const &__type, CodeModelItem __scope)
+{
+    CodeModel *__model = __scope->model ();
+    Q_ASSERT (__model != 0);
+    TypeInfo t;
+    for (int i=0;i<__type.qualifiedName().size();i++) {
+	    QStringList qname = t.qualifiedName();
+	    qname << __type.qualifiedName().at(i);
+	    t.setQualifiedName(qname);
+	    t = t.resolveType(t, __scope);
+    }
+
+    TypeInfo otherType = __type;
+    otherType.setQualifiedName(t.qualifiedName());
+
+    return otherType;
+}
+
+
+
 TypeInfo XMLVisitor::solve(const TypeInfo& t, QStringList scope) {
+	(void)scope;
 	if (!resolve_types) return t;
+#if 0
 	TypeInfo tt = t.resolveType(t, outer_scope);
 	if (tt==t) {
-		tt = t.resolveType(t, current_scope);
+		tt = t.resolveType(t, current_scope.back());
 		if (tt!=t) {
 			tt = tt.resolveType(tt, outer_scope);
 			//qDebug() << "***" << t.toString() << tt.toString() << current_id << scope.join("::") << current_context.join("::");
@@ -88,12 +113,29 @@ TypeInfo XMLVisitor::solve(const TypeInfo& t, QStringList scope) {
 		//qDebug() << "---" << t.toString() << current_id << scope.join("::") << current_context.join("::");
 	}
 	return tt;
+#else
+	TypeInfo tt(t);
+	for (QList<CodeModelItem>::const_iterator i=current_scope.begin();
+			i<current_scope.end();
+			i++) {
+		TypeInfo ttt = tt;
+		//qDebug() << tt.toString() << ttt.toString();
+		Q_ASSERT(ttt==tt);
+		do {
+			tt = ttt;
+			ttt = ttt.resolveType(tt, *i);
+		} while (ttt!=tt);
+
+	}
+	return tt;
+#endif
 }
 
 QString XMLVisitor::visit(const TypeInfo& t, QStringList scope) {
 	//t = t.resolveType(t, t.scope());
 
 	TypeInfo tt = solve(t, scope);
+	tt = simplifyType(tt, current_scope.first());
 
 	QString ret(" type_name=\"");
 	ret += tt.toString().append("\"");
@@ -267,8 +309,8 @@ QString XMLVisitor::visit(CodeModelItem i) {
 	}
 	if (i->kind() & _CodeModelItem::Kind_Scope) {
 		//qDebug() << ID_STR(i) << i->name() << current_context;
-		CodeModelItem os = current_scope; // save old outer scope
-		if (!i->name().isEmpty()) { current_context << i->name(); current_scope = i; }
+		//CodeModelItem os = current_scope; // save old outer scope
+		if (!i->name().isEmpty()) { current_context << i->name(); current_scope << i; }
 		foreach(ClassModelItem n, model_dynamic_cast<ScopeModelItem>(i)->classes())
 			ret += visit(model_static_cast<CodeModelItem>(n));
 		foreach(EnumModelItem n, model_dynamic_cast<ScopeModelItem>(i)->enums())
@@ -279,7 +321,7 @@ QString XMLVisitor::visit(CodeModelItem i) {
 			ret += visit(model_static_cast<CodeModelItem>(n));
 		foreach(VariableModelItem n, model_dynamic_cast<ScopeModelItem>(i)->variables())
 			ret += visit(model_static_cast<CodeModelItem>(n));
-		if (!i->name().isEmpty()) { current_context.removeLast(); current_scope = os; }
+		if (!i->name().isEmpty()) { current_context.removeLast(); current_scope.pop_back(); }
 	}
 	if ((i->kind() & _CodeModelItem::Kind_Function) == _CodeModelItem::Kind_Function) {
 		foreach(ArgumentModelItem n, model_dynamic_cast<FunctionModelItem>(i)->arguments())
