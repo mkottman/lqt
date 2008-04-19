@@ -198,9 +198,9 @@ QString TypeInfo::toString() const
 
 bool TypeInfo::operator==(const TypeInfo &other)
 {
-  if (arrayElements().count() != other.arrayElements().count())
+  if (arrayElements() != other.arrayElements())
     return false;
-  if (arguments().count() != other.arguments().count())
+  if (arguments() != other.arguments())
     return false;
 
 #if defined (RXX_CHECK_ARRAY_ELEMENTS) // ### it'll break
