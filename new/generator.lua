@@ -56,6 +56,7 @@ local types_desc = setmetatable({}, {
 			return nil
 		else
 			t[k] = space
+			space.on_stack = 'userdata;'
 		end
 		return t[k]
 	end,
@@ -74,9 +75,20 @@ end
 do
 	local t = {}
 	--table.foreach(types_desc, function(i, j) t[j] = true end)
-	table.foreach(types_desc, print)
+	table.foreach(types_desc, function(n,d) print(n, d.label, d.on_stack) end)
 end
 
-
+bind_function = function(f)
+	if type(f)~='table' or string.find(f.label, 'Function')~=1 then
+		error('this is NOT a function')
+	end
+	io.write(f.xarg.type_name .. ' ' .. f.xarg.fullname .. 
+	(f.xarg.static=='1' and ' [static]' or '')..
+	(f.xarg.virtual=='1' and ' [virtual]' or '')..
+	' [in ' .. tostring(f.xarg.member_of) .. ']\n')
+end
+for _, v in pairs(xmlstream.byid) do
+	pcall(bind_function, v)
+end
 
 
