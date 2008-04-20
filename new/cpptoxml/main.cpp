@@ -185,30 +185,29 @@ QString XMLVisitor::visit(CodeModelItem i) {
 	ret += ATTR_STR("context", current_context.join("::"));
 	ret += ATTR_STR("fullname", i->qualifiedName().join("::"));
 
-	if (i->kind() & _CodeModelItem::Kind_Scope) {
+	if (ScopeModelItem s = model_dynamic_cast<ScopeModelItem>(i)) {
 		ret += " members=\"";
 	}
 	if ((i->kind() & _CodeModelItem::Kind_Namespace ) == _CodeModelItem::Kind_Namespace) {
 		foreach(NamespaceModelItem n, model_dynamic_cast<NamespaceModelItem>(i)->namespaces())
 			ret += ID_STR(n).append(" ");
 	}
-	if (i->kind() & _CodeModelItem::Kind_Scope) {
-		foreach(ClassModelItem n, model_dynamic_cast<ScopeModelItem>(i)->classes())
+	if (ScopeModelItem s = model_dynamic_cast<ScopeModelItem>(i)) {
+		foreach(ClassModelItem n, s->classes())
 			ret += ID_STR(n).append(" ");
-		foreach(EnumModelItem n, model_dynamic_cast<ScopeModelItem>(i)->enums())
+		foreach(EnumModelItem n, s->enums())
 			ret += ID_STR(n).append(" ");
-		foreach(FunctionModelItem n, model_dynamic_cast<ScopeModelItem>(i)->functions())
+		foreach(FunctionModelItem n, s->functions())
 			ret += ID_STR(n).append(" ");
-		foreach(TypeAliasModelItem n, model_dynamic_cast<ScopeModelItem>(i)->typeAliases())
+		foreach(TypeAliasModelItem n, s->typeAliases())
 			ret += ID_STR(n).append(" ");
-		foreach(VariableModelItem n, model_dynamic_cast<ScopeModelItem>(i)->variables())
+		foreach(VariableModelItem n, s->variables())
 			ret += ID_STR(n).append(" ");
 	}
-	if (i->kind() & _CodeModelItem::Kind_Scope) {
+	if (ScopeModelItem s = model_dynamic_cast<ScopeModelItem>(i)) {
 		ret += "\"";
 	}
-	if (i->kind() & _CodeModelItem::Kind_Member) {
-		MemberModelItem m = model_dynamic_cast<MemberModelItem>(i);
+	if (MemberModelItem m = model_dynamic_cast<MemberModelItem>(i)) {
 		if (m->isConstant()) ret += ATTR_TRUE("constant");
 		if (m->isVolatile()) ret += ATTR_TRUE("volatile");
 		if (m->isStatic()) ret += ATTR_TRUE("static");
@@ -217,6 +216,9 @@ QString XMLVisitor::visit(CodeModelItem i) {
 		if (m->isRegister()) ret += ATTR_TRUE("register");
 		if (m->isExtern()) ret += ATTR_TRUE("extern");
 		if (m->isMutable()) ret += ATTR_TRUE("mutable");
+		QStringList ownerName = m->qualifiedName();
+		ownerName.pop_back();
+		ret += ATTR_STR("member_of", ownerName.join("::"));
 
 		ret += " access=\"";
 		switch (m->accessPolicy()) {
