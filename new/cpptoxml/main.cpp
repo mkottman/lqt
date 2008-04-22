@@ -183,7 +183,14 @@ QString XMLVisitor::visit(CodeModelItem i) {
 	ret += ATTR_STR("name", i->name());
 	ret += ATTR_STR("scope", i->scope().join("::"));
 	ret += ATTR_STR("context", current_context.join("::"));
-	ret += ATTR_STR("fullname", i->qualifiedName().join("::"));
+	// FIXME: is this a dirty hack? yes, it is!
+	if (ArgumentModelItem a = model_dynamic_cast<ArgumentModelItem>(i)) {
+		ret += ATTR_STR("fullname", current_context.join("::")+"::"+i->qualifiedName().join("::"));
+	} else if (EnumeratorModelItem a = model_dynamic_cast<EnumeratorModelItem>(i)) {
+		ret += ATTR_STR("fullname", current_context.join("::")+"::"+i->qualifiedName().join("::"));
+	} else {
+		ret += ATTR_STR("fullname", i->qualifiedName().join("::"));
+	}
 
 	if (ScopeModelItem s = model_dynamic_cast<ScopeModelItem>(i)) {
 		ret += " members=\"";
