@@ -195,9 +195,9 @@ QString XMLVisitor::visit(CodeModelItem i) {
 	if (ScopeModelItem s = model_dynamic_cast<ScopeModelItem>(i)) {
 		ret += " members=\"";
 	}
-	if ((i->kind() & _CodeModelItem::Kind_Namespace ) == _CodeModelItem::Kind_Namespace) {
-		foreach(NamespaceModelItem n, model_dynamic_cast<NamespaceModelItem>(i)->namespaces())
-			ret += ID_STR(n).append(" ");
+	if (NamespaceModelItem n = model_dynamic_cast<NamespaceModelItem>(i)) {
+		foreach(NamespaceModelItem m, n->namespaces())
+			ret += ID_STR(m).append(" ");
 	}
 	if (ScopeModelItem s = model_dynamic_cast<ScopeModelItem>(i)) {
 		foreach(ClassModelItem n, s->classes())
@@ -243,15 +243,14 @@ QString XMLVisitor::visit(CodeModelItem i) {
 
 		ret += visit(m->type(), m->scope());
 	}
-	if ((i->kind() & _CodeModelItem::Kind_Function) == _CodeModelItem::Kind_Function) {
-		FunctionModelItem m = model_dynamic_cast<FunctionModelItem>(i);
-		if (m->isVirtual()) ret += ATTR_TRUE("virtual");
-		if (m->isInline()) ret += ATTR_TRUE("inline");
-		if (m->isExplicit()) ret += ATTR_TRUE("explicit");
-		if (m->isAbstract()) ret += ATTR_TRUE("abstract");
-		if (m->isVariadics()) ret += ATTR_TRUE("variadics");
+	if (FunctionModelItem f = model_dynamic_cast<FunctionModelItem>(i)) {
+		if (f->isVirtual()) ret += ATTR_TRUE("virtual");
+		if (f->isInline()) ret += ATTR_TRUE("inline");
+		if (f->isExplicit()) ret += ATTR_TRUE("explicit");
+		if (f->isAbstract()) ret += ATTR_TRUE("abstract");
+		if (f->isVariadics()) ret += ATTR_TRUE("variadics");
 		//if (i->name()=="destroyed") qDebug() << CodeModel::Normal << CodeModel::Slot << CodeModel::Signal << m->functionType() << i->qualifiedName();
-		switch(m->functionType()) {
+		switch(f->functionType()) {
 			case CodeModel::Normal:
 				break;
 			case CodeModel::Slot:
@@ -262,16 +261,14 @@ QString XMLVisitor::visit(CodeModelItem i) {
 				break;
 		}
 	}
-	if (i->kind() == _CodeModelItem::Kind_Argument) {
-		ArgumentModelItem a = model_dynamic_cast<ArgumentModelItem>(i);
+	if (ArgumentModelItem a = model_dynamic_cast<ArgumentModelItem>(i)) {
 		ret += visit(a->type(), a->scope());
 		if (a->defaultValue()) {
 			ret += ATTR_TRUE("default");
 			ret += ATTR_STR("defaultvalue", a->defaultValueExpression());
 		}
 	}
-	if (i->kind() == _CodeModelItem::Kind_Class) {
-		ClassModelItem c = model_dynamic_cast<ClassModelItem>(i);
+	if (ClassModelItem c = model_dynamic_cast<ClassModelItem>(i)) {
 		if (c->baseClasses().size()>0) {
 			ret += ATTR_STR("bases", c->baseClasses().join(";").append(";"));
 		}
@@ -289,17 +286,14 @@ QString XMLVisitor::visit(CodeModelItem i) {
 		// TODO also list templateParameters (maybe in content?)
 		// TODO also list propertyDeclarations (maybe in content?)
 	}
-	if (i->kind() == _CodeModelItem::Kind_Enum) {
-		EnumModelItem e = model_dynamic_cast<EnumModelItem>(i);
+	if (EnumModelItem e = model_dynamic_cast<EnumModelItem>(i)) {
 		// TODO try to understand the meaning of the access policy of enums
 	}
-	if (i->kind() == _CodeModelItem::Kind_Enumerator) {
-		EnumeratorModelItem e = model_dynamic_cast<EnumeratorModelItem>(i);
+	if (EnumeratorModelItem e = model_dynamic_cast<EnumeratorModelItem>(i)) {
 		ret += e->value().prepend(" value=\"").append("\"");
 	}
-	if (i->kind() == _CodeModelItem::Kind_TypeAlias) {
-		TypeAliasModelItem a = model_dynamic_cast<TypeAliasModelItem>(i);
-		ret += visit(a->type(), a->scope());
+	if (TypeAliasModelItem t = model_dynamic_cast<TypeAliasModelItem>(i)) {
+		ret += visit(t->type(), t->scope());
 	}
 
 	ret.replace('>', "&gt;");
@@ -312,9 +306,9 @@ QString XMLVisitor::visit(CodeModelItem i) {
 	//  - members of scopes
 	//  - enumeration values
 	//
-	if ((i->kind() & _CodeModelItem::Kind_Namespace ) == _CodeModelItem::Kind_Namespace) {
-		foreach(NamespaceModelItem n, model_dynamic_cast<NamespaceModelItem>(i)->namespaces())
-			ret += visit(model_static_cast<CodeModelItem>(n));
+	if (NamespaceModelItem n = model_dynamic_cast<NamespaceModelItem>(i)) {
+		foreach(NamespaceModelItem m, n->namespaces())
+			ret += visit(model_static_cast<CodeModelItem>(m));
 	}
 	if (i->kind() & _CodeModelItem::Kind_Scope) {
 		//qDebug() << ID_STR(i) << i->name() << current_context;
@@ -332,13 +326,12 @@ QString XMLVisitor::visit(CodeModelItem i) {
 			ret += visit(model_static_cast<CodeModelItem>(n));
 		if (!i->name().isEmpty()) { current_context.removeLast(); current_scope.pop_back(); }
 	}
-	if ((i->kind() & _CodeModelItem::Kind_Function) == _CodeModelItem::Kind_Function) {
-		foreach(ArgumentModelItem n, model_dynamic_cast<FunctionModelItem>(i)->arguments())
-			ret += visit(model_static_cast<CodeModelItem>(n));
+	if (FunctionModelItem f = model_dynamic_cast<FunctionModelItem>(i)) {
+		foreach(ArgumentModelItem a, f->arguments())
+			ret += visit(model_static_cast<CodeModelItem>(a));
 	}
-	if (i->kind() == _CodeModelItem::Kind_Enum) {
+	if (EnumModelItem e = model_dynamic_cast<EnumModelItem>(i)) {
 		QString last = "0";
-		EnumModelItem e = model_dynamic_cast<EnumModelItem>(i);
 		foreach(EnumeratorModelItem n, model_dynamic_cast<EnumModelItem>(i)->enumerators()) {
 			if (n->value() == QString()) n->setValue(last.append("+1"));
 			ret += visit(model_static_cast<CodeModelItem>(n));
