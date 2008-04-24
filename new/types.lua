@@ -1,8 +1,23 @@
 local BaseType = function(s)
+	s = tostring(s)
 	return {
 		label = "BaseType",
 		xargs = {  },
 		on_stack = s..';',
+		get = function(i, j)
+			j = j or -i
+			return 'LqtBaseType_'..s..' arg'..tostring(i)..' = LqtGetBaseType_'..s..'(L, '..tostring(j)..');'
+		end,
+		push = function(i, j) -- must handle arguments (e.g. in virtual callbacks) and return values
+			error'not implemented' -- TODO
+			j = j or -i
+			return 'LqtBaseType_'..s..' arg'..tostring(i)..' = LqtGetType_'..s..'(L, '..tostring(j)..');'
+		end,
+		test = function(i, j)
+			error'not implemented' -- TODO
+			j = j or -i
+			return 'LqtTestBaseType_'..s..'(L, '..tostring(j)..')'
+		end,
 	}
 end
 
