@@ -4,6 +4,10 @@ local my = {
 	readfile = function(fn) local f = assert(io.open(fn)) local s = f:read'*a' f:close() return s end
 }
 
+local entities = dofile'entities.lua'
+assert_function = function(f)
+	assert(entities.is_function(f), 'argument is not a function')
+end
 
 local filename = ...
 local path = string.match(arg[0], '(.*/)[^%/]+') or ''
@@ -83,7 +87,21 @@ local get_enum = function(fullname)
 	return function(i,j)
 		j = j or -i
 		return fullname .. ' arg' .. tostring(i) .. ' = static_cast< ' ..
-			fullname .. ' >(LqtGetEnumType(L, "' .. fullname .. '");'
+			fullname .. ' >(LqtGetEnumType(L, '..tostring(j)..', "' .. fullname .. '"));'
+	end
+end
+local get_pointer = function(fullname)
+	return function(i,j)
+		j = j or -i
+		return fullname .. ' arg' .. tostring(i) .. '* = static_cast< ' ..
+			fullname .. ' *>(LqtGetClassType(L, '..tostring(j)..', "' .. fullname .. '*"));'
+	end
+end
+local get_class = function(fullname)
+	return function(i,j)
+		j = j or -i
+		return fullname .. ' arg' .. tostring(i) .. ' = *static_cast< ' ..
+			fullname .. ' *>(LqtGetClassType(L, '..tostring(j)..', "' .. fullname .. '*"));'
 	end
 end
 
@@ -100,7 +118,7 @@ type_properties = function(t)
 		if identifier.label=='Enum' then
 			return 'string;', get_enum(identifier.xarg.fullname)
 		elseif identifier.label=='Class' then
-			return typename..'*;'
+			return typename..'*;', get_class(identifier.xarg.fullname)
 		else
 			error('unknown identifier type: '..identifier.label)
 		end
@@ -129,34 +147,11 @@ type_properties = function(t)
 	end
 end
 
-assert_function = function(f)
-	if type(f)~='table' or string.find(f.label, 'Function')~=1 then
-		error('this is NOT a function')
-	end
-end
-function_is_constructor = function(f)
-	assert_function(f)
-	return (f.xarg.member_of and f.xarg.member_of~=''
-	and f.xarg.fullname==(f.xarg.member_of..'::'..f.xarg.name) -- this should be always true
-	and string.match(f.xarg.member_of, f.xarg.name..'$')) and '[constructor]'
-end
-function_is_destructor = function(f)
-	assert_function(f)
-	return f.xarg.name:sub(1,1)=='~' and '[destructor]'
-end
-function_takes_this_pointer = function(f)
-	assert_function(f)
-	if f.xarg.member_of and not (f.xarg.static=='1') and f.xarg.member_of~=''
-		and not function_is_constructor(f) then
-		return f.xarg.member_of .. '*;'
-	end
-	return false
-end
 return_type = function(f)
 	assert_function(f)
-	if function_is_destructor(f) then
+	if entities.is_destructor(f) then
 		return nil
-	elseif function_is_constructor(f) then
+	elseif entities.is_constructor(f) then
 		-- FIXME: hack follows!
 		assert(f.xarg.type_name==f.xarg.type_base, 'return type of constructor is strange')
 		f.xarg.type_name = f.xarg.type_base..'*'
@@ -166,42 +161,18 @@ return_type = function(f)
 		return f
 	end
 end
-function_arguments_on_stack = function(f)
-	assert_function(f)
-	local args_on_stack = ''
-	--print('=====', f.xarg.fullname) 
-	for _,a in ipairs(f) do
-		--local st, err = pcall(type_on_stack, a)
-		--if not st then table.foreach(a, print) end
-		--assert(st, err)
-		local err = type_on_stack(a)
-		args_on_stack = args_on_stack .. err
-	end
-	if function_takes_this_pointer(f) then
-		args_on_stack = f.xarg.member_of .. '*;' .. args_on_stack
-	end
-	return args_on_stack
-end
-
--- TODO: must wait for a way to specify pushing base types
-function_calling_code = function(f)
-	assert_function(f)
-	local ret, indent = '', '  '
-	for _,a in ipairs(f) do
-		ret = ret .. indent .. '\n'
-	end
-end
 
 function_description = function(f)
 	assert_function(f)
-	local args_on_stack = function_arguments_on_stack(f)
+	local args_on_stack = entities.arguments_on_stack(f)
 	return f.xarg.type_name .. ' ' .. f.xarg.fullname .. ' (' .. args_on_stack .. ')'..
 	(f.xarg.static=='1' and ' [static]' or '')..
 	(f.xarg.virtual=='1' and ' [virtual]' or '')..
-	(function_is_constructor(f) and ' [constructor]' or '')..
-	(function_is_destructor(f) and ' [destructor]' or '')..
+	(entities.is_constructor(f) and ' [constructor]' or '')..
+	(entities.is_destructor(f) and ' [destructor]' or '')..
 	' [in ' .. tostring(f.xarg.member_of) .. ']'
 end
+
 for _, v in pairs(xmlstream.byid) do
 	if string.find(v.label, 'Function')==1 then
 		local status, err = pcall(function_description, v)
