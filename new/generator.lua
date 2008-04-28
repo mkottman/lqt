@@ -35,7 +35,16 @@ do
 		t[v.xarg.fullname] = o
 	end end
 	get_from_fullname = function(n)
-		return t[n]
+		local ret = t[n]
+		assert(ret, 'unknown identifier: '..n)
+		return ret
+	end
+	get_unique_fullname = function(n)
+		n = tostring(n)
+		local ret = t[n]
+		assert(ret, 'unknown identifier: '..n)
+		assert(type(ret)=='table' and #ret==1, 'ambiguous identifier: '..n)
+		return ret[1]
 	end
 	--name_list = t
 end
@@ -48,9 +57,7 @@ type_on_stack = function(t)
 		return ret
 	end
 	if type(t)=='string' or t.xarg.type_base==typename then
-		local identifier = get_from_fullname(typename)
-		assert(identifier and #identifier==1, 'cannot resolve base type: '..typename)
-		identifier = identifier[1]
+		local identifier = get_unique_fullname(typename)
 		if identifier.label=='Enum' then
 			return 'string;'
 		elseif identifier.label=='Class' then
@@ -129,9 +136,7 @@ type_properties = function(t)
 
 	-- not a base type
 	if type(t)=='string' or t.xarg.type_base==typename then
-		local identifier = get_from_fullname(typename)
-		assert(identifier and #identifier==1, 'cannot resolve base type: '..typename)
-		identifier = identifier[1]
+		local identifier = get_unique_fullname(typename)
 		if identifier.label=='Enum' then
 			return 'string;', get_enum(identifier.xarg.fullname)
 		elseif identifier.label=='Class' then
@@ -147,8 +152,7 @@ type_properties = function(t)
 		error'I cannot manipulate function pointers'
 	elseif t.xarg.indirections then
 		if t.xarg.indirections=='1' then
-			local b = get_from_fullname(t.xarg.type_base)
-			b = assert(b, 'unknown base type '..t.xarg.type_base)[1]
+			local b = get_unique_fullname(t.xarg.type_base)
 			if b.label=='Class' then
 				-- TODO: check if other modifiers are in place?
 				return t.xarg.type_base..'*;', get_pointer(t.xarg.type_base)
