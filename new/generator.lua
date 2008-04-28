@@ -100,7 +100,7 @@ end
 local get_pointer = function(fullname)
 	return function(i,j)
 		j = j or -i
-		return fullname .. ' arg' .. tostring(i) .. '* = static_cast< ' ..
+		return fullname .. '* arg' .. tostring(i) .. ' = static_cast< ' ..
 			fullname .. ' *>(LqtGetClassType(L, '..tostring(j)..', "' .. fullname .. '*"));'
 	end
 end
@@ -131,7 +131,7 @@ type_properties = function(t)
 
 	if rawget(base_types, typename) then
 		local ret = rawget(base_types, typename)
-		return ret.on_stack, ret.get
+		return ret.on_stack, ret.get, ret.push
 	end
 
 	-- not a base type
@@ -228,7 +228,7 @@ local calling_code = function(f)
 	for _,a in ipairs(f) do if a.label=='Argument' then
 		n = n + 1
 		local d, g, p = type_properties(a)
-		ret = ret .. indent .. g(n) .. '\n'
+		ret = ret .. indent .. g(n) .. '(void) arg'..tostring(n)..';\n'
 	end end
 	if entities.is_constructor(f) then
 	elseif entities.is_constructor(f) then
@@ -244,18 +244,70 @@ local calling_code = function(f)
 		local call_line = (ret_type and (ret_type..' ret = ') or '')
 		call_line = call_line .. f.xarg.fullname .. args
 		ret = ret .. indent .. call_line .. ';\n'
+		ret = ret .. (ret_type and (indent..'(void)ret;\n') or '')
+	end
+	return ret
+end
+
+
+io.write[[
+extern "C" {
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
+}
+
+#include <QtGui>
+
+typedef lua_Integer LqtBaseType_integer;
+typedef double LqtBaseType_number;
+typedef bool LqtBaseType_bool;
+typedef const char * LqtBaseType_string;
+
+#define LqtGetBaseType_integer lua_tointeger
+#define LqtGetBaseType_number lua_tonumber
+#define LqtGetBaseType_bool lua_toboolean
+
+void * LqtGetClassType (lua_State *L, int i, const char *t) {
+	return NULL;
+}
+quint32 LqtGetEnumType (lua_State *L, int i, const char *t) {
+	return 0;
+}
+const char * LqtGetBaseType_string (lua_State *L, int i) {
+	return NULL;
+}
+
+]]
+
+local FILTERS = {
+	function(f) return f.xarg.name:match'^[_%w]*'=='operator' end,
+	function(f) return f.xarg.fullname:match'%b<>' end,
+	function(f) return f.xarg.name=='qobject_cast' end,
+	function(f) return f.xarg.access~='public' end,
+}
+local filter_out = function(f)
+	local ret, msg, F = nil, next(FILTERS, nil)
+	while (not ret) and F do
+		ret = F(f) and msg
+		msg, F = next(FILTERS, msg)
 	end
 	return ret
 end
 
 for _, v in pairs(xmlstream.byid) do
-	if string.find(v.label, 'Function')==1 then
+	if string.find(v.label, 'Function')==1 and (not filter_out(v)) then
 		local status, err = pcall(function_description, v)
 		--io[status and 'stdout' or 'stderr']:write((status and '' or v.xarg.fullname..': ')..err..'\n')
 		if status then
 			local s, e = pcall(calling_code, v)
-			io[s and 'stdout' or 'stderr']:write((s and ''
-			or ('error calling '..v.xarg.fullname..': '))..e..(s and '' or '\n'))
+			--io[s and 'stdout' or 'stderr']:write((s and ''
+			--or ('error calling '..v.xarg.fullname..': '))..e..(s and '' or '\n'))
+			if s then
+				io.stdout:write('extern "C" int bound_function'..v.xarg.id..' (lua_State *L) {\n(void)L;\n')
+				io.stdout:write(e)
+				io.stdout:write('}\n')
+			end
 		end
 		--io[status and 'stdout' or 'stderr']:write((status and '' or v.xarg.fullname..': ')..err..'\n')
 	end
