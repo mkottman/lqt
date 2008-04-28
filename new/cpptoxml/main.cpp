@@ -185,7 +185,7 @@ QString XMLVisitor::visit(CodeModelItem i) {
 	ret += ATTR_STR("context", current_context.join("::"));
 	// FIXME: is this a dirty hack? yes, it is!
 	if (ArgumentModelItem a = model_dynamic_cast<ArgumentModelItem>(i)) {
-		ret += ATTR_STR("fullname", current_context.join("::")+"::"+i->qualifiedName().join("::"));
+		//ret += ATTR_STR("fullname", current_context.join("::")+"::"+i->qualifiedName().join("::"));
 	} else if (EnumeratorModelItem a = model_dynamic_cast<EnumeratorModelItem>(i)) {
 		ret += ATTR_STR("fullname", current_context.join("::")+"::"+i->qualifiedName().join("::"));
 	} else {
