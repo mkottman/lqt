@@ -66,7 +66,7 @@ type_on_stack = function(t)
 			error('unknown identifier type: '..identifier.label)
 		end
 	else
-		if t.xarg.array then
+		if t.xarg.array or t.xarg.type_name:match'%b[]' then -- FIXME: onother hack
 			error'I cannot manipulate arrays'
 		elseif string.match(typename, '%(%*%)') then
 			-- function pointer type
@@ -93,35 +93,35 @@ end
 local get_enum = function(fullname)
 	return function(i,j)
 		j = j or -i
-		return fullname .. ' arg' .. tostring(i) .. ' = static_cast< ' ..
+		return 'static_cast< ' ..
 			fullname .. ' >(LqtGetEnumType(L, '..tostring(j)..', "' .. fullname .. '"));'
 	end
 end
 local get_pointer = function(fullname)
 	return function(i,j)
 		j = j or -i
-		return fullname .. '* arg' .. tostring(i) .. ' = static_cast< ' ..
+		return 'static_cast< ' ..
 			fullname .. ' *>(LqtGetClassType(L, '..tostring(j)..', "' .. fullname .. '*"));'
 	end
 end
 local get_class = function(fullname)
 	return function(i,j)
 		j = j or -i
-		return fullname .. ' arg' .. tostring(i) .. ' = *static_cast< ' ..
+		return '*static_cast< ' ..
 			fullname .. ' *>(LqtGetClassType(L, '..tostring(j)..', "' .. fullname .. '*"));'
 	end
 end
 local get_constref = function(fullname)
 	return function(i,j)
 		j = j or -i
-		return fullname .. ' const& arg' .. tostring(i) .. ' = *static_cast< ' ..
+		return '*static_cast< ' ..
 			fullname .. ' *>(LqtGetClassType(L, '..tostring(j)..', "' .. fullname .. '*"));'
 	end
 end
 local get_ref = function(fullname)
 	return function(i,j)
 		j = j or -i
-		return fullname .. '& arg' .. tostring(i) .. ' = *static_cast< ' ..
+		return '*static_cast< ' ..
 			fullname .. ' *>(LqtGetClassType(L, '..tostring(j)..', "' .. fullname .. '*"));'
 	end
 end
@@ -144,7 +144,7 @@ type_properties = function(t)
 		else
 			error('unknown identifier type: '..identifier.label)
 		end
-	elseif t.xarg.array then
+	elseif t.xarg.array or t.xarg.type_name:match'%b[]' then -- FIXME: another hack
 		error'I cannot manipulate arrays'
 	elseif string.match(typename, '%(%*%)') then
 		-- function pointer type
@@ -228,7 +228,8 @@ local calling_code = function(f)
 	for _,a in ipairs(f) do if a.label=='Argument' then
 		n = n + 1
 		local d, g, p = type_properties(a)
-		ret = ret .. indent .. g(n) .. '(void) arg'..tostring(n)..';\n'
+		ret = ret .. indent .. a.xarg.type_name .. ' arg' .. tostring(n) .. ' = '
+		ret = ret .. g(n) .. '(void) arg'..tostring(n)..';\n'
 	end end
 	if entities.is_constructor(f) then
 	elseif entities.is_constructor(f) then
@@ -283,7 +284,8 @@ const char * LqtGetBaseType_string (lua_State *L, int i) {
 local FILTERS = {
 	function(f) return f.xarg.name:match'^[_%w]*'=='operator' end,
 	function(f) return f.xarg.fullname:match'%b<>' end,
-	function(f) return f.xarg.name=='qobject_cast' end,
+	function(f) return f.xarg.name:match'_cast' end,
+	function(f) return f.xarg.fullname:match'QInternal' end,
 	function(f) return f.xarg.access~='public' end,
 }
 local filter_out = function(f)
