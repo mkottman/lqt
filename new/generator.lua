@@ -68,12 +68,12 @@ local push_class = function(fullname)
 end
 local push_constref = function(fullname)
 	return function(j)
-		return 'lqtL_passudata(L, new '..fullname..'('..tostring(j)..'), "' .. fullname .. '*"));'
+		return 'lqtL_passudata(L, new '..fullname..'('..tostring(j)..'), "' .. fullname .. '*");'
 	end
 end
 local push_ref = function(fullname)
 	return function(j)
-		return 'lqtL_passudata(L, &'..tostring(j)..', "' .. fullname .. '*"));'
+		return 'lqtL_passudata(L, &'..tostring(j)..', "' .. fullname .. '*");'
 	end
 end
 
@@ -117,8 +117,8 @@ type_properties = function(t)
 	local typename = type(t)=='string' and t or t.xarg.type_name
 
 	if base_types[typename] then
-		local ret = rawget(base_types, typename)
-		return ret.desc, ret.get, ret.push
+		local ret = base_types[typename]
+		return ret.desc, ret.get, ret.push, ret.num
 	end
 
 	-- not a base type
@@ -126,9 +126,9 @@ type_properties = function(t)
 		local identifier = get_unique_fullname(typename)
 		local fn = identifier.xarg.fullname
 		if identifier.label=='Enum' then
-			return 'string;', get_enum(fn), push_enum(fn)
+			return 'string;', get_enum(fn), push_enum(fn), 1
 		elseif identifier.label=='Class' then
-			return typename..'*;', get_class(fn), push_class(fn)
+			return typename..'*;', get_class(fn), push_class(fn), 1
 		else
 			error('unknown identifier type: '..identifier.label)
 		end
@@ -145,7 +145,7 @@ type_properties = function(t)
 				-- TODO: check if other modifiers are in place?
 				return t.xarg.type_base..'*;',
 					get_pointer(t.xarg.type_base),
-					push_pointer(t.xarg.type_base)
+					push_pointer(t.xarg.type_base), 1
 			else
 				error('I cannot manipulate pointers to '..t.xarg.type_base)
 			end
@@ -164,7 +164,7 @@ type_properties = function(t)
 			ret_push = push_ref(t.xarg.type_base)
 		end
 		assert(ret_get, 'cannot get non-base type '..typename..' from stack')
-		return type_properties(t.xarg.type_base), ret_get, ret_push
+		return type_properties(t.xarg.type_base), ret_get, ret_push, 1
 	end
 end
 
@@ -196,14 +196,14 @@ function_description = function(f)
 	' [in ' .. tostring(f.xarg.member_of) .. ']'
 end
 
--- TODO: must wait for a way to specify pushing base types
+-- TODO: constructors wait for deciding if base class is needed
 local calling_code = function(f)
 	assert_function(f)
 	local ret, indent = '', '  '
 	local n = 0
 	for _,a in ipairs(f) do if a.label=='Argument' then
 		n = n + 1
-		local d, g, p = type_properties(a)
+		local _d, g, _p, _n = type_properties(a)
 		ret = ret .. indent .. a.xarg.type_name .. ' arg' .. tostring(n) .. ' = '
 		ret = ret .. g(n) .. '(void) arg'..tostring(n)..';\n'
 	end end
@@ -216,14 +216,15 @@ local calling_code = function(f)
 			args = args .. (i > 1 and ', arg' or 'arg') .. tostring(i)
 		end
 		args = '('..args..')';
+		local call_line = f.xarg.fullname .. args .. ';\n'
 		local ret_type = entities.return_type(f)
-		ret_type = ret_type and ret_type.xarg.type_name or nil
-		local call_line = (ret_type and (ret_type..' ret = ') or '')
-		call_line = call_line .. f.xarg.fullname .. args
-		ret = ret .. indent .. call_line .. ';\n'
-		ret = ret .. (ret_type and (indent..'(void)ret;\n') or '')
-		local _d, _g, p = type_properties(ret_type)
-		ret = ret .. indent .. p'ret'
+		if ret_type then
+			call_line = ret_type.xarg.type_name .. ' ret = ' .. call_line
+			local _d, _g, p, n = type_properties(ret_type)
+			call_line = call_line .. indent .. p'ret' .. '\n'
+			call_line = call_line .. indent .. 'return ' .. tostring(n) .. ';\n'
+		end
+		ret = ret .. indent .. call_line .. '\n'
 	end
 	return ret
 end

@@ -18,6 +18,7 @@ local BaseType = function(s)
 			j = j or -i
 			return 'LqtTestBaseType_'..s..'(L, '..tostring(j)..')'
 		end,
+		num = 1,
 	}
 end
 
