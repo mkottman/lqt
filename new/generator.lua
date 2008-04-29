@@ -50,46 +50,6 @@ do
 end
 
 
-type_on_stack = function(t)
-	local typename = type(t)=='string' and t or t.xarg.type_name
-	if rawget(base_types, typename) then
-		local ret = rawget(base_types, typename).on_stack
-		return ret
-	end
-	if type(t)=='string' or t.xarg.type_base==typename then
-		local identifier = get_unique_fullname(typename)
-		if identifier.label=='Enum' then
-			return 'string;'
-		elseif identifier.label=='Class' then
-			return typename..'*;'
-		else
-			error('unknown identifier type: '..identifier.label)
-		end
-	else
-		if t.xarg.array or t.xarg.type_name:match'%b[]' then -- FIXME: onother hack
-			error'I cannot manipulate arrays'
-		elseif string.match(typename, '%(%*%)') then
-			-- function pointer type
-			-- FIXME: the XML description does not contain this info
-			error'I cannot manipulate function pointers'
-		elseif t.xarg.indirections then
-			if t.xarg.indirections=='1' then
-				local b = assert(get_from_fullname(t.xarg.type_base), 'unknown type base')[1]
-				if b.label=='Class' then
-					return t.xarg.type_base..'*;'
-				else
-					error('I cannot manipulate pointers to '..t.xarg.type_base)
-				end
-			end
-			error'I cannot manipulate double pointers'
-		else
-			-- this is any combination of constant, volatile and reference
-			-- we ignore this info and treat this as normal value
-			return type_on_stack(t.xarg.type_base)
-		end
-	end
-end
-
 local get_enum = function(fullname)
 	return function(i,j)
 		j = j or -i
@@ -191,27 +151,9 @@ entities.return_type = function(f)
 	end
 end
 
-
-local arguments_on_stack = function(f)
-	assert_function(f)
-	local args_on_stack = ''
-	--print('=====', f.xarg.fullname) 
-	for _,a in ipairs(f) do
-		--local st, err = pcall(type_on_stack, a)
-		--if not st then table.foreach(a, print) end
-		--assert(st, err)
-		local err = type_properties(a)
-		args_on_stack = args_on_stack .. err
-	end
-	if entities.takes_this_pointer(f) then
-		args_on_stack = f.xarg.member_of .. '*;' .. args_on_stack
-	end
-	return args_on_stack
-end
-
 function_description = function(f)
 	assert_function(f)
-	local args_on_stack = arguments_on_stack(f)
+	local args_on_stack = arguments_on_stack(f) -- FIXME: use another method
 	return f.xarg.type_name .. ' ' .. f.xarg.fullname .. ' (' .. args_on_stack .. ')'..
 	(f.xarg.static=='1' and ' [static]' or '')..
 	(f.xarg.virtual=='1' and ' [virtual]' or '')..
