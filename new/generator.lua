@@ -25,7 +25,8 @@ local decompound = function(n)
 end
 
 
-local base_types = dofile'types.lua'
+local base_types = {}
+assert(loadfile'types.lua')(base_types)
 
 do
 	local t = {}
@@ -50,57 +51,84 @@ do
 end
 
 
+local push_enum = function(fullname)
+	return function(j)
+		return 'lqtL_pushenum(L, '..tostring(j)..', "'..fullname..'");'
+	end
+end
+local push_pointer = function(fullname)
+	return function(j)
+		return 'lqtL_pushudata(L, '..tostring(j)..', "' .. fullname .. '*");'
+	end
+end
+local push_class = function(fullname)
+	return function(j)
+		return 'lqtL_passudata(L, new '..fullname..'('..tostring(j)..'), "' .. fullname .. '*");'
+	end
+end
+local push_constref = function(fullname)
+	return function(j)
+		return 'lqtL_passudata(L, new '..fullname..'('..tostring(j)..'), "' .. fullname .. '*"));'
+	end
+end
+local push_ref = function(fullname)
+	return function(j)
+		return 'lqtL_passudata(L, &'..tostring(j)..', "' .. fullname .. '*"));'
+	end
+end
+
 local get_enum = function(fullname)
 	return function(i,j)
 		j = j or -i
 		return 'static_cast< ' ..
-			fullname .. ' >(LqtGetEnumType(L, '..tostring(j)..', "' .. fullname .. '"));'
+			fullname .. ' >(lqtL_toenum(L, '..tostring(j)..', "' .. fullname .. '"));'
 	end
 end
 local get_pointer = function(fullname)
 	return function(i,j)
 		j = j or -i
 		return 'static_cast< ' ..
-			fullname .. ' *>(LqtGetClassType(L, '..tostring(j)..', "' .. fullname .. '*"));'
+			fullname .. ' *>(lqtL_toudata(L, '..tostring(j)..', "' .. fullname .. '*"));'
 	end
 end
 local get_class = function(fullname)
 	return function(i,j)
 		j = j or -i
 		return '*static_cast< ' ..
-			fullname .. ' *>(LqtGetClassType(L, '..tostring(j)..', "' .. fullname .. '*"));'
+			fullname .. ' *>(lqtL_toudata(L, '..tostring(j)..', "' .. fullname .. '*"));'
 	end
 end
 local get_constref = function(fullname)
 	return function(i,j)
 		j = j or -i
 		return '*static_cast< ' ..
-			fullname .. ' *>(LqtGetClassType(L, '..tostring(j)..', "' .. fullname .. '*"));'
+			fullname .. ' *>(lqtL_toudata(L, '..tostring(j)..', "' .. fullname .. '*"));'
 	end
 end
 local get_ref = function(fullname)
 	return function(i,j)
 		j = j or -i
 		return '*static_cast< ' ..
-			fullname .. ' *>(LqtGetClassType(L, '..tostring(j)..', "' .. fullname .. '*"));'
+			fullname .. ' *>(lqtL_toudata(L, '..tostring(j)..', "' .. fullname .. '*"));'
 	end
 end
 
 type_properties = function(t)
 	local typename = type(t)=='string' and t or t.xarg.type_name
 
-	if rawget(base_types, typename) then
+	if base_types[typename] then
 		local ret = rawget(base_types, typename)
-		return ret.on_stack, ret.get, ret.push
+		return ret.desc, ret.get, ret.push
 	end
 
 	-- not a base type
 	if type(t)=='string' or t.xarg.type_base==typename then
 		local identifier = get_unique_fullname(typename)
+		local fn = identifier.xarg.fullname
 		if identifier.label=='Enum' then
-			return 'string;', get_enum(identifier.xarg.fullname)
+			return 'string;', get_enum(fn), push_enum(fn)
 		elseif identifier.label=='Class' then
-			return typename..'*;', get_class(identifier.xarg.fullname)
+			return typename..'*;', get_class(fn), push_class(fn)
 		else
 			error('unknown identifier type: '..identifier.label)
 		end
@@ -115,7 +143,9 @@ type_properties = function(t)
 			local b = get_unique_fullname(t.xarg.type_base)
 			if b.label=='Class' then
 				-- TODO: check if other modifiers are in place?
-				return t.xarg.type_base..'*;', get_pointer(t.xarg.type_base)
+				return t.xarg.type_base..'*;',
+					get_pointer(t.xarg.type_base),
+					push_pointer(t.xarg.type_base)
 			else
 				error('I cannot manipulate pointers to '..t.xarg.type_base)
 			end
@@ -123,14 +153,18 @@ type_properties = function(t)
 		error'I cannot manipulate double pointers'
 	else
 		-- this is any combination of constant, volatile and reference
-		local ret_get = nil
+		local ret_get, ret_push = nil, nil
 		if typename==(t.xarg.type_base..' const&') then
+			local bt = get_unique_fullname(t.xarg.type_base)
+			--assert(entities.class_is_copy_constructible(bt))
 			ret_get = get_constref(t.xarg.type_base)
+			ret_push = push_constref(t.xarg.type_base)
 		elseif typename==(t.xarg.type_base..'&') then
 			ret_get = get_ref(t.xarg.type_base)
+			ret_push = push_ref(t.xarg.type_base)
 		end
 		assert(ret_get, 'cannot get non-base type '..typename..' from stack')
-		return type_properties(t.xarg.type_base), ret_get
+		return type_properties(t.xarg.type_base), ret_get, ret_push
 	end
 end
 
@@ -153,7 +187,7 @@ end
 
 function_description = function(f)
 	assert_function(f)
-	local args_on_stack = arguments_on_stack(f) -- FIXME: use another method
+	local args_on_stack = '' -- arguments_on_stack(f) -- FIXME: use another method
 	return f.xarg.type_name .. ' ' .. f.xarg.fullname .. ' (' .. args_on_stack .. ')'..
 	(f.xarg.static=='1' and ' [static]' or '')..
 	(f.xarg.virtual=='1' and ' [virtual]' or '')..
@@ -188,6 +222,8 @@ local calling_code = function(f)
 		call_line = call_line .. f.xarg.fullname .. args
 		ret = ret .. indent .. call_line .. ';\n'
 		ret = ret .. (ret_type and (indent..'(void)ret;\n') or '')
+		local _d, _g, p = type_properties(ret_type)
+		ret = ret .. indent .. p'ret'
 	end
 	return ret
 end
@@ -200,26 +236,12 @@ extern "C" {
 #include <lauxlib.h>
 }
 
+#include "lqt_common.hpp"
 #include <QtGui>
 
-typedef lua_Integer LqtBaseType_integer;
-typedef double LqtBaseType_number;
-typedef bool LqtBaseType_bool;
-typedef const char * LqtBaseType_string;
-
-#define LqtGetBaseType_integer lua_tointeger
-#define LqtGetBaseType_number lua_tonumber
-#define LqtGetBaseType_bool lua_toboolean
-
-void * LqtGetClassType (lua_State *L, int i, const char *t) {
-	return NULL;
-}
-quint32 LqtGetEnumType (lua_State *L, int i, const char *t) {
-	return 0;
-}
-const char * LqtGetBaseType_string (lua_State *L, int i) {
-	return NULL;
-}
+#define lqtL_getinteger lua_tointeger
+#define lqtL_getstring lua_tostring
+#define lqtL_getnumber lua_tonumber
 
 ]]
 
@@ -252,6 +274,8 @@ for _, v in pairs(xmlstream.byid) do
 				io.stdout:write(e)
 				io.stdout:write('}\n')
 			end
+		else
+			print(err)
 		end
 		--io[status and 'stdout' or 'stderr']:write((status and '' or v.xarg.fullname..': ')..err..'\n')
 	end
