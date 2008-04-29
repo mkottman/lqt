@@ -52,7 +52,8 @@ entities.class_is_copy_constructible = function(c)
 		if is_function(m)
 			and is_constructor(m)
 			and #m==1
-			and m[1].xarg.type_name==c.xarg.fullname..' const&' then
+			and (m[1].xarg.type_name==c.xarg.fullname..' const&'
+			or m[1].xarg.type_name==c.xarg.fullname) then
 			return true
 		end
 	end
