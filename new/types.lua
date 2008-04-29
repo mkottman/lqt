@@ -6,7 +6,7 @@ local BaseType = function(s)
 		on_stack = s..';',
 		get = function(i, j)
 			j = j or -i
-			return 'LqtBaseType_'..s..' arg'..tostring(i)..' = LqtGetBaseType_'..s..'(L, '..tostring(j)..');'
+			return 'LqtGetBaseType_'..s..'(L, '..tostring(j)..');'
 		end,
 		push = function(j) -- must handle arguments (e.g. in virtual callbacks) and return values
 			return 'LqtPushBaseType_'..s..'(L, '..tostring(j)..');'
@@ -26,8 +26,8 @@ local base_types = {
 	--['void const*'] =   function(i) return 'lua_pushlightuserdata(L, ' .. tostring(i) .. ')' end,
 	--['void const**'] = function(i) return 'lua_pushlightuserdata(L, ' .. tostring(i) .. ')' end,
 
-	['char'] = BaseType'string',
-	['char*'] = BaseType'string',
+	--['char'] = BaseType'string',
+	--['char*'] = BaseType'string',
 	--['char**'] = function(i) return 'lqtL_pusharguments(L, ' .. tostring(i) .. ')' end,
 	['char const*'] = BaseType'string',
 	--['char const**'] = function(i) return 'lqtL_pusharguments(L, ' .. tostring(i) .. ')' end,
