@@ -45,6 +45,7 @@ function collect(s)
 			error("trying to close "..toclose.label.." with "..label)
 		end
 		table.insert(top, toclose)
+		toclose.parent = top
 		if toclose.xarg.name then
 			top.byname = top.byname or {}
 			local overload = top.byname[toclose.xarg.name]
