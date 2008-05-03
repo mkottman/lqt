@@ -14,9 +14,9 @@ local is_function = entities.is_function
 
 entities.is_constructor = function(f)
 	assert(is_function(f), 'argument is not a function')
-	return (f.xarg.member_of and f.xarg.member_of~=''
-	and f.xarg.fullname==(f.xarg.member_of..'::'..f.xarg.name) -- this should be always true
-	and string.match(f.xarg.member_of, f.xarg.name..'$')) and '[constructor]'
+	return (f.xarg.member_of_class and f.xarg.member_of_class~=''
+	and f.xarg.fullname==(f.xarg.member_of_class..'::'..f.xarg.name) -- this should be always true
+	and string.match(f.xarg.member_of_class, f.xarg.name..'$')) and '[constructor]'
 end
 local is_constructor = entities.is_constructor
 
@@ -28,9 +28,9 @@ local is_destructor = entities.is_destructor
 
 entities.takes_this_pointer = function(f)
 	assert(is_function(f), 'argument is not a function')
-	if f.xarg.member_of and not (f.xarg.static=='1') and f.xarg.member_of~=''
+	if f.xarg.member_of_class and not (f.xarg.static=='1') and f.xarg.member_of_class~=''
 		and not is_constructor(f) then
-		return f.xarg.member_of .. '*;'
+		return f.xarg.member_of_class .. '*;'
 	end
 	return false
 end

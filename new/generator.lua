@@ -66,7 +66,7 @@ local push_class = function(fullname)
 		return 'lqtL_passudata(L, new '..fullname..'('..tostring(j)..'), "' .. fullname .. '*");'
 	end
 end
-local push_constref = function(fullname)
+local push_constref = function(fullname) -- FIXME: is it correct?
 	return function(j)
 		return 'lqtL_passudata(L, new '..fullname..'('..tostring(j)..'), "' .. fullname .. '*");'
 	end
@@ -78,38 +78,33 @@ local push_ref = function(fullname)
 end
 
 local get_enum = function(fullname)
-	return function(i,j)
-		j = j or -i
+	return function(i)
 		return 'static_cast< ' ..
-			fullname .. ' >(lqtL_toenum(L, '..tostring(j)..', "' .. fullname .. '"));'
+			fullname .. ' >(lqtL_toenum(L, '..tostring(i)..', "' .. fullname .. '"));'
 	end
 end
 local get_pointer = function(fullname)
-	return function(i,j)
-		j = j or -i
+	return function(i)
 		return 'static_cast< ' ..
-			fullname .. ' *>(lqtL_toudata(L, '..tostring(j)..', "' .. fullname .. '*"));'
+			fullname .. ' *>(lqtL_toudata(L, '..tostring(i)..', "' .. fullname .. '*"));'
 	end
 end
 local get_class = function(fullname)
-	return function(i,j)
-		j = j or -i
+	return function(i)
 		return '*static_cast< ' ..
-			fullname .. ' *>(lqtL_toudata(L, '..tostring(j)..', "' .. fullname .. '*"));'
+			fullname .. ' *>(lqtL_toudata(L, '..tostring(i)..', "' .. fullname .. '*"));'
 	end
 end
 local get_constref = function(fullname)
-	return function(i,j)
-		j = j or -i
+	return function(i)
 		return '*static_cast< ' ..
-			fullname .. ' *>(lqtL_toudata(L, '..tostring(j)..', "' .. fullname .. '*"));'
+			fullname .. ' *>(lqtL_toudata(L, '..tostring(i)..', "' .. fullname .. '*"));'
 	end
 end
 local get_ref = function(fullname)
-	return function(i,j)
-		j = j or -i
+	return function(i)
 		return '*static_cast< ' ..
-			fullname .. ' *>(lqtL_toudata(L, '..tostring(j)..', "' .. fullname .. '*"));'
+			fullname .. ' *>(lqtL_toudata(L, '..tostring(i)..', "' .. fullname .. '*"));'
 	end
 end
 
@@ -196,20 +191,59 @@ function_description = function(f)
 	' [in ' .. tostring(f.xarg.member_of) .. ']'
 end
 
+local argument_number = function(f)
+	assert_function(f)
+	local narg = #f
+	if entities.is_destructor(f) then
+		narg = 1
+	elseif entities.is_constructor(f) then
+	elseif entities.takes_this_pointer then
+		narg = narg + 1
+	end
+	return narg
+end
+
+local argument_assert = function(f)
+	assert_function(f)
+	local narg = argument_number(f)
+	return 'luaL_checkany(L, '..tostring(narg)..')'
+end
+
+local argument = function(n)
+	return 'arg'..tostring(n)
+end
+
+local get_args = function(f, indent)
+	assert_function(f)
+	indent = indent or '  '
+	local ret, argi = '', 0
+	if entities.takes_this_pointer(f) then
+		argi = argi + 1
+		ret = ret .. indent .. f.xarg.member_of_class .. '* self = '
+		ret = ret .. get_pointer(f.xarg.member_of_class)(argi) .. ';(void)self;\n'
+	end
+	for _,a in ipairs(f) do if a.label=='Argument' then
+		argi = argi + 1
+		local _d, g, _p, _n = type_properties(a)
+		ret = ret .. indent .. a.xarg.type_name .. ' arg' .. tostring(argi) .. ' = '
+		ret = ret .. g(argi) .. '(void) arg'..tostring(argi)..';\n'
+	else error'element in function is not argument'
+	end end
+	return ret
+end
+
 -- TODO: constructors wait for deciding if base class is needed
 local calling_code = function(f)
 	assert_function(f)
 	local ret, indent = '', '  '
-	local n = 0
-	for _,a in ipairs(f) do if a.label=='Argument' then
-		n = n + 1
-		local _d, g, _p, _n = type_properties(a)
-		ret = ret .. indent .. a.xarg.type_name .. ' arg' .. tostring(n) .. ' = '
-		ret = ret .. g(n) .. '(void) arg'..tostring(n)..';\n'
-	end end
+	local argi = 0
+
+	ret = ret..indent..argument_assert(f)..';'
+
+	ret = ret..get_args(f, indent)
+
 	if entities.is_constructor(f) then
-	elseif entities.is_constructor(f) then
-	elseif entities.takes_this_pointer(f) then
+	elseif entities.is_destructor(f) then
 	else
 		local args = ''
 		for i = 1,n do
@@ -273,7 +307,7 @@ for _, v in pairs(xmlstream.byid) do
 			if s then
 				io.stdout:write('extern "C" int bound_function'..v.xarg.id..' (lua_State *L) {\n(void)L;\n')
 				io.stdout:write(e)
-				io.stdout:write('}\n')
+				io.stdout:write('return 0;}\n') -- FIXME
 			end
 		else
 			print(err)
