@@ -134,8 +134,10 @@ TypeInfo XMLVisitor::solve(const TypeInfo& t, QStringList scope) {
 QString XMLVisitor::visit(const TypeInfo& t, QStringList scope) {
 	//t = t.resolveType(t, t.scope());
 
+	//QString oldt = t.toString();
 	TypeInfo tt = solve(t, scope);
 	tt = simplifyType(tt, current_scope.first());
+	//if (oldt!=tt.toString()) qDebug() << oldt << " -> " << tt.toString();
 
 	QString ret(" type_name=\"");
 	ret += tt.toString().append("\"");
@@ -226,6 +228,9 @@ QString XMLVisitor::visit(CodeModelItem i) {
 		QStringList ownerName = m->qualifiedName();
 		ownerName.pop_back();
 		ret += ATTR_STR("member_of", ownerName.join("::"));
+		
+		if (ClassModelItem c = model_dynamic_cast<ClassModelItem>(current_scope.last()))
+			ret += ATTR_STR("member_of_class", c->qualifiedName().join("::"));
 
 		ret += " access=\"";
 		switch (m->accessPolicy()) {
