@@ -64,6 +64,7 @@ class XMLVisitor {
 			}
 		QString XMLTag(CodeModelItem);
 		TypeInfo solve(const TypeInfo&, QStringList);
+		TypeInfo simplifyType (TypeInfo const &, CodeModelItem __scope);
 		QString visit(const TypeInfo&, QStringList);
 		QString visit(CodeModelItem);
 		/*
@@ -75,7 +76,7 @@ class XMLVisitor {
 };
 
 
-TypeInfo simplifyType (TypeInfo const &__type, CodeModelItem __scope)
+TypeInfo XMLVisitor::simplifyType (TypeInfo const &__type, CodeModelItem __scope)
 {
     CodeModel *__model = __scope->model ();
     Q_ASSERT (__model != 0);
@@ -84,7 +85,10 @@ TypeInfo simplifyType (TypeInfo const &__type, CodeModelItem __scope)
 	    QStringList qname = t.qualifiedName();
 	    qname << __type.qualifiedName().at(i);
 	    t.setQualifiedName(qname);
+	    //t = this->solve(t, __scope->qualifiedName());
+	    QString oldt = t.toString();
 	    t = t.resolveType(t, __scope);
+	    if (t.toString()!=oldt) qDebug() << oldt << " --> " << t.toString();
     }
 
     TypeInfo otherType = __type;
@@ -98,22 +102,6 @@ TypeInfo simplifyType (TypeInfo const &__type, CodeModelItem __scope)
 TypeInfo XMLVisitor::solve(const TypeInfo& t, QStringList scope) {
 	(void)scope;
 	if (!resolve_types) return t;
-#if 0
-	TypeInfo tt = t.resolveType(t, outer_scope);
-	if (tt==t) {
-		tt = t.resolveType(t, current_scope.back());
-		if (tt!=t) {
-			tt = tt.resolveType(tt, outer_scope);
-			//qDebug() << "***" << t.toString() << tt.toString() << current_id << scope.join("::") << current_context.join("::");
-		}
-	}
-	if (tt!=t) {
-		//qDebug() << "+++" << t.toString() << tt.toString() << current_id << scope.join("::") << current_context.join("::");
-	} else {
-		//qDebug() << "---" << t.toString() << current_id << scope.join("::") << current_context.join("::");
-	}
-	return tt;
-#else
 	TypeInfo tt(t);
 	for (QList<CodeModelItem>::const_iterator i=current_scope.begin();
 			i<current_scope.end();
@@ -128,15 +116,18 @@ TypeInfo XMLVisitor::solve(const TypeInfo& t, QStringList scope) {
 
 	}
 	return tt;
-#endif
 }
 
 QString XMLVisitor::visit(const TypeInfo& t, QStringList scope) {
 	//t = t.resolveType(t, t.scope());
 
-	//QString oldt = t.toString();
+	QString oldt = t.toString();
 	TypeInfo tt = solve(t, scope);
-	tt = simplifyType(tt, current_scope.first());
+	//tt = simplifyType(tt, current_scope.first());
+	while (oldt!=tt.toString()) {
+		oldt = tt.toString();
+		tt = solve(tt, scope);
+	}
 	//if (oldt!=tt.toString()) qDebug() << oldt << " -> " << tt.toString();
 
 	QString ret(" type_name=\"");
