@@ -170,8 +170,8 @@ entities.return_type = function(f)
 	elseif entities.is_constructor(f) then
 		-- FIXME: hack follows!
 		assert(f.xarg.type_name==f.xarg.type_base, 'return type of constructor is strange')
-		f.xarg.type_name = f.xarg.type_base..'*'
-		f.xarg.indirections='1'
+		f.xarg.type_name = f.xarg.type_base..'&'
+		f.xarg.reference='1'
 		return f
 	elseif f.xarg.type_name=='' or f.xarg.type_name=='void' then
 		return nil
@@ -216,38 +216,98 @@ end
 local get_args = function(f, indent)
 	assert_function(f)
 	indent = indent or '  '
-	local ret, argi = '', 0
+	local ret, argi, shift = '', 0, 0
 	if entities.takes_this_pointer(f) then
-		argi = argi + 1
+		shift = 1
 		ret = ret .. indent .. f.xarg.member_of_class .. '* self = '
-		ret = ret .. get_pointer(f.xarg.member_of_class)(argi) .. ';(void)self;\n'
+		ret = ret .. get_pointer(f.xarg.member_of_class)(1) .. ';\n' -- (void)self;\n'
 	end
 	for _,a in ipairs(f) do if a.label=='Argument' then
 		argi = argi + 1
 		local _d, g, _p, _n = type_properties(a)
-		ret = ret .. indent .. a.xarg.type_name .. ' arg' .. tostring(argi) .. ' = '
-		ret = ret .. g(argi) .. '(void) arg'..tostring(argi)..';\n'
+		ret = ret .. indent .. a.xarg.type_name .. ' '..argument(argi) .. ' = '
+		ret = ret .. g(argi + shift) .. ';\n' -- .. '(void) '..argument(argi)..';\n'
 	else error'element in function is not argument'
 	end end
 	return ret
 end
 
--- TODO: constructors wait for deciding if base class is needed
+local arg_list = function(f)
+	assert_function(f)
+	if entities.is_destructor(f) then
+		return '(self)'
+	else
+		local ret = ''
+		for i = 1, #f do
+			ret = ret .. (i>1 and ', ' and '') .. argument(i)
+		end
+		return '('..ret..')'
+	end
+end
+
+local function_static_call = function(f)
+	assert_function(f)
+	if entities.is_destructor(f) then
+		return 'delete (self)'
+	elseif entities.is_constructor(f) then
+		return '*new '..f.xarg.fullname..arg_list(f)
+	elseif entities.takes_this_pointer(f) then
+		return 'self->'..f.xarg.fullname..arg_list(f)
+	else
+		return f.xarg.fullname..arg_list(f)
+	end
+end
+
+local collect_return = function(f)
+	assert_function(f)
+	local ret_t = entities.return_type(f)
+	if not ret_t then
+		return ''
+	else
+		return ret_t.xarg.type_name .. ' ret = '
+	end
+end
+
+local give_back_return = function(f)
+	assert_function(f)
+	local ret_t = entities.return_type(f)
+	if not ret_t then
+		return ''
+	else
+		local _d, _g, p, _n = type_properties(ret_t)
+		return p'ret'
+	end
+end
+
+local return_statement = function(f)
+	assert_function(f)
+	local ret_t = entities.return_type(f)
+	if not ret_t then
+		return 'return 0'
+	else
+		local _d, _g, _p, n = type_properties(ret_t)
+		return 'return '..tostring(n)
+	end
+end
+
+-- TODO: constructors wait for deciding if shell class is needed
 local calling_code = function(f)
 	assert_function(f)
 	local ret, indent = '', '  '
 	local argi = 0
 
-	ret = ret..indent..argument_assert(f)..';'
+	ret = ret..indent..argument_assert(f)..';\n'
 
 	ret = ret..get_args(f, indent)
 
-	if entities.is_constructor(f) then
-	elseif entities.is_destructor(f) then
-	else
+	--if entities.is_constructor(f) then
+	--elseif entities.is_destructor(f) then
+	--else
+	do
+		--[[
 		local args = ''
-		for i = 1,n do
-			args = args .. (i > 1 and ', arg' or 'arg') .. tostring(i)
+		for i = 1,#f do
+			args = args .. (i > 1 and ', ' or '') .. argument(i)
 		end
 		args = '('..args..')';
 		local call_line = f.xarg.fullname .. args .. ';\n'
@@ -258,7 +318,12 @@ local calling_code = function(f)
 			call_line = call_line .. indent .. p'ret' .. '\n'
 			call_line = call_line .. indent .. 'return ' .. tostring(n) .. ';\n'
 		end
-		ret = ret .. indent .. call_line .. '\n'
+		--]]
+		local call_line = function_static_call(f)
+		ret = ret .. indent .. collect_return(f) .. call_line .. ';\n'
+		local treat_return = give_back_return(f)
+		ret = treat_return and (ret..indent..treat_return..';\n') or ret
+		ret = ret .. indent .. return_statement(f) .. ';\n'
 	end
 	return ret
 end
@@ -305,9 +370,9 @@ for _, v in pairs(xmlstream.byid) do
 			--io[s and 'stdout' or 'stderr']:write((s and ''
 			--or ('error calling '..v.xarg.fullname..': '))..e..(s and '' or '\n'))
 			if s then
-				io.stdout:write('extern "C" int bound_function'..v.xarg.id..' (lua_State *L) {\n(void)L;\n')
+				io.stdout:write('extern "C" int bound_function'..v.xarg.id..' (lua_State *L) {\n')
 				io.stdout:write(e)
-				io.stdout:write('return 0;}\n') -- FIXME
+				io.stdout:write('}\n') -- FIXME
 			end
 		else
 			print(err)
