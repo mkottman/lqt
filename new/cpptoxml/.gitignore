@@ -1,0 +1,7 @@
+.*.swp
+*.o
+parser.old
+*/.svn
+*/*/.svn
+Makefile
+cpptoxml
