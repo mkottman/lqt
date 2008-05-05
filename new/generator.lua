@@ -258,6 +258,22 @@ local function_static_call = function(f)
 	end
 end
 
+local function_shell_call = function(f)
+	assert_function(f)
+	assert(f.xarg.member_of_class, 'not a shell class member')
+	if entities.is_destructor(f) then
+		return 'delete (self)'
+	elseif entities.is_constructor(f) then
+		return '*new '..f.xarg.fullname..arg_list(f)
+	elseif f.xarg.access=='public' then
+		return function_static_call(f)
+	elseif entities.takes_this_pointer(f) then
+		return 'self->'..f.xarg.fullname..arg_list(f)
+	else
+		return f.xarg.fullname..arg_list(f)
+	end
+end
+
 local collect_return = function(f)
 	assert_function(f)
 	local ret_t = entities.return_type(f)
