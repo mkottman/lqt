@@ -377,11 +377,31 @@ local filter_out = function(f)
 	return ret
 end
 
+local examine_class = function(c)
+	assert(entities.is_class(c), 'not a class')
+	local public_f, protected_f, virtual_f, virt_prot_f, abstract_f = {}, {}, {}, {}, {}
+	for _, f in ipairs(c) do
+		if entities.is_function(f) then
+			if f.xarg.abstract=='1' then
+				table.insert(abstract_f, f)
+			elseif f.xarg.virtual=='1' and f.xarg.access=='protected' then
+				table.insert(virt_prot_f, f)
+			elseif f.xarg.virtual=='1' and f.xarg.access=='public' then
+				table.insert(virtual_f, f)
+			elseif f.xarg.virtual~='1' and f.xarg.access=='protected' then
+				table.insert(protected_f, f)
+			elseif f.xarg.virtual~='1' and f.xarg.access=='public' then
+				table.insert(public_f, f)
+			end
+		end
+	end
+end
+
 for _, v in pairs(xmlstream.byid) do
-	if string.find(v.label, 'Function')==1 and (not filter_out(v)) then
+	if false and string.find(v.label, 'Function')==1 and (not filter_out(v)) then
 		local status, err = pcall(function_description, v)
 		--io[status and 'stdout' or 'stderr']:write((status and '' or v.xarg.fullname..': ')..err..'\n')
-		if status then
+		if true or status then
 			local s, e = pcall(calling_code, v)
 			--io[s and 'stdout' or 'stderr']:write((s and ''
 			--or ('error calling '..v.xarg.fullname..': '))..e..(s and '' or '\n'))
@@ -394,6 +414,8 @@ for _, v in pairs(xmlstream.byid) do
 			print(err)
 		end
 		--io[status and 'stdout' or 'stderr']:write((status and '' or v.xarg.fullname..': ')..err..'\n')
+	elseif v.label=='Class' then
+		examine_class(v)
 	end
 end
 --table.foreach(name_list, print)
