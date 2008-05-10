@@ -377,8 +377,26 @@ local filter_out = function(f)
 	return ret
 end
 
+local choose_function = function(f1, f2)
+	assert_function(f1)
+	assert_function(f2)
+	
+end
+
 local examine_class = function(c)
 	assert(entities.is_class(c), 'not a class')
+	local constr, destr = {}, nil
+	for _, f in ipairs(c) do
+		if entities.is_function(f) then
+			if entities.is_constructor(f) then
+				table.insert(constr, f)
+			elseif entities.is_destructor(f) then
+				assert(not destr, 'cannot have more than one destructor!')
+				destr = f
+			end
+		end
+	end
+	--[[
 	local public_f, protected_f, virtual_f, virt_prot_f, abstract_f = {}, {}, {}, {}, {}
 	for _, f in ipairs(c) do
 		if entities.is_function(f) then
@@ -395,6 +413,33 @@ local examine_class = function(c)
 			end
 		end
 	end
+	--]]
+	local cname = 'lqt_shell_class'..c.xarg.id
+	local ret = 'class '..cname..' : public '..c.xarg.fullname..' {\npublic:\n'
+	ret = ret .. 'lua_State *L;\n'
+	local onlyprivate = true
+	for _, f in ipairs(constr) do
+		if f.xarg.access~='private' then
+			onlyprivate = false
+			local larg1, larg2 = '', ''
+			for i = 1, #f do
+				local a = f[i]
+				if a.label~='Argument' then error(a.label) end
+				larg1 = larg1 .. ', ' .. a.xarg.type_name .. ' ' .. argument(i)
+				larg2 = larg2 .. (i>1 and ', ' or '') .. argument(i)
+			end
+			ret = ret .. cname .. '(lua_State *l'..larg1..'):'..c.xarg.fullname..'('
+			ret = ret .. larg2 .. '), L(l) {} // '..f.xarg.id..'\n'
+		end
+	end
+	if #constr==0 then
+		ret = ret .. cname .. '(lua_State *l):L(l) {} // automatic \n'
+	elseif onlyprivate then
+		error('cannot bind class: '..c.xarg.fullname..': it has only private constructors')
+	end
+	ret = ret .. 'virtual ~'..cname..'() { lqtL_unregister(L, this); }\n'
+	ret = ret .. '};\n'
+	return ret
 end
 
 for _, v in pairs(xmlstream.byid) do
@@ -415,7 +460,8 @@ for _, v in pairs(xmlstream.byid) do
 		end
 		--io[status and 'stdout' or 'stderr']:write((status and '' or v.xarg.fullname..': ')..err..'\n')
 	elseif v.label=='Class' then
-		examine_class(v)
+		local st, ret = pcall(examine_class, v)
+		if st then print(ret) else io.stderr:write(ret, '\n') end
 	end
 end
 --table.foreach(name_list, print)
