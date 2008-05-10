@@ -38,6 +38,9 @@ extern "C" {
 #include <QLocale>
 //#include <iostream>
 
+#define lqtL_register(L, p, n) ( (void)L, (void)p, (void)n )
+#define lqtL_unregister(L, p) ( (void)L, (void)p )
+
 #define LQT_POINTERS "Registry Pointers"
 #define LQT_ENUMS "Registry Enumerations"
 
