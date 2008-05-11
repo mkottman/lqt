@@ -361,18 +361,26 @@ extern "C" {
 
 ]]
 
-local FILTERS = {
+local CLASS_FILTERS = {
+	function(c) return c.xarg.fullname:match'%b<>' end,
+	function(c) return c.xarg.name:match'_' end,
+	--function(c) return c.xarg.fullname:match'Q.-Data' end,
+	function(c) return c.xarg.class_type=='struct' end,
+	function(c) return c.xarg.fullname=='QVariant::Private::Data' end,
+	function(c) return c.xarg.fullname=='QTextStreamManipulator' end,
+}
+local FUNCTIONS_FILTERS = {
 	function(f) return f.xarg.name:match'^[_%w]*'=='operator' end,
 	function(f) return f.xarg.fullname:match'%b<>' end,
-	function(f) return f.xarg.name:match'_cast' end,
+	function(f) return f.xarg.name:match'_' end,
 	function(f) return f.xarg.fullname:match'QInternal' end,
 	function(f) return f.xarg.access~='public' end,
 }
-local filter_out = function(f)
-	local ret, msg, F = nil, next(FILTERS, nil)
+local filter_out = function(f, t)
+	local ret, msg, F = nil, next(t, nil)
 	while (not ret) and F do
 		ret = F(f) and msg
-		msg, F = next(FILTERS, msg)
+		msg, F = next(t, msg)
 	end
 	return ret
 end
@@ -381,6 +389,28 @@ local choose_function = function(f1, f2)
 	assert_function(f1)
 	assert_function(f2)
 	
+end
+
+local function_proto = function(f)
+	assert_function(f)
+	local larg1, larg2 = '', ''
+	for i = 1, #f do
+		local a = f[i]
+		if a.label~='Argument' then error(a.label) end
+		if a.xarg.type_name=='void' then
+			larg1, larg2 = nil, nil
+			break
+		end
+		if string.match(a.xarg.type_name, '%(%*%)') then
+			larg1 = larg1 .. ', ' .. a.xarg.type_name:gsub('%(%*%)', '(*'..argument(i)..')')
+		elseif string.match(a.xarg.type_name, '%[.*%]') then
+			larg1 = larg1 .. ', ' .. a.xarg.type_name:gsub('(%[.*%])', argument(i)..'%1')
+		else
+			larg1 = larg1 .. ', ' .. a.xarg.type_name .. ' ' .. argument(i)
+		end
+		larg2 = larg2 .. (i>1 and ', ' or '') .. argument(i)
+	end
+	return larg1, larg2
 end
 
 local examine_class = function(c)
@@ -420,14 +450,9 @@ local examine_class = function(c)
 	local onlyprivate = true
 	for _, f in ipairs(constr) do
 		if f.xarg.access~='private' then
+			local oop = onlyprivate
 			onlyprivate = false
-			local larg1, larg2 = '', ''
-			for i = 1, #f do
-				local a = f[i]
-				if a.label~='Argument' then error(a.label) end
-				larg1 = larg1 .. ', ' .. a.xarg.type_name .. ' ' .. argument(i)
-				larg2 = larg2 .. (i>1 and ', ' or '') .. argument(i)
-			end
+			local larg1, larg2 = function_proto(f)
 			ret = ret .. cname .. '(lua_State *l'..larg1..'):'..c.xarg.fullname..'('
 			ret = ret .. larg2 .. '), L(l) {} // '..f.xarg.id..'\n'
 		end
@@ -443,7 +468,7 @@ local examine_class = function(c)
 end
 
 for _, v in pairs(xmlstream.byid) do
-	if false and string.find(v.label, 'Function')==1 and (not filter_out(v)) then
+	if false and string.find(v.label, 'Function')==1 and (not filter_out(v, FUNCTIONS_FILTERS)) then
 		local status, err = pcall(function_description, v)
 		--io[status and 'stdout' or 'stderr']:write((status and '' or v.xarg.fullname..': ')..err..'\n')
 		if true or status then
@@ -459,7 +484,7 @@ for _, v in pairs(xmlstream.byid) do
 			print(err)
 		end
 		--io[status and 'stdout' or 'stderr']:write((status and '' or v.xarg.fullname..': ')..err..'\n')
-	elseif v.label=='Class' then
+	elseif v.label=='Class' and not filter_out(v, CLASS_FILTERS) then -- do not support templates yet
 		local st, ret = pcall(examine_class, v)
 		if st then print(ret) else io.stderr:write(ret, '\n') end
 	end
