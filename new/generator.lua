@@ -25,6 +25,26 @@ local decompound = function(n)
 end
 
 
+local arg_iter = function(f)
+	local i = 0
+	local stackn = 1
+	local onlyargs = 0
+	return function()
+		local a, retn = {}, 0
+		while a and a.label~='Argument' do
+			i = i + 1
+			a = f[i]
+		end
+		retn = stackn
+		onlyargs = onlyargs + 1
+		if a then
+			local d, g, p, n = type_properties(a)
+			stackn = stackn + n
+		end
+		return (a and onlyargs), a, (a and retn)
+	end
+end
+
 local base_types = {}
 assert(loadfile'types.lua')(base_types)
 
@@ -170,7 +190,8 @@ entities.return_type = function(f)
 		return nil
 	elseif entities.is_constructor(f) then
 		-- FIXME: hack follows!
-		assert(f.xarg.type_name==f.xarg.type_base, 'return type of constructor is strange')
+		assert((f.xarg.type_name==f.xarg.type_base)
+			or (f.xarg.type_name==f.xarg.type_base..'&'), 'return type of constructor is strange')
 		f.xarg.type_name = f.xarg.type_base..'&'
 		f.xarg.reference='1'
 		return f
@@ -217,32 +238,31 @@ end
 local get_args = function(f, indent)
 	assert_function(f)
 	indent = indent or '  '
-	local ret, argi, shift = '', 0, 0
+	local ret, shift = '', 0
 	if entities.takes_this_pointer(f) then
 		shift = 1
 		ret = ret .. indent .. f.xarg.member_of_class .. '* self = '
 		ret = ret .. get_pointer(f.xarg.member_of_class)(1) .. ';\n' -- (void)self;\n'
 	end
-	for _,a in ipairs(f) do if a.label=='Argument' then
-		argi = argi + 1
+	for argi, a, stacki in arg_iter(f) do
 		local _d, g, _p, _n = type_properties(a)
-		ret = ret .. indent .. a.xarg.type_name .. ' '..argument(argi) .. ' = '
-		ret = ret .. g(argi + shift) .. ';\n' -- .. '(void) '..argument(argi)..';\n'
-	else error'element in function is not argument'
-	end end
+		ret = ret .. indent .. a.xarg.type_name .. ' ' .. argument(argi) .. ' = '
+		ret = ret .. g(stacki + shift) .. ';\n' -- .. '(void) '..argument(argi)..';\n'
+	end
 	return ret
 end
 
-local arg_list = function(f)
+local arg_list = function(f, pre)
 	assert_function(f)
 	if entities.is_destructor(f) then
 		return '(self)'
 	else
 		local ret = ''
-		for i = 1, #f do
-			ret = ret .. (i>1 and ', ' and '') .. argument(i)
+		for i in arg_iter(f) do
+			ret = ret .. ((i>1 or pre) and ', ' or '') .. argument(i)
 		end
-		return '('..ret..')'
+		pre = pre or ''
+		return '('..pre..ret..')'
 	end
 end
 
@@ -251,7 +271,8 @@ local function_static_call = function(f)
 	if entities.is_destructor(f) then
 		return 'delete (self)'
 	elseif entities.is_constructor(f) then
-		return '*new '..f.xarg.fullname..arg_list(f)
+		return '*new lqt_shell_class' .. f.parent.xarg.id .. arg_list(f, 'L')
+		-- f.xarg.fullname..arg_list(f)
 	elseif entities.takes_this_pointer(f) then
 		return 'self->'..f.xarg.fullname..arg_list(f)
 	else
@@ -265,7 +286,8 @@ local function_shell_call = function(f)
 	if entities.is_destructor(f) then
 		return 'delete (self)'
 	elseif entities.is_constructor(f) then
-		return '*new '..f.xarg.fullname..arg_list(f)
+		return '*new lqt_shell_class' .. f.parent.xarg.id .. arg_list(f)
+		-- f.xarg.fullname..arg_list(f)
 	elseif f.xarg.access=='public' then
 		return function_static_call(f)
 	elseif entities.takes_this_pointer(f) then
@@ -376,6 +398,7 @@ local FUNCTIONS_FILTERS = {
 	function(f) return f.xarg.name:match'_' end,
 	function(f) return f.xarg.fullname:match'QInternal' end,
 	function(f) return f.xarg.access~='public' end,
+	function(f) return f.xarg.fullname=='QVariant::canConvert' end,
 }
 local filter_out = function(f, t)
 	local ret, msg, F = nil, next(t, nil)
@@ -395,11 +418,9 @@ end
 local function_proto = function(f)
 	assert_function(f)
 	local larg1, larg2 = '', ''
-	for i = 1, #f do
-		local a = f[i]
-		if a.label~='Argument' then error(a.label) end
+	for i, a in arg_iter(f) do
 		if a.xarg.type_name=='void' then
-			larg1, larg2 = nil, nil
+			larg1, larg2 = '', ''
 			break
 		end
 		larg1 = larg1 .. (i>1 and ', ' or '')
@@ -464,7 +485,7 @@ local virtual_body = function(f, n)
 	lua_insert(L, -2);
 	if (!lua_isnil(L, -2)) {
 ]]
-	for i, a in ipairs(f) do
+	for i, a in arg_iter(f) do
 		local _d, _g, p, _n = type_properties(a)
 		ret = ret .. '		' .. p(argument(i)) .. ';\n'
 	end
@@ -472,7 +493,7 @@ local virtual_body = function(f, n)
 		if (!lua_pcall(L, lua_gettop(L)-oldtop+1, LUA_MULTRET, 0)) {
 			]]
 	if f.xarg.type_name=='void' then
-		ret = ret .. 'return;'
+		ret = ret .. 'return;\n'
 	else
 		local _d, g, _p, _n = type_properties(f)
 		ret = ret .. g('oldtop+1') .. ';\n'
@@ -544,12 +565,14 @@ local examine_class = function(c)
 	local onlyprivate = true
 	for _, f in ipairs(constr) do
 		if f.xarg.access~='private' then
-			onlyprivate = false
-			local larg1, larg2 = function_proto(f)
-			assert(larg1 and larg2, 'cannot reproduce prototype of function')
-			larg1 = (larg1=='') and '' or (', '..larg1)
-			ret = ret .. cname .. '(lua_State *l'..larg1..'):'..c.xarg.fullname..'('
-			ret = ret .. larg2 .. '), L(l) {} // '..f.xarg.id..'\n'
+			local st, larg1, larg2 = pcall(function_proto, f)
+			--assert(larg1 and larg2, 'cannot reproduce prototype of function')
+			if st then
+				onlyprivate = false
+				larg1 = (larg1=='') and '' or (', '..larg1)
+				ret = ret .. cname .. '(lua_State *l'..larg1..'):'..c.xarg.fullname..'('
+				ret = ret .. larg2 .. '), L(l) {} // '..f.xarg.id..'\n'
+			end
 		end
 	end
 	if #constr==0 then
@@ -573,9 +596,10 @@ local examine_class = function(c)
 	return ret
 end
 
+--[==[ ]=]
 for _, v in pairs(xmlstream.byid) do
 	--if string.find(v.label, 'Function')==1 and v.xarg.virtual and v.xarg.abstract then io.stderr:write(v.xarg.fullname, '\n') end
-	if false and string.find(v.label, 'Function')==1 and (not filter_out(v, FUNCTIONS_FILTERS)) then
+	if string.find(v.label, 'Function')==1 and (not filter_out(v, FUNCTIONS_FILTERS)) then
 		local status, err = pcall(function_description, v)
 		--io[status and 'stdout' or 'stderr']:write((status and '' or v.xarg.fullname..': ')..err..'\n')
 		if true or status then
@@ -586,16 +610,40 @@ for _, v in pairs(xmlstream.byid) do
 				io.stdout:write('extern "C" int bound_function'..v.xarg.id..' (lua_State *L) {\n')
 				io.stdout:write(e)
 				io.stdout:write('}\n') -- FIXME
+			else
+				io.stderr:write(e, '\n')
 			end
 		else
 			print(err)
 		end
 		--io[status and 'stdout' or 'stderr']:write((status and '' or v.xarg.fullname..': ')..err..'\n')
-	elseif v.label=='Class' and not filter_out(v, CLASS_FILTERS) then -- do not support templates yet
+	elseif false and v.label=='Class' and not filter_out(v, CLASS_FILTERS) then -- do not support templates yet
 		local st, ret = pcall(examine_class, v)
 		if st then print(ret) else io.stderr:write(ret, '\n') end
 	end
 end
 --table.foreach(name_list, print)
+--]==]
+
+
+local do_class = function(fn)
+	local c = get_unique_fullname(fn)
+	local ret = ''
+	ret = ret .. examine_class(c)
+
+	for _, f in pairs(c) do
+		local fret, s, e = '', pcall(calling_code, f)
+		if s and not filter_out(f, FUNCTIONS_FILTERS) then
+			fret = fret .. 'extern "C" int bound_function'..f.xarg.id..' (lua_State *L) {\n'
+			fret = fret .. e
+			fret = fret .. '}\n'
+		end
+		ret = ret .. fret
+	end
+
+	io.write(ret)
+end
+
+do_class'QObject'
 
 
