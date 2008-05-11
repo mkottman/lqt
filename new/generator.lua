@@ -401,16 +401,53 @@ local function_proto = function(f)
 			larg1, larg2 = nil, nil
 			break
 		end
+		larg1 = larg1 .. (i>1 and ', ' or '')
 		if string.match(a.xarg.type_name, '%(%*%)') then
-			larg1 = larg1 .. ', ' .. a.xarg.type_name:gsub('%(%*%)', '(*'..argument(i)..')')
+			larg1 = larg1 .. a.xarg.type_name:gsub('%(%*%)', '(*'..argument(i)..')')
 		elseif string.match(a.xarg.type_name, '%[.*%]') then
-			larg1 = larg1 .. ', ' .. a.xarg.type_name:gsub('(%[.*%])', argument(i)..'%1')
+			larg1 = larg1 .. a.xarg.type_name:gsub('(%[.*%])', argument(i)..'%1')
 		else
-			larg1 = larg1 .. ', ' .. a.xarg.type_name .. ' ' .. argument(i)
+			larg1 = larg1 .. a.xarg.type_name .. ' ' .. argument(i)
 		end
 		larg2 = larg2 .. (i>1 and ', ' or '') .. argument(i)
 	end
 	return larg1, larg2
+end
+
+local get_virtuals
+get_virtuals = function(c)
+	assert(entities.is_class(c), 'not a class')
+	local ret, impl = {}, {}
+	for _, f in ipairs(c) do
+		if entities.is_function(f) and f.xarg.virtual=='1'
+			and not string.match(f.xarg.name, '~') then
+			table.insert(ret, f)
+			impl[f.xarg.name] = true
+		end
+	end
+	for b in string.gmatch(c.xarg.bases or '', '([^;]+);') do
+		local bvirt = get_virtuals(get_unique_fullname(b))
+		for _, v in ipairs(bvirt) do
+			if not impl[v.xarg.name] then
+				table.insert(ret, v)
+				impl[v.xarg.name] = true
+			end
+		end
+	end
+	return ret
+end
+
+local virtual_proto = function(f)
+	assert_function(f)
+	local ret = 'virtual '..f.xarg.type_name..' '..f.xarg.name..'('
+	local larg1, larg2 = function_proto(f)
+	ret = ret .. larg1 .. ')'
+	return ret
+end
+
+local virtual_body = function(f)
+	local ret = ''
+	return ret
 end
 
 local examine_class = function(c)
@@ -450,9 +487,10 @@ local examine_class = function(c)
 	local onlyprivate = true
 	for _, f in ipairs(constr) do
 		if f.xarg.access~='private' then
-			local oop = onlyprivate
 			onlyprivate = false
 			local larg1, larg2 = function_proto(f)
+			assert(larg1 and larg2, 'cannot reproduce prototype of function')
+			larg1 = (larg1=='') and '' or (', '..larg1)
 			ret = ret .. cname .. '(lua_State *l'..larg1..'):'..c.xarg.fullname..'('
 			ret = ret .. larg2 .. '), L(l) {} // '..f.xarg.id..'\n'
 		end
@@ -463,6 +501,12 @@ local examine_class = function(c)
 		error('cannot bind class: '..c.xarg.fullname..': it has only private constructors')
 	end
 	ret = ret .. 'virtual ~'..cname..'() { lqtL_unregister(L, this); }\n'
+
+	local virtuals = get_virtuals(c)
+	for _, f in ipairs(virtuals) do
+		ret = ret .. virtual_proto(f) .. ';\n'
+	end
+
 	ret = ret .. '};\n'
 	return ret
 end
