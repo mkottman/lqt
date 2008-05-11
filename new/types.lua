@@ -6,16 +6,14 @@ local BaseType = function(s)
 		--label = "BaseType",
 		--xargs = {  },
 		desc = s..';',
-		get = function(i, j)
-			j = j or -i
+		get = function(j)
 			return 'lua_to'..s..'(L, '..tostring(j)..');'
 		end,
 		push = function(j) -- must handle arguments (e.g. in virtual callbacks) and return values
 			return 'lua_push'..s..'(L, '..tostring(j)..');'
 		end,
-		test = function(i, j)
+		test = function(j)
 			error'not implemented' -- TODO
-			j = j or -i
 			return 'LqtTestBaseType_'..s..'(L, '..tostring(j)..')'
 		end,
 		num = 1,
