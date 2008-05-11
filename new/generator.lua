@@ -123,6 +123,7 @@ type_properties = function(t)
 		if identifier.label=='Enum' then
 			return 'string;', get_enum(fn), push_enum(fn), 1
 		elseif identifier.label=='Class' then
+			--assert(entities.class_is_copy_constructible(bt))
 			return typename..'*;', get_class(fn), push_class(fn), 1
 		else
 			error('unknown identifier type: '..identifier.label)
@@ -153,7 +154,7 @@ type_properties = function(t)
 			local bt = get_unique_fullname(t.xarg.type_base)
 			--assert(entities.class_is_copy_constructible(bt))
 			ret_get = get_constref(t.xarg.type_base)
-			ret_push = push_constref(t.xarg.type_base)
+			ret_push = entities.class_is_copy_constructible(bt) and push_constref(t.xarg.type_base) or nil
 		elseif typename==(t.xarg.type_base..'&') then
 			ret_get = get_ref(t.xarg.type_base)
 			ret_push = push_ref(t.xarg.type_base)
@@ -422,7 +423,7 @@ get_virtuals = function(c)
 		if entities.is_function(f) and f.xarg.virtual=='1'
 			and not string.match(f.xarg.name, '~') then
 			table.insert(ret, f)
-			impl[f.xarg.name] = true
+			impl[f.xarg.name] = #ret
 		end
 	end
 	for b in string.gmatch(c.xarg.bases or '', '([^;]+);') do
@@ -430,10 +431,17 @@ get_virtuals = function(c)
 		for _, v in ipairs(bvirt) do
 			if not impl[v.xarg.name] then
 				table.insert(ret, v)
-				impl[v.xarg.name] = true
+				impl[v.xarg.name] = #ret
 			end
 		end
 	end
+	-- [[
+	for _, f in ipairs(c) do
+		if impl[f.xarg.name] and f.xarg.access~='private' then
+			ret[ impl[f.xarg.name] ] = f
+		end
+	end
+	--]]
 	return ret
 end
 
@@ -445,8 +453,57 @@ local virtual_proto = function(f)
 	return ret
 end
 
-local virtual_body = function(f)
-	local ret = ''
+local virtual_body = function(f, n)
+	assert_function(f)
+	local ret = f.xarg.type_name..' '..n..'::'..f.xarg.name..'('
+	local larg1, larg2 = function_proto(f)
+	ret = ret .. larg1 .. [[) {
+	int oldtop = lua_gettop(L);
+	lqtL_pushudata(L, this, "]]..f.parent.xarg.fullname..[[*");
+	lua_getfield(L, -1, "]]..f.xarg.name..[[");
+	lua_insert(L, -2);
+	if (!lua_isnil(L, -2)) {
+]]
+	for i, a in ipairs(f) do
+		local _d, _g, p, _n = type_properties(a)
+		ret = ret .. '		' .. p(argument(i)) .. ';\n'
+	end
+	ret = ret .. [[
+		if (!lua_pcall(L, lua_gettop(L)-oldtop+1, LUA_MULTRET, 0)) {
+			]]
+	if f.xarg.type_name=='void' then
+		ret = ret .. 'return;'
+	else
+		local _d, g, _p, _n = type_properties(f)
+		ret = ret .. g('oldtop+1') .. ';\n'
+	end
+	ret = ret .. [[
+		}
+	}
+	lua_settop(L, oldtop);
+	]]
+	if f.xarg.abstract then
+		if f.xarg.type_name~='void' then
+			local dc
+			if f.xarg.type_name~=f.xarg.type_base then
+				dc = entities.default_constructor(f)
+			else
+				local st, err = pcall(get_unique_fullname, f.xarg.type_base)
+				dc = entities.default_constructor(st and err or f)
+			end
+			if not dc then return nil end
+			ret = ret .. 'return ' .. dc .. ';\n'
+		else
+			ret = ret .. 'return;\n'
+		end
+	else
+		if f.type_name~='void' then
+			ret = ret .. 'return this->' .. f.xarg.fullname .. '(' .. larg2 .. ');\n'
+		else
+			ret = ret .. 'this->' .. f.xarg.fullname .. '(' .. larg2 .. ');\n'
+		end
+	end
+	ret = ret .. '}\n'
 	return ret
 end
 
@@ -503,15 +560,21 @@ local examine_class = function(c)
 	ret = ret .. 'virtual ~'..cname..'() { lqtL_unregister(L, this); }\n'
 
 	local virtuals = get_virtuals(c)
+	local ret2 = ''
 	for _, f in ipairs(virtuals) do
-		ret = ret .. virtual_proto(f) .. ';\n'
+		local st, bd = pcall(virtual_body, f, cname)
+		if st then
+			ret = ret .. virtual_proto(f) .. ';\n'
+			ret2 = ret2 .. bd .. '\n'
+		end
 	end
 
-	ret = ret .. '};\n'
+	ret = ret .. '};\n' .. ret2
 	return ret
 end
 
 for _, v in pairs(xmlstream.byid) do
+	--if string.find(v.label, 'Function')==1 and v.xarg.virtual and v.xarg.abstract then io.stderr:write(v.xarg.fullname, '\n') end
 	if false and string.find(v.label, 'Function')==1 and (not filter_out(v, FUNCTIONS_FILTERS)) then
 		local status, err = pcall(function_description, v)
 		--io[status and 'stdout' or 'stderr']:write((status and '' or v.xarg.fullname..': ')..err..'\n')
