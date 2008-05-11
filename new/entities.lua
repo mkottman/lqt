@@ -52,7 +52,9 @@ entities.class_is_copy_constructible = function(c)
 		if is_function(m)
 			and is_constructor(m)
 			and #m==1
+			and m.xarg.access=='public'
 			and (m[1].xarg.type_name==c.xarg.fullname..' const&'
+			or m[1].xarg.type_name==c.xarg.fullname..'&'
 			or m[1].xarg.type_name==c.xarg.fullname) then
 			return true
 		end
@@ -61,7 +63,44 @@ entities.class_is_copy_constructible = function(c)
 end
 local class_is_copy_constructible = entities.class_is_copy_constructible
 
+entities.class_is_default_constructible = function(c)
+	-- TODO: cache the response into the class itself (c.xarg.is_copy_constructible)
+	assert(is_class(c), 'this is NOT a class')
+	for _, m in ipairs(c) do
+		if is_function(m)
+			and is_constructor(m)
+			and #m==0
+			and m.xarg.access=='public' then
+			return true
+		end
+	end
+	return false
+end
+local class_is_default_constructible = entities.class_is_default_constructible
 
+entities.default_constructor = function(t)
+	if t.xarg.type_name then
+		if t.xarg.type_name:match'%b[]$' then
+			return 'NULL'
+		elseif t.xarg.type_name:match'%(%*%)' then
+			return 'NULL'
+		elseif t.xarg.type_name:match'%&$' then
+			return nil
+		elseif t.xarg.indirections then
+			return 'NULL'
+		else
+			return 'static_cast< '..t.xarg.type_name..' >(0)'
+		end
+	else
+		if t.label=='Class' and class_is_default_constructible(t) then
+			return t.xarg.fullname..'()'
+		elseif t.label=='Class' then
+			return nil
+		else
+			return 'static_cast< '..t.xarg.type_name..' >(0)'
+		end
+	end
+end
 
 
 return entities
