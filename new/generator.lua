@@ -447,6 +447,8 @@ get_virtuals = function(c)
 			impl[f.xarg.name] = #ret
 		end
 	end
+	-- virtual functions in base classes are not included and
+	-- reimplementation are not marked as virtuals
 	for b in string.gmatch(c.xarg.bases or '', '([^;]+);') do
 		local bvirt = get_virtuals(get_unique_fullname(b))
 		for _, v in ipairs(bvirt) do
@@ -457,6 +459,8 @@ get_virtuals = function(c)
 		end
 	end
 	-- [[
+	-- this wants to return the top-most virtual implementation
+	-- so that it knows to which version it should fallback
 	for _, f in ipairs(c) do
 		if impl[f.xarg.name] and f.xarg.access~='private' then
 			ret[ impl[f.xarg.name] ] = f
@@ -634,7 +638,7 @@ local do_class = function(fn)
 	for _, f in pairs(c) do
 		local fret, s, e = '', pcall(calling_code, f)
 		if s and not filter_out(f, FUNCTIONS_FILTERS) then
-			fret = fret .. 'extern "C" int bound_function'..f.xarg.id..' (lua_State *L) {\n'
+			fret = fret .. 'static int bound_function'..f.xarg.id..' (lua_State *L) {\n'
 			fret = fret .. e
 			fret = fret .. '}\n'
 		end
