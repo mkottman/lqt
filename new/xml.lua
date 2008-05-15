@@ -47,6 +47,7 @@ function collect(s)
 			end
 			table.insert(top, toclose)
 			toclose.parent = top
+			toclose.index = #top
 			if toclose.xarg.id then
 				idindex[toclose.xarg.id] = toclose
 			end
