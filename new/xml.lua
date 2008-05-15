@@ -47,19 +47,29 @@ function collect(s)
 		table.insert(top, toclose)
 		toclose.parent = top
 		if toclose.xarg.name then
+			--[[
+			local print = toclose.xarg.id=='_4334' and function(...)
+				io.stderr:write(...)
+				io.stderr:write'\n'
+			end or function()end
+			--]]
 			top.byname = top.byname or {}
 			local overload = top.byname[toclose.xarg.name]
 			if overload then
 				-- FIXME: most probably a case of overload: check
-				if overload.tag~='Overloaded' then
+				if overload.label~='Overloaded' then
 					--print('created overload '..toclose.xarg.name)
-					overload = { tag='Overloaded', xargs={ name=toclose.xarg.name }, overload }
-					top.byname[toclose.xarg.name] = overload
+					top.byname[toclose.xarg.name] = {
+						label='Overloaded',
+						xarg={ name=toclose.xarg.name },
+						overload
+					}
 				end
-				table.insert(overload, toclose)
+				table.insert(top.byname[toclose.xarg.name], toclose)
 				--print('used overload '..toclose.xarg.name)
 			else
 				top.byname[toclose.xarg.name] = toclose
+				--print('not overloaded')
 			end
 		end
 		if toclose.xarg.id then
