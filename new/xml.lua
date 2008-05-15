@@ -19,6 +19,7 @@ end
 
 function collect(s)
 	local stack = {}
+	local idindex = {}
 	local top = {}
 	table.insert(stack, top)
 	local ni,c,label,xarg, empty
@@ -36,57 +37,30 @@ function collect(s)
 			top = {label=label, xarg=parseargs(xarg)}
 			table.insert(stack, top)   -- new level
 		else  -- end tag
-		local toclose = table.remove(stack)  -- remove top
-		top = stack[#stack]
-		if #stack < 1 then
-			error("nothing to close with "..label)
-		end
-		if toclose.label ~= label then
-			error("trying to close "..toclose.label.." with "..label)
-		end
-		table.insert(top, toclose)
-		toclose.parent = top
-		if toclose.xarg.name then
-			--[[
-			local print = toclose.xarg.id=='_4334' and function(...)
-				io.stderr:write(...)
-				io.stderr:write'\n'
-			end or function()end
-			--]]
-			top.byname = top.byname or {}
-			local overload = top.byname[toclose.xarg.name]
-			if overload then
-				-- FIXME: most probably a case of overload: check
-				if overload.label~='Overloaded' then
-					--print('created overload '..toclose.xarg.name)
-					top.byname[toclose.xarg.name] = {
-						label='Overloaded',
-						xarg={ name=toclose.xarg.name },
-						overload
-					}
-				end
-				table.insert(top.byname[toclose.xarg.name], toclose)
-				--print('used overload '..toclose.xarg.name)
-			else
-				top.byname[toclose.xarg.name] = toclose
-				--print('not overloaded')
+			local toclose = table.remove(stack)  -- remove top
+			top = stack[#stack]
+			if #stack < 1 then
+				error("nothing to close with "..label)
+			end
+			if toclose.label ~= label then
+				error("trying to close "..toclose.label.." with "..label)
+			end
+			table.insert(top, toclose)
+			toclose.parent = top
+			if toclose.xarg.id then
+				idindex[toclose.xarg.id] = toclose
 			end
 		end
-		if toclose.xarg.id then
-			stack[1].byid = stack[1].byid or {}
-			stack[1].byid[toclose.xarg.id] = toclose
-		end
+		i = j+1
 	end
-	i = j+1
-end
-local text = string.sub(s, i)
-if not string.find(text, "^%s*$") then
-	table.insert(stack[#stack], text)
-end
-if #stack > 1 then
-	error("unclosed "..stack[stack.n].label)
-end
-return stack[1]
+	local text = string.sub(s, i)
+	if not string.find(text, "^%s*$") then
+		table.insert(stack[#stack], text)
+	end
+	if #stack > 1 then
+		error("unclosed "..stack[stack.n].label)
+	end
+	return stack[1], idindex
 end
 
 return collect
