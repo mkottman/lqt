@@ -19,7 +19,7 @@ end
 
 function collect(s)
 	local stack = {}
-	local idindex = {}
+	local index = {}
 	local top = {}
 	table.insert(stack, top)
 	local ni,c,label,xarg, empty
@@ -48,9 +48,7 @@ function collect(s)
 			table.insert(top, toclose)
 			toclose.parent = top
 			toclose.index = #top
-			if toclose.xarg.id then
-				idindex[toclose.xarg.id] = toclose
-			end
+			index[toclose] = true
 		end
 		i = j+1
 	end
