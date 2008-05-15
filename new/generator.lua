@@ -41,7 +41,7 @@ local arg_iter = function(f)
 			local d, g, p, n = type_properties(a)
 			stackn = stackn + n
 		end
-		return (a and onlyargs), a, (a and retn)
+		return (a and onlyargs), a, (a and retn), stackn
 	end
 end
 
@@ -141,7 +141,7 @@ type_properties = function(t)
 		local identifier = get_unique_fullname(typename)
 		local fn = identifier.xarg.fullname
 		if identifier.label=='Enum' then
-			return 'string;', get_enum(fn), push_enum(fn), 1
+			return 'enum;', get_enum(fn), push_enum(fn), 1
 		elseif identifier.label=='Class' then
 			--assert(entities.class_is_copy_constructible(bt))
 			return typename..'*;', get_class(fn), push_class(fn), 1
@@ -215,14 +215,18 @@ end
 
 local argument_number = function(f)
 	assert_function(f)
-	local narg = #f
+	local narg, sarg = 0, 0
+	for i, a, s, r in arg_iter(f) do
+		narg = i
+		sarg = r
+	end
 	if entities.is_destructor(f) then
-		narg = 1
+		narg, sarg = 1, 1
 	elseif entities.is_constructor(f) then
 	elseif entities.takes_this_pointer then
-		narg = narg + 1
+		narg, sarg = narg + 1, sarg + 1
 	end
-	return narg
+	return narg, sarg
 end
 
 local argument_assert = function(f)
@@ -647,6 +651,7 @@ local do_class = function(fn)
 	local ret = ''
 	ret = ret .. examine_class(c)
 
+	--[[
 	for _, o in pairs(c.byname) do
 		if o.label=='Overloaded' then
 			io.stderr:write('overload: ', o.xarg.name, ' ', #o, '\n')
@@ -657,7 +662,32 @@ local do_class = function(fn)
 			ret = ret .. make_function(o)
 		end
 	end
+	--]]
+	
+	local names = {}
+	for _, f in ipairs(c) do
+		if entities.is_function(f) and not filter_out(f, FUNCTIONS_FILTERS) then
+			local _, argnum = argument_number(f) -- care about arguments on stack
+			names[f.xarg.name] = names[f.xarg.name] or {}
+			names[f.xarg.name][argnum] = names[f.xarg.name][argnum] or {}
+			table.insert(names[f.xarg.name][argnum], f)
+		end
+	end
 
+	--[[
+	for n, t in pairs(names) do
+		io.stderr:write(n, ' ', tostring(t), '\n')
+		for a, f in pairs(t) do
+			io.stderr:write('  ', tostring(a), '\n')
+			for _, g in pairs(f) do
+				io.stderr:write('    ', g.xarg.id, '\n')
+			end
+		end
+	end
+	--]]
+
+	local solve_overload = function()
+	end
 	io.write(ret)
 end
 
