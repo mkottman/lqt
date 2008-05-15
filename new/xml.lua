@@ -59,7 +59,7 @@ function collect(s)
 	if #stack > 1 then
 		error("unclosed "..stack[stack.n].label)
 	end
-	return stack[1], idindex
+	return stack[1], index
 end
 
 return collect
