@@ -629,20 +629,33 @@ end
 --table.foreach(name_list, print)
 --]==]
 
+local make_function = function(f)
+	local fret, s, e = '', pcall(calling_code, f)
+	if f.xarg then
+		io.stderr:write(f.label, ' ', f.xarg.id, '\n')
+	end
+	if s and not filter_out(f, FUNCTIONS_FILTERS) then
+		fret = fret .. 'static int bound_function'..f.xarg.id..' (lua_State *L) {\n'
+		fret = fret .. e
+		fret = fret .. '}\n'
+	end
+	return fret
+end
 
 local do_class = function(fn)
 	local c = get_unique_fullname(fn)
 	local ret = ''
 	ret = ret .. examine_class(c)
 
-	for _, f in pairs(c) do
-		local fret, s, e = '', pcall(calling_code, f)
-		if s and not filter_out(f, FUNCTIONS_FILTERS) then
-			fret = fret .. 'static int bound_function'..f.xarg.id..' (lua_State *L) {\n'
-			fret = fret .. e
-			fret = fret .. '}\n'
+	for _, o in pairs(c.byname) do
+		if o.label=='Overloaded' then
+			io.stderr:write('overload: ', o.xarg.name, ' ', #o, '\n')
+			for __, f in pairs(o) do
+				ret = ret .. make_function(f)
+			end
+		else
+			ret = ret .. make_function(o)
 		end
-		ret = ret .. fret
 	end
 
 	io.write(ret)
