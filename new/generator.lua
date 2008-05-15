@@ -5,13 +5,15 @@ local my = {
 }
 
 local entities = dofile'entities.lua'
+local elements = entities
 assert_function = function(f)
 	assert(entities.is_function(f), 'argument is not a function')
 end
 
 local filename = ...
 local path = string.match(arg[0], '(.*/)[^%/]+') or ''
-local xmlstream = dofile(path..'xml.lua')(my.readfile(filename))
+local xmlstream, idindex = dofile(path..'xml.lua')(my.readfile(filename))
+io.stderr:write'parsed XML\n'
 local code = xmlstream[1]
 
 local decompound = function(n)
@@ -48,7 +50,7 @@ end
 local base_types = {}
 assert(loadfile'types.lua')(base_types)
 
-do
+while false do
 	local t = {}
 	for _, v in pairs(xmlstream.byid) do if v.xarg.fullname then
 		local o = t[v.xarg.fullname] or {}
@@ -372,7 +374,7 @@ local calling_code = function(f)
 end
 
 
-io.write[[
+--[==[io.write[[
 extern "C" {
 #include <lua.h>
 #include <lualib.h>
@@ -387,6 +389,7 @@ extern "C" {
 #define lqtL_getnumber lua_tonumber
 
 ]]
+--]==]
 
 local CLASS_FILTERS = {
 	function(c) return c.xarg.fullname:match'%b<>' end,
@@ -744,6 +747,49 @@ local do_class = function(fn)
 
 end
 
-do_class'QObject'
+local copy_functions = function(index)
+	local ret, copied = {}, 0
+	for e in pairs(index) do
+		if e.label:match'^Function'
+			and (e.xarg.name:match'^[_%w]*'=='operator'
+			or e.xarg.fullname:match'%b<>'
+			or e.xarg.name:match'_'
+			or e.xarg.name:match'[xX]11'
+			or e.xarg.fullname:match'QInternal'
+			or e.xarg.access=='private'
+			or e.xarg.fullname=='QVariant::canConvert') then
+			e.label = 'Function'
+			ret[e] = true
+			copied = copied + 1
+		else
+			--removed = removed + (e.label:match'^Function' and 1 or 0)
+			--removed = removed + 1
+		end
+	end
+	return ret, copied
+end
 
+local fix_functions = function(index)
+	for f in pairs(index) do
+		local args = {}
+		for i, a in ipairs(f) do
+			if a.label=='Argument' then
+				table.insert(args, a)
+			end
+		end
+		f.arguments = args
+		if elements.is_constructor(f) then
+			f.return_type = f.xarg.type_base..'&'
+		elseif elements.is_destructor(f) then
+			f.return_type = nil
+		else
+			f.return_type = f.xarg.type_name
+		end
+	end
+	return index
+end
+
+local functions = copy_functions(idindex)
+
+--print(copy_functions(idindex))
 
