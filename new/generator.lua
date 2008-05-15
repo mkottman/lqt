@@ -41,7 +41,7 @@ local arg_iter = function(f)
 			local d, g, p, n = type_properties(a)
 			stackn = stackn + n
 		end
-		return (a and onlyargs), a, (a and retn), stackn
+		return (a and onlyargs), a, (a and retn), stackn-1
 	end
 end
 
@@ -223,7 +223,7 @@ local argument_number = function(f)
 	if entities.is_destructor(f) then
 		narg, sarg = 1, 1
 	elseif entities.is_constructor(f) then
-	elseif entities.takes_this_pointer then
+	elseif entities.takes_this_pointer(f) then
 		narg, sarg = narg + 1, sarg + 1
 	end
 	return narg, sarg
@@ -397,6 +397,7 @@ local CLASS_FILTERS = {
 	function(c) return c.xarg.fullname=='QTextStreamManipulator' end,
 }
 local FUNCTIONS_FILTERS = {
+	function(f) return not pcall(calling_code, f) end,
 	function(f) return f.xarg.name:match'^[_%w]*'=='operator' end,
 	function(f) return f.xarg.fullname:match'%b<>' end,
 	function(f) return f.xarg.name:match'_' end,
@@ -635,9 +636,6 @@ end
 
 local make_function = function(f)
 	local fret, s, e = '', pcall(calling_code, f)
-	if f.xarg then
-		io.stderr:write(f.label, ' ', f.xarg.id, '\n')
-	end
 	if s and not filter_out(f, FUNCTIONS_FILTERS) then
 		fret = fret .. 'static int bound_function'..f.xarg.id..' (lua_State *L) {\n'
 		fret = fret .. e
@@ -685,10 +683,65 @@ local do_class = function(fn)
 		end
 	end
 	--]]
-
-	local solve_overload = function()
+	
+	local fcomp = function(f, g)
+		if pcall(calling_code, f) and not pcall(calling_code, g) then
+		elseif entities.takes_this_pointer(g) and not entities.takes_this_pointer(f) then
+			return true
+		elseif argument_number(f) > argument_number(g) then
+			return false
+		elseif argument_number(f) < argument_number(g) then
+			return true
+		else
+			local fa, ga = {}, {}
+			for _, a in arg_iter(f) do
+				table.insert(fa, a)
+			end
+			for _, a in arg_iter(g) do
+				table.insert(ga, a)
+			end
+			for i = 1, #fa do
+				if base_types[fa[i]] and not base_types[ga[i]] then
+					return true
+				elseif base_types[fa[i]] and base_types[ga[i]] then
+					return false -- TODO: better handling
+				end
+			end
+		end
+		return false
 	end
+
 	io.write(ret)
+
+	local metatable = {}
+	for name, t in pairs(names) do
+		local call_this_one = nil
+		local fname = 'lqt_bind_'..(tostring(name):match'%~' and 'delete' or 'function')
+		                .. '_' .. tostring(name):gsub('%~', '')
+		for k, n in pairs(t) do
+			table.sort(n, fcomp)
+			t[k] = calling_code(n[1]):gsub('\n(.)', '\n  %1')
+			call_this_one = call_this_one and (call_this_one .. '  } else ') or '  '
+			call_this_one = call_this_one .. 'if (lua_gettop(L)=='..tostring(k)..') {\n'
+			call_this_one = call_this_one .. t[k]
+		end
+		call_this_one = 'static int ' .. fname .. ' (lua_State *L) {\n'
+		.. call_this_one
+		.. '  }\n  return luaL_error(L, "wrong number of arguments");\n}\n'
+		print(call_this_one)
+		metatable[name] = fname
+	end
+
+	io.write('static const luaL_Reg metatable_'..c.xarg.name..'[] = {\n')
+	for n, f in pairs(metatable) do
+		io.write( '  { "', n, '", ', f, ' },\n')
+	end
+	io.write'};\n'
+	io.write('\n\nextern "C" int lqtL_open_', c.xarg.name, ' (lua_State *L) {\n')
+	io.write('  luaL_register(L, "QObject", metatable_', c.xarg.name, ');\n')
+	io.write('  return 0;\n')
+	io.write('}\n')
+
 end
 
 do_class'QObject'
