@@ -1,10 +1,14 @@
 #!/usr/bin/lua
 
-local parseargs, collect, strip_escapes
+local parseargs, collect
 
-strip_escapes = function (s)
-	s = string.gsub(s, '&gt;', '>')
-	s = string.gsub(s, '&lt;', '<')
+local escapes = {
+	gt = '>',
+	lt = '<',
+}
+
+local strip_escapes = function (s)
+	s = string.gsub(s, '&(%a+);', escapes)
 	return s
 end
 
@@ -29,7 +33,7 @@ function collect(s)
 		if not ni then break end
 		local text = string.sub(s, i, ni-1)
 		if not string.find(text, "^%s*$") then
-			table.insert(top, text)
+			table.insert(top, strip_escapes(text))
 		end
 		if empty == "/" then  -- empty element tag
 			table.insert(top, {label=label, xarg=parseargs(xarg), empty=1})
