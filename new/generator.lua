@@ -789,7 +789,55 @@ local fix_functions = function(index)
 	return index
 end
 
+local copy_enums = function(index)
+	local ret = {}
+	for e in pairs(index) do
+		if e.label=='Enum'
+			and e.xarg.access~='public' then
+			ret[e] = true
+		end
+	end
+	return ret
+end
+
+local fix_enums = function(index)
+	for e in pairs(index) do
+		local values = {}
+		for _, v in ipairs(e) do
+			if v.label=='Enumerators' then
+				values[#values] = v.xarg.name
+			end
+		end
+		e.values = values
+	end
+	return index
+end
+
+local copy_classes = function(index)
+	local ret = {}
+	for e in pairs(index) do
+		if e.label=='Class'
+			and e.xarg.access~='public' then
+			ret[e] = true
+		end
+	end
+	return ret
+end
+
+
 local functions = copy_functions(idindex)
+local functions = fix_functions(functions)
+
+local enums = copy_enums(idindex)
+local enums = fix_enums(enums)
+
+local classes = copy_classes(idindex)
+
+local ntable = function(t) local ret=0 for _ in pairs(t) do ret=ret+1 end return ret end
+
+print(ntable(functions))
+print(ntable(enums))
+print(ntable(classes))
 
 --print(copy_functions(idindex))
 
