@@ -817,13 +817,75 @@ local copy_classes = function(index)
 	local ret = {}
 	for e in pairs(index) do
 		if e.label=='Class'
-			and e.xarg.access~='public' then
+			and e.xarg.access~='public'
+			and not e.xarg.fullname:match'%b<>' then
 			ret[e] = true
 		end
 	end
 	return ret
 end
 
+local fill_virtuals = function(index)
+	local classes = {}
+	for c in pairs(index) do
+		classes[c.xarg.fullname] = c
+	end
+	local get_virtuals
+	get_virtuals = function(c)
+		local ret = {}
+		for _, f in ipairs(c) do
+			if f.label=='Function' and f.xarg.virtual=='1' then
+				local n = string.match(f.xarg.name, '~') or f.xarg.name
+				ret[n] = f
+			end
+		end
+		for b in string.gmatch(c.xarg.bases or '', '([^;]+);') do
+			local base = classes[b]
+			if type(base)=='table' then
+				local bv = get_virtuals(base)
+				for n, f in pairs(bv) do
+					if not ret[n] then ret[n] = f end
+				end
+			end
+		end
+		for _, f in ipairs(c) do
+			if f.label=='Function'
+				and f.xarg.access~='private'
+				and (ret[string.match(f.xarg.name, '~') or f.xarg.name]) then
+				f.xarg.virtual = '1'
+				local n = string.match(f.xarg.name, '~')or f.xarg.name
+				ret[n] = f
+			end
+		end
+		return ret
+	end
+	for c in pairs(index) do
+		c.virtuals = get_virtuals(c)
+	end
+	return index
+end
+
+local fill_special_methods = function(index, functions)
+	for c in pairs(index) do
+		local construct, destruct = {}, nil
+		local n = c.xarg.name
+		local auto = true
+		for _, f in ipairs(c) do
+			if n==f.xarg.name then auto = false end
+			if functions[f] then
+				if n==f.xarg.name then
+					table.insert(construct, f)
+				elseif f.xarg.name:match'~' then
+					destruct = f
+				end
+			end
+		end
+		construct.auto = auto
+		c.constructors = construct
+		c.destructor = destruct
+	end
+	return index
+end
 
 local functions = copy_functions(idindex)
 local functions = fix_functions(functions)
@@ -832,12 +894,23 @@ local enums = copy_enums(idindex)
 local enums = fix_enums(enums)
 
 local classes = copy_classes(idindex)
+local classes = fill_virtuals(classes)
+local classes = fill_special_methods(classes)
 
 local ntable = function(t) local ret=0 for _ in pairs(t) do ret=ret+1 end return ret end
 
 print(ntable(functions))
 print(ntable(enums))
 print(ntable(classes))
+
+local print_virtuals = function(index)
+	for c in pairs(index) do
+		print(c.xarg.name)
+		for n, f in pairs(c.virtuals) do print('  '..n, f.xarg.fullname) end
+	end
+end
+
+--print_virtuals(classes)
 
 --print(copy_functions(idindex))
 
