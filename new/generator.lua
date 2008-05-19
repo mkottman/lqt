@@ -894,6 +894,25 @@ local fill_special_methods = function(index, functions)
 	return index
 end
 
+local fill_typesystem_with_enums = function(enums, types)
+	local ret = {}
+	for e in pairs(enums) do
+		if not types[e.xarg.fullname] then
+			ret[e] = true
+			types[e.xarg.fullname] = {
+				push = function(n)
+					return 'lqtL_pushenum(L, '..n..', "'..e.xarg.fullname..'")', 1
+				end,
+				get = function(n)
+					return 'static_cast<'..e.xarg.fullname..'>'
+					..'(lqtL_getenum(L, '..n..', "'..e.xarg.fullname..'"))', 1
+				end,
+			}
+		end
+	end
+	return ret
+end
+
 local functions = copy_functions(idindex)
 local functions = fix_functions(functions)
 
@@ -905,6 +924,9 @@ local classes = fill_virtuals(classes)
 local classes = fill_special_methods(classes)
 
 local ntable = function(t) local ret=0 for _ in pairs(t) do ret=ret+1 end return ret end
+
+local typesystem = {}
+
 
 print(ntable(functions))
 print(ntable(enums))
