@@ -869,9 +869,15 @@ local fill_special_methods = function(index, functions)
 	for c in pairs(index) do
 		local construct, destruct = {}, nil
 		local n = c.xarg.name
-		local auto = true
+		local auto, copy = true, nil
 		for _, f in ipairs(c) do
-			if n==f.xarg.name then auto = false end
+			if n==f.xarg.name then
+				auto = false
+				if #f==1 and
+					f[1].xarg.type_name==(n..' const&') then
+					copy = f
+				end
+			end
 			if functions[f] then
 				if n==f.xarg.name then
 					table.insert(construct, f)
@@ -881,6 +887,7 @@ local fill_special_methods = function(index, functions)
 			end
 		end
 		construct.auto = auto
+		construct.copy = copy
 		c.constructors = construct
 		c.destructor = destruct
 	end
