@@ -16,17 +16,6 @@ local xmlstream, idindex = dofile(path..'xml.lua')(my.readfile(filename))
 io.stderr:write'parsed XML\n'
 local code = xmlstream[1]
 
-local decompound = function(n)
-	-- test function pointer
-	local r, a = string.match(n, '(.-) %(%*%) (%b())')
-	if r and a then
-		-- only single arguments are supported
-		return 'function', r, string.match(a, '%(([^,]*)%))')
-	end
-	return nil
-end
-
-
 local arg_iter = function(f)
 	local i = 0
 	local stackn = 1
@@ -44,145 +33,6 @@ local arg_iter = function(f)
 			stackn = stackn + n
 		end
 		return (a and onlyargs), a, (a and retn), stackn-1
-	end
-end
-
-local base_types = {}
-assert(loadfile'types.lua')(base_types)
-
-while false do
-	local t = {}
-	for _, v in pairs(xmlstream.byid) do if v.xarg.fullname then
-		local o = t[v.xarg.fullname] or {}
-		table.insert(o, v)
-		t[v.xarg.fullname] = o
-	end end
-	get_from_fullname = function(n)
-		local ret = t[n]
-		assert(ret, 'unknown identifier: '..n)
-		return ret
-	end
-	get_unique_fullname = function(n)
-		n = tostring(n)
-		local ret = t[n]
-		assert(ret, 'unknown identifier: '..n)
-		assert(type(ret)=='table' and #ret==1, 'ambiguous identifier: '..n)
-		return ret[1]
-	end
-	--name_list = t
-end
-
-
-local push_enum = function(fullname)
-	return function(j)
-		return 'lqtL_pushenum(L, '..tostring(j)..', "'..fullname..'");'
-	end
-end
-local push_pointer = function(fullname)
-	return function(j)
-		return 'lqtL_pushudata(L, '..tostring(j)..', "' .. fullname .. '*");'
-	end
-end
-local push_class = function(fullname)
-	return function(j)
-		return 'lqtL_passudata(L, new '..fullname..'('..tostring(j)..'), "' .. fullname .. '*");'
-	end
-end
-local push_constref = function(fullname) -- FIXME: is it correct?
-	return function(j)
-		return 'lqtL_passudata(L, new '..fullname..'('..tostring(j)..'), "' .. fullname .. '*");'
-	end
-end
-local push_ref = function(fullname)
-	return function(j)
-		return 'lqtL_passudata(L, &'..tostring(j)..', "' .. fullname .. '*");'
-	end
-end
-
-local get_enum = function(fullname)
-	return function(i)
-		return 'static_cast< ' ..
-			fullname .. ' >(lqtL_toenum(L, '..tostring(i)..', "' .. fullname .. '"));'
-	end
-end
-local get_pointer = function(fullname)
-	return function(i)
-		return 'static_cast< ' ..
-			fullname .. ' *>(lqtL_toudata(L, '..tostring(i)..', "' .. fullname .. '*"));'
-	end
-end
-local get_class = function(fullname)
-	return function(i)
-		return '*static_cast< ' ..
-			fullname .. ' *>(lqtL_toudata(L, '..tostring(i)..', "' .. fullname .. '*"));'
-	end
-end
-local get_constref = function(fullname)
-	return function(i)
-		return '*static_cast< ' ..
-			fullname .. ' *>(lqtL_toudata(L, '..tostring(i)..', "' .. fullname .. '*"));'
-	end
-end
-local get_ref = function(fullname)
-	return function(i)
-		return '*static_cast< ' ..
-			fullname .. ' *>(lqtL_toudata(L, '..tostring(i)..', "' .. fullname .. '*"));'
-	end
-end
-
-type_properties = function(t)
-	local typename = type(t)=='string' and t or t.xarg.type_name
-
-	if base_types[typename] then
-		local ret = base_types[typename]
-		return ret.desc, ret.get, ret.push, ret.num
-	end
-
-	-- not a base type
-	if type(t)=='string' or t.xarg.type_base==typename then
-		local identifier = get_unique_fullname(typename)
-		local fn = identifier.xarg.fullname
-		if identifier.label=='Enum' then
-			return 'enum;', get_enum(fn), push_enum(fn), 1
-		elseif identifier.label=='Class' then
-			--assert(entities.class_is_copy_constructible(bt))
-			return typename..'*;', get_class(fn), push_class(fn), 1
-		else
-			error('unknown identifier type: '..identifier.label)
-		end
-	elseif t.xarg.array or t.xarg.type_name:match'%b[]' then -- FIXME: another hack
-		error'I cannot manipulate arrays'
-	elseif string.match(typename, '%(%*%)') then
-		-- function pointer type
-		-- FIXME: the XML description does not contain this info
-		error'I cannot manipulate function pointers'
-	elseif t.xarg.indirections then
-		if t.xarg.indirections=='1' then
-			local b = get_unique_fullname(t.xarg.type_base)
-			if b.label=='Class' then
-				-- TODO: check if other modifiers are in place?
-				return t.xarg.type_base..'*;',
-					get_pointer(t.xarg.type_base),
-					push_pointer(t.xarg.type_base), 1
-			else
-				error('I cannot manipulate pointers to '..t.xarg.type_base)
-			end
-		end
-		error'I cannot manipulate double pointers'
-	else
-		-- this is any combination of constant, volatile and reference
-		local ret_get, ret_push = nil, nil
-		if typename==(t.xarg.type_base..' const&') then
-			local bt = get_unique_fullname(t.xarg.type_base)
-			--assert(entities.class_is_copy_constructible(bt))
-			ret_get = get_constref(t.xarg.type_base)
-			ret_push = entities.class_is_copy_constructible(bt) and push_constref(t.xarg.type_base) or nil
-		elseif typename==(t.xarg.type_base..'&') then
-			ret_get = get_ref(t.xarg.type_base)
-			ret_push = push_ref(t.xarg.type_base)
-		end
-		assert(ret_get, 'cannot get non-base type '..typename..' from stack')
-		return type_properties(t.xarg.type_base), ret_get, ret_push, 1
 	end
 end
 
@@ -340,30 +190,9 @@ local calling_code = function(f)
 	assert_function(f)
 	local ret, indent = '', '  '
 	local argi = 0
-
 	ret = ret..indent..argument_assert(f)..';\n'
-
 	ret = ret..get_args(f, indent)
-
-	--if entities.is_constructor(f) then
-	--elseif entities.is_destructor(f) then
-	--else
 	do
-		--[[
-		local args = ''
-		for i = 1,#f do
-			args = args .. (i > 1 and ', ' or '') .. argument(i)
-		end
-		args = '('..args..')';
-		local call_line = f.xarg.fullname .. args .. ';\n'
-		local ret_type = entities.return_type(f)
-		if ret_type then
-			call_line = ret_type.xarg.type_name .. ' ret = ' .. call_line
-			local _d, _g, p, n = type_properties(ret_type)
-			call_line = call_line .. indent .. p'ret' .. '\n'
-			call_line = call_line .. indent .. 'return ' .. tostring(n) .. ';\n'
-		end
-		--]]
 		local call_line = function_static_call(f)
 		ret = ret .. indent .. collect_return(f) .. call_line .. ';\n'
 		local treat_return = give_back_return(f)
@@ -373,23 +202,6 @@ local calling_code = function(f)
 	return ret
 end
 
-
---[==[io.write[[
-extern "C" {
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
-}
-
-#include "lqt_common.hpp"
-#include <QtGui>
-
-#define lqtL_getinteger lua_tointeger
-#define lqtL_getstring lua_tostring
-#define lqtL_getnumber lua_tonumber
-
-]]
---]==]
 
 local CLASS_FILTERS = {
 	function(c) return c.xarg.fullname:match'%b<>' end,
@@ -553,24 +365,6 @@ local examine_class = function(c)
 			end
 		end
 	end
-	--[[
-	local public_f, protected_f, virtual_f, virt_prot_f, abstract_f = {}, {}, {}, {}, {}
-	for _, f in ipairs(c) do
-		if entities.is_function(f) then
-			if f.xarg.abstract=='1' then
-				table.insert(abstract_f, f)
-			elseif f.xarg.virtual=='1' and f.xarg.access=='protected' then
-				table.insert(virt_prot_f, f)
-			elseif f.xarg.virtual=='1' and f.xarg.access=='public' then
-				table.insert(virtual_f, f)
-			elseif f.xarg.virtual~='1' and f.xarg.access=='protected' then
-				table.insert(protected_f, f)
-			elseif f.xarg.virtual~='1' and f.xarg.access=='public' then
-				table.insert(public_f, f)
-			end
-		end
-	end
-	--]]
 	local cname = 'lqt_shell_class'..c.xarg.id
 	local ret = 'class '..cname..' : public '..c.xarg.fullname..' {\npublic:\n'
 	ret = ret .. 'lua_State *L;\n'
@@ -607,35 +401,6 @@ local examine_class = function(c)
 	ret = ret .. '};\n' .. ret2
 	return ret
 end
-
---[==[ ]=]
-for _, v in pairs(xmlstream.byid) do
-	--if string.find(v.label, 'Function')==1 and v.xarg.virtual and v.xarg.abstract then io.stderr:write(v.xarg.fullname, '\n') end
-	if string.find(v.label, 'Function')==1 and (not filter_out(v, FUNCTIONS_FILTERS)) then
-		local status, err = pcall(function_description, v)
-		--io[status and 'stdout' or 'stderr']:write((status and '' or v.xarg.fullname..': ')..err..'\n')
-		if true or status then
-			local s, e = pcall(calling_code, v)
-			--io[s and 'stdout' or 'stderr']:write((s and ''
-			--or ('error calling '..v.xarg.fullname..': '))..e..(s and '' or '\n'))
-			if s then
-				io.stdout:write('extern "C" int bound_function'..v.xarg.id..' (lua_State *L) {\n')
-				io.stdout:write(e)
-				io.stdout:write('}\n') -- FIXME
-			else
-				io.stderr:write(e, '\n')
-			end
-		else
-			print(err)
-		end
-		--io[status and 'stdout' or 'stderr']:write((status and '' or v.xarg.fullname..': ')..err..'\n')
-	elseif false and v.label=='Class' and not filter_out(v, CLASS_FILTERS) then -- do not support templates yet
-		local st, ret = pcall(examine_class, v)
-		if st then print(ret) else io.stderr:write(ret, '\n') end
-	end
-end
---table.foreach(name_list, print)
---]==]
 
 local make_function = function(f)
 	local fret, s, e = '', pcall(calling_code, f)
@@ -994,7 +759,7 @@ end
 
 
 for k,v in pairs(typesystem) do
-	--print(k, v.get'INDEX')
+	print(k, v.get'INDEX')
 end
 
 --print_virtuals(classes)
