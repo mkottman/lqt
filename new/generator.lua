@@ -873,7 +873,7 @@ local fill_special_methods = function(index, functions)
 		for _, f in ipairs(c) do
 			if n==f.xarg.name then
 				auto = false
-				if #f==1 and
+				if #f==1 and f.xarg.access=='public' and
 					f[1].xarg.type_name==(n..' const&') then
 					copy = f
 				end
@@ -887,7 +887,7 @@ local fill_special_methods = function(index, functions)
 			end
 		end
 		construct.auto = auto
-		construct.copy = copy
+		construct.copy = copy or auto
 		c.constructors = construct
 		c.destructor = destruct
 	end
@@ -913,6 +913,55 @@ local fill_typesystem_with_enums = function(enums, types)
 	return ret
 end
 
+local fill_typesystem_with_classes = function(classes, types)
+	local ret = {}
+	for c in pairs(classes) do
+		local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
+		if not types[c.xarg.fullname] and c.constructors.copy then
+			ret[c] = true
+			types[c.xarg.fullname] = { -- the argument is the class itself
+				push = function(n)
+					return 'lqtL_passudata(L, new '..shellname
+					..'(L, '..n..'), "'..c.xarg.fullname..'*")', 1
+				end,
+				get = function(n)
+					return '*static_cast<'..c.xarg.fullname..'*>'
+					..'(lqtL_getudata(L, '..n..', "'..c.xarg.fullname..'*"))', 1
+				end,
+			}
+			types[c.xarg.fullname..'*'] = { -- the argument is a pointer to class
+				push = function(n)
+					return 'lqtL_passudata(L, '..n..', "'..c.xarg.fullname..'*")', 1
+				end,
+				get = function(n)
+					return 'static_cast<'..c.xarg.fullname..'*>'
+					..'(lqtL_getudata(L, '..n..', "'..c.xarg.fullname..'*"))', 1
+				end,
+			}
+			types[c.xarg.fullname..'&'] = { -- the argument is a reference to class
+				push = function(n)
+					return 'lqtL_passudata(L, &'..n..', "'..c.xarg.fullname..'*")', 1
+				end,
+				get = function(n)
+					return '*static_cast<'..c.xarg.fullname..'*>'
+					..'(lqtL_getudata(L, '..n..', "'..c.xarg.fullname..'*"))', 1
+				end,
+			}
+			types[c.xarg.fullname..' const&'] = { -- the argument is a pointer to class
+				push = function(n)
+					return 'lqtL_passudata(L, new '..shellname
+					..'(L, '..n..'), "'..c.xarg.fullname..'*")', 1
+				end,
+				get = function(n)
+					return '*static_cast<'..c.xarg.fullname..'*>'
+					..'(lqtL_getudata(L, '..n..', "'..c.xarg.fullname..'*"))', 1
+				end,
+			}
+		end
+	end
+	return ret
+end
+
 local functions = copy_functions(idindex)
 local functions = fix_functions(functions)
 
@@ -921,22 +970,31 @@ local enums = fix_enums(enums)
 
 local classes = copy_classes(idindex)
 local classes = fill_virtuals(classes)
-local classes = fill_special_methods(classes)
+local classes = fill_special_methods(classes, functions)
 
 local ntable = function(t) local ret=0 for _ in pairs(t) do ret=ret+1 end return ret end
 
-local typesystem = {}
+local typesystem = dofile'types.lua'
 
+--print('enums', ntable(enums))
+--print('class', ntable(classes))
+local enums = fill_typesystem_with_enums(enums, typesystem)
+local classes = fill_typesystem_with_classes(classes, typesystem)
 
-print(ntable(functions))
-print(ntable(enums))
-print(ntable(classes))
+print('funcs', ntable(functions))
+print('enums', ntable(enums))
+print('class', ntable(classes))
 
 local print_virtuals = function(index)
 	for c in pairs(index) do
 		print(c.xarg.name)
 		for n, f in pairs(c.virtuals) do print('  '..n, f.xarg.fullname) end
 	end
+end
+
+
+for k,v in pairs(typesystem) do
+	--print(k, v.get'INDEX')
 end
 
 --print_virtuals(classes)
