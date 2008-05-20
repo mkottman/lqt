@@ -512,16 +512,19 @@ local do_class = function(fn)
 
 end
 
+----------------------------------------------------------------------------------
+
 local copy_functions = function(index)
 	local ret, copied = {}, 0
 	for e in pairs(index) do
 		if e.label:match'^Function'
-			and (e.xarg.name:match'^[_%w]*'=='operator'
+			and not (e.xarg.name:match'^[%a]*'=='operator'
 			or e.xarg.fullname:match'%b<>'
 			or e.xarg.name:match'_'
 			or e.xarg.name:match'[xX]11'
 			or e.xarg.fullname:match'QInternal'
 			or e.xarg.access=='private'
+			or e.xarg.access=='protected' -- FIXME
 			or e.xarg.fullname=='QVariant::canConvert') then
 			e.label = 'Function'
 			ret[e] = true
@@ -538,14 +541,26 @@ local fix_functions = function(index)
 	for f in pairs(index) do
 		local args = {}
 		for i, a in ipairs(f) do
-			if a.label=='Argument' then
+			if a.label=='Argument' and a.xarg.type_name~='void' then
 				table.insert(args, a)
 			end
 		end
 		f.arguments = args
+		if false and f.xarg.access=='protected' then
+			local shellname = 'lqt_shell_'..string.gsub(f.parent.xarg.fullname, '::', '_LQT_')
+			f.xarg.fullname = shellname..'::'..f.xarg.name
+			if f.xarg.static~='1' then
+				f.xarg.static='1'
+				local newarg = { label='Argument', xarg = {
+					type_name = f.xarg.member_of_class..'*',
+				}, }
+				table.insert(args, newarg, 1)
+			end
+		end
 		if elements.is_constructor(f) then
 			f.return_type = f.xarg.type_base..'&'
-		elseif elements.is_destructor(f) then
+			f.xarg.static = '1'
+		elseif elements.is_destructor(f) or f.xarg.type_name=='void' then
 			f.return_type = nil
 		else
 			f.return_type = f.xarg.type_name
@@ -582,8 +597,17 @@ local copy_classes = function(index)
 	local ret = {}
 	for e in pairs(index) do
 		if e.label=='Class'
-			and e.xarg.access~='public'
-			and not e.xarg.fullname:match'%b<>' then
+			and e.xarg.access~='private'
+			and not (e.xarg.fullname:match'%b<>' 
+			or e.xarg.fullname=='QDebug::Stream'
+			or e.xarg.fullname=='QForeachContainerBase'
+			or e.xarg.fullname=='QByteArray::Data'
+			or e.xarg.fullname=='QVariant::Private::Data'
+			or e.xarg.fullname=='QRegion::QRegionData'
+			or e.xarg.fullname=='QTextStreamManipulator'
+			or e.xarg.fullname=='QString::Data'
+			or e.xarg.fullname=='QThreadStorageData'
+			) then
 			ret[e] = true
 		end
 	end
@@ -630,7 +654,7 @@ local fill_virtuals = function(index)
 	return index
 end
 
-local fill_special_methods = function(index, functions)
+local fill_special_methods = function(index)
 	for c in pairs(index) do
 		local construct, destruct = {}, nil
 		local n = c.xarg.name
@@ -638,9 +662,9 @@ local fill_special_methods = function(index, functions)
 		for _, f in ipairs(c) do
 			if n==f.xarg.name then
 				auto = false
-				if #(f.arguments or {})==1 and f.xarg.access=='public' and
+				if #(f.arguments or {})==1 and
 					f.arguments[1].xarg.type_name==(n..' const&') then
-					copy = f
+					copy = f.xarg.access
 				end
 			end
 			if n==f.xarg.name then
@@ -650,7 +674,7 @@ local fill_special_methods = function(index, functions)
 			end
 		end
 		construct.auto = auto
-		construct.copy = copy or auto
+		construct.copy = copy~='private' -- FIXME: must try
 		c.constructors = construct
 		c.destructor = destruct
 	end
@@ -671,6 +695,8 @@ local fill_typesystem_with_enums = function(enums, types)
 					..'(lqtL_getenum(L, '..n..', "'..e.xarg.fullname..'"))', 1
 				end,
 			}
+		else
+			--io.stderr:write(e.xarg.fullname, ': already present\n')
 		end
 	end
 	return ret
@@ -680,7 +706,7 @@ local fill_typesystem_with_classes = function(classes, types)
 	local ret = {}
 	for c in pairs(classes) do
 		local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
-		if not types[c.xarg.fullname] and c.constructors.copy then
+		if not types[c.xarg.fullname] then -- FIXME: and c.constructors.copy then
 			ret[c] = true
 			types[c.xarg.fullname] = { -- the argument is the class itself
 				push = function(n)
@@ -689,7 +715,7 @@ local fill_typesystem_with_classes = function(classes, types)
 				end,
 				get = function(n)
 					return '*static_cast<'..c.xarg.fullname..'*>'
-					..'(lqtL_getudata(L, '..n..', "'..c.xarg.fullname..'*"))', 1
+					..'(lqtL_toudata(L, '..n..', "'..c.xarg.fullname..'*"))', 1
 				end,
 			}
 			types[c.xarg.fullname..'*'] = { -- the argument is a pointer to class
@@ -698,7 +724,7 @@ local fill_typesystem_with_classes = function(classes, types)
 				end,
 				get = function(n)
 					return 'static_cast<'..c.xarg.fullname..'*>'
-					..'(lqtL_getudata(L, '..n..', "'..c.xarg.fullname..'*"))', 1
+					..'(lqtL_toudata(L, '..n..', "'..c.xarg.fullname..'*"))', 1
 				end,
 			}
 			types[c.xarg.fullname..'&'] = { -- the argument is a reference to class
@@ -707,7 +733,7 @@ local fill_typesystem_with_classes = function(classes, types)
 				end,
 				get = function(n)
 					return '*static_cast<'..c.xarg.fullname..'*>'
-					..'(lqtL_getudata(L, '..n..', "'..c.xarg.fullname..'*"))', 1
+					..'(lqtL_toudata(L, '..n..', "'..c.xarg.fullname..'*"))', 1
 				end,
 			}
 			types[c.xarg.fullname..' const&'] = { -- the argument is a pointer to class
@@ -717,15 +743,115 @@ local fill_typesystem_with_classes = function(classes, types)
 				end,
 				get = function(n)
 					return '*static_cast<'..c.xarg.fullname..'*>'
-					..'(lqtL_getudata(L, '..n..', "'..c.xarg.fullname..'*"))', 1
+					..'(lqtL_toudata(L, '..n..', "'..c.xarg.fullname..'*"))', 1
 				end,
 			}
+		elseif types[c.xarg.fullname] then
+			io.stderr:write(c.xarg.fullname, ': already present\n')
+		else
+			io.stderr:write(c.xarg.fullname, ': no copy constructor\n')
 		end
 	end
 	return ret
 end
 
 local fill_wrapper_code = function(f, types)
+	local stackn, argn = 1, 1
+	local wrap, line = '', ''
+	if f.xarg.member_of_class and f.xarg.static~='1' then
+		if not types[f.xarg.member_of_class..'*'] then return nil end -- print(f.xarg.member_of_class) return nil end
+		local sget, sn = types[f.xarg.member_of_class..'*'].get(stackn)
+		wrap = wrap .. '  ' .. f.xarg.member_of_class .. '* self = ' .. sget .. ';\n'
+		stackn = stackn + sn
+		wrap = wrap .. [[
+  if (NULL==self) {
+    lua_pushstring(L, "this pointer is NULL");
+    lua_error(L);
+  }
+]]
+		--print(sget, sn)
+		line = 'self->'..f.xarg.fullname..'('
+	else
+		line = f.xarg.fullname..'('
+	end
+	for i, a in ipairs(f.arguments) do
+		if not types[a.xarg.type_name] then return nil end -- print(a.xarg.type_name) return nil end
+		local aget, an = types[a.xarg.type_name].get(stackn)
+		wrap = wrap .. '  ' .. a.xarg.type_name .. ' arg' .. tostring(argn) .. ' = '
+		wrap = wrap .. aget .. ';\n'
+		line = line .. (argn==1 and 'arg' or ', arg') .. argn
+		stackn = stackn + an
+		argn = argn + 1
+	end
+	line = line .. ')'
+	if f.return_type then line = f.return_type .. ' ret = ' .. line end
+	wrap = wrap .. '  ' .. line .. ';\n  lua_settop(L, 0);\n' -- lua_pop(L, '..stackn..');\n'
+	if f.return_type then
+		if not types[f.return_type] then return nil end
+		local rput, rn = types[f.return_type].push'ret'
+		wrap = wrap .. '  luaL_checkstack(L, '..rn..', "cannot grow stack for return value");\n'
+		wrap = wrap .. '  '..rput..';\n  return '..rn..';\n'
+	else
+		wrap = wrap .. '  return 0;\n'
+	end
+	f.wrapper_code = wrap
+	return f
+end
+
+local fill_wrappers = function(functions, types)
+	local ret = {}
+	for f in pairs(functions) do
+		f = fill_wrapper_code(f, types)
+		if f then
+			ret[f] = true
+			local out = 'extern "C" int lqt_bind'..f.xarg.id..' (lua_State *L) {\n'
+			.. f.wrapper_code .. '}\n'
+			--print(out)
+		end
+	end
+	return ret
+end
+
+local argument_name = function(tn, an)
+	local ret
+	if string.match(tn, '%(%*%)') then
+		ret = string.gsub(tn, '%(%*%)', '(*'..an..')', 1)
+	elseif string.match(tn, '%[.*%]') then
+		ret = string.gsub(tn, '(%[.*%])', an..'%1')
+	else
+		ret = tn .. ' ' .. an
+	end
+	return ret
+end
+
+local fill_shell_class = function(c, types)
+	local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
+	local shell = 'class ' .. shellname .. ' : public ' .. c.xarg.fullname .. ' {\npublic:\n'
+	shell = shell .. '  lua_State *L;\n'
+	for _, constr in ipairs(c.constructors) do
+		if constr.xarg.access~='private' and type(constr.arguments)=='table' then
+			local cline = '  '..shellname..' (lua_State *l'
+			local argline = ''
+			for i, a in ipairs(constr.arguments) do
+				cline = cline .. ', ' .. argument_name(a.xarg.type_name, ' arg'..i)
+				argline = argline .. (i>1 and ', arg' or 'arg') .. i
+			end
+			cline = cline .. ') : ' .. c.xarg.fullname .. '(' .. argline .. '), L(l) {}\n'
+			shell = shell .. cline
+		end
+	end
+	shell = shell .. '};\n'
+	c.shell_class = shell
+	return c
+end
+
+local fill_shell_classes = function(classes, types)
+	local ret = {}
+	for c in pairs(classes) do
+		c = fill_shell_class(c, types)
+		if c then ret [c] = true print(c.shell_class) end
+	end
+	return ret
 end
 
 local functions = copy_functions(idindex)
@@ -736,31 +862,39 @@ local enums = fix_enums(enums)
 
 local classes = copy_classes(idindex)
 local classes = fill_virtuals(classes)
-local classes = fill_special_methods(classes, functions)
+local classes = fill_special_methods(classes)
 
 local ntable = function(t) local ret=0 for _ in pairs(t) do ret=ret+1 end return ret end
 
 local typesystem = dofile'types.lua'
 
---print('enums', ntable(enums))
---print('class', ntable(classes))
+local debug = function(...)
+	for i = 1, select('#',...) do
+		io.stderr:write((i==1) and '' or '\t', (select(i,...)))
+	end
+	io.stderr:write'\n'
+end
+debug('funcs', ntable(functions))
+debug('enums', ntable(enums))
+debug('class', ntable(classes))
 local enums = fill_typesystem_with_enums(enums, typesystem)
 local classes = fill_typesystem_with_classes(classes, typesystem)
-
-print('funcs', ntable(functions))
-print('enums', ntable(enums))
-print('class', ntable(classes))
+local functions = fill_wrappers(functions, typesystem)
+local classes = fill_shell_classes(classes, typesystem)
+debug('funcs', ntable(functions))
+debug('enums', ntable(enums))
+debug('class', ntable(classes))
 
 local print_virtuals = function(index)
 	for c in pairs(index) do
-		print(c.xarg.name)
-		for n, f in pairs(c.virtuals) do print('  '..n, f.xarg.fullname) end
+		debug(c.xarg.name)
+		for n, f in pairs(c.virtuals) do debug('  '..n, f.xarg.fullname) end
 	end
 end
 
 
 for k,v in pairs(typesystem) do
-	print(k, v.get'INDEX')
+	--print(k, v.get'INDEX')
 end
 
 --print_virtuals(classes)
