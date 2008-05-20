@@ -638,17 +638,15 @@ local fill_special_methods = function(index, functions)
 		for _, f in ipairs(c) do
 			if n==f.xarg.name then
 				auto = false
-				if #f==1 and f.xarg.access=='public' and
-					f[1].xarg.type_name==(n..' const&') then
+				if #(f.arguments or {})==1 and f.xarg.access=='public' and
+					f.arguments[1].xarg.type_name==(n..' const&') then
 					copy = f
 				end
 			end
-			if functions[f] then
-				if n==f.xarg.name then
-					table.insert(construct, f)
-				elseif f.xarg.name:match'~' then
-					destruct = f
-				end
+			if n==f.xarg.name then
+				table.insert(construct, f)
+			elseif f.xarg.name:match'~' then
+				destruct = f
 			end
 		end
 		construct.auto = auto
@@ -725,6 +723,9 @@ local fill_typesystem_with_classes = function(classes, types)
 		end
 	end
 	return ret
+end
+
+local fill_wrapper_code = function(f, types)
 end
 
 local functions = copy_functions(idindex)
