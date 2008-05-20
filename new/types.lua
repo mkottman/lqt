@@ -3,14 +3,11 @@ local base_types = (...) or {}
 local BaseType = function(s)
 	s = tostring(s)
 	return {
-		--label = "BaseType",
-		--xargs = {  },
-		desc = s..';',
 		get = function(j)
-			return 'lua_to'..s..'(L, '..tostring(j)..');', 1
+			return 'lua_to'..s..'(L, '..tostring(j)..')', 1
 		end,
 		push = function(j) -- must handle arguments (e.g. in virtual callbacks) and return values
-			return 'lua_push'..s..'(L, '..tostring(j)..');', 1
+			return 'lua_push'..s..'(L, '..tostring(j)..')', 1
 		end,
 	}
 end
