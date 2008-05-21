@@ -36,7 +36,7 @@ base_types['double'] = BaseType'number'
 base_types['bool'] = BaseType'boolean'
 base_types['QSizeF'] = {
 	get = function(i) return 'QSizeF(lua_tonumber(L, '..i..'), lua_tonumber(L, '..i..'+1))', 2 end,
-	push = function(i) return 'lua_pushnumber(L, '..i..'.width()), lua_pushnumber(L, '..i..'.height()))', 2 end,
+	push = function(i) return 'lua_pushnumber(L, '..i..'.width()), lua_pushnumber(L, '..i..'.height())', 2 end,
 }
 base_types['QSizeF const&'] = base_types['QSizeF']
 base_types['QSize'] = {
