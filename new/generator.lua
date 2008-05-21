@@ -517,15 +517,15 @@ end
 local copy_functions = function(index)
 	local ret, copied = {}, 0
 	for e in pairs(index) do
-		if e.label:match'^Function'
-			and not (e.xarg.name:match'^[%a]*'=='operator'
+		if e.label:match'^Function' then
+			--[[and not (e.xarg.name:match'^[%a]*'=='operator'
 			or e.xarg.fullname:match'%b<>'
 			or e.xarg.name:match'_'
 			or e.xarg.name:match'[xX]11'
 			or e.xarg.fullname:match'QInternal'
 			or e.xarg.access=='private'
 			or e.xarg.access=='protected' -- FIXME
-			or e.xarg.fullname=='QVariant::canConvert') then
+			or e.xarg.fullname=='QVariant::canConvert') then --]]
 			e.label = 'Function'
 			ret[e] = true
 			copied = copied + 1
