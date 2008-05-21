@@ -166,6 +166,15 @@ QString XMLVisitor::XMLTag(CodeModelItem i) {
 	}
 	return "";
 }
+
+QString templateParametersToString (TemplateParameterList list) {
+	QString ret;
+	foreach(TemplateParameterModelItem p,list) {
+		ret = ret + p->name() + ";";
+	}
+	return ret;
+}
+
 QString XMLVisitor::visit(CodeModelItem i) {
 	QString ret("");
 	ret += XMLTag(i);
@@ -238,6 +247,8 @@ QString XMLVisitor::visit(CodeModelItem i) {
 		ret += "\"";
 
 		ret += visit(m->type(), m->scope());
+		QString tp = templateParametersToString(m->templateParameters());
+		if (tp!=QString()) ret += ATTR_STR("member_template_parameters", tp);
 	}
 	if (FunctionModelItem f = model_dynamic_cast<FunctionModelItem>(i)) {
 		if (f->isVirtual()) ret += ATTR_TRUE("virtual");
@@ -279,6 +290,8 @@ QString XMLVisitor::visit(CodeModelItem i) {
 				ret += ATTR_STR("class_type", QString("union"));
 				break;
 		}
+		QString tp = templateParametersToString(c->templateParameters());
+		if (tp!=QString()) ret += ATTR_STR("member_template_parameters", tp);
 		// TODO also list templateParameters (maybe in content?)
 		// TODO also list propertyDeclarations (maybe in content?)
 	}
