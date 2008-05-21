@@ -41,7 +41,7 @@ base_types['QSizeF'] = {
 base_types['QSizeF const&'] = base_types['QSizeF']
 base_types['QSize'] = {
 	get = function(i) return 'QSize(lua_tointeger(L, '..i..'), lua_tointeger(L, '..i..'+1))', 2 end,
-	push = function(i) return 'lua_pushinteger(L, '..i..'.width()), lua_pushinteger(L, '..i..'.height()))', 2 end,
+	push = function(i) return 'lua_pushinteger(L, '..i..'.width()), lua_pushinteger(L, '..i..'.height())', 2 end,
 }
 base_types['QSize const&'] = base_types['QSize']
 
