@@ -45,28 +45,31 @@ local fix_functions = function(index)
 	for f in pairs(index) do
 		local args = {}
 		for i, a in ipairs(f) do
-			if a.label=='Argument' and a.xarg.type_name~='void' then
+			-- avoid bogus 'void' arguments
+			if a.xarg.type_name=='void' and i==1 and f[2]==nil then break end
+			if a.label=='Argument' then
 				table.insert(args, a)
 			end
 		end
 		f.arguments = args
-		if false and f.xarg.access=='protected' then
-			local shellname = 'lqt_shell_'..string.gsub(f.parent.xarg.fullname, '::', '_LQT_')
-			f.xarg.fullname = shellname..'::'..f.xarg.name
-			if f.xarg.static~='1' then
-				f.xarg.static='1'
-				local newarg = { label='Argument', xarg = {
-					type_name = f.xarg.member_of_class..'*',
-				}, }
-				table.insert(args, newarg, 1)
-			end
-		end
 		if elements.is_constructor(f) then
+			f.xarg.fullname = '*new '..f.xarg.fullname
 			f.return_type = f.xarg.type_base..'&'
 			f.xarg.static = '1'
 		elseif elements.is_destructor(f) or f.xarg.type_name=='void' then
 			f.return_type = nil
 		else
+			if false and f.xarg.access=='protected' then
+				local shellname = 'lqt_shell_'..string.gsub(f.parent.xarg.fullname, '::', '_LQT_')
+				f.xarg.fullname = shellname..'::'..f.xarg.name
+				if f.xarg.static~='1' then
+					f.xarg.static='1'
+					local newarg = { label='Argument', xarg = {
+						type_name = f.xarg.member_of_class..'*',
+					}, }
+					table.insert(args, newarg, 1)
+				end
+			end
 			f.return_type = f.xarg.type_name
 		end
 	end
@@ -154,13 +157,16 @@ local fill_virtuals = function(index)
 	end
 	for c in pairs(index) do
 		c.virtuals = get_virtuals(c)
+		for _, f in pairs(c.virtuals) do
+			if f.xarg.abstract=='1' then c.abstract=true break end
+		end
 	end
 	return index
 end
 
 local fill_special_methods = function(index)
 	for c in pairs(index) do
-		local construct, destruct = {}, nil
+		local construct, destruct, normal = {}, nil, {}
 		local n = c.xarg.name
 		local auto, copy = true, nil
 		for _, f in ipairs(c) do
@@ -175,12 +181,18 @@ local fill_special_methods = function(index)
 				table.insert(construct, f)
 			elseif f.xarg.name:match'~' then
 				destruct = f
+			else
+				if (not string.match(f.xarg.name, '^operator%W'))
+					and (not f.xarg.member_template_parameters) then
+					table.insert(normal, f)
+				end
 			end
 		end
 		construct.auto = auto
 		construct.copy = (copy==nil and 'auto' or copy) -- FIXME: must try
 		c.constructors = construct
 		c.destructor = destruct and (destruct.xarg.access or 'PUBLIC?') or 'auto'
+		c.methods = normal
 	end
 	return index
 end
@@ -222,7 +234,7 @@ local fill_copy_constructor = function(index)
 		c.constructors.copy = copy_constr(c)
 		c.destructor = destr(c)
 		--io.stderr:write(c.xarg.fullname, '\t', c.constructors.copy, '\n')
-		io.stderr:write(c.xarg.fullname, '\t', c.destructor, '\n')
+		--io.stderr:write(c.xarg.fullname, '\t', c.destructor, '\n')
 	end
 	return index
 end
@@ -336,6 +348,8 @@ local fill_wrapper_code = function(f, types)
 		argn = argn + 1
 	end
 	line = line .. ')'
+	-- FIXME: hack follows for constructors
+	if f.calling_line then line = f.calling_line end
 	if f.return_type then line = f.return_type .. ' ret = ' .. line end
 	wrap = wrap .. '  ' .. line .. ';\n  lua_settop(L, 0);\n' -- lua_pop(L, '..stackn..');\n'
 	if f.return_type then
@@ -404,7 +418,7 @@ local virtual_overload = function(v, types)
 		.. argument_name(a.xarg.type_name, 'arg'..i)
 		fallback = fallback .. (i>1 and ', arg' or 'arg') .. i
 	end
-	proto = proto .. ')'
+	proto = proto .. ')' .. (v.xarg.constant=='1' and ' const' or '')
 	fallback = (v.return_type and 'return this->' or 'this->')
 	.. v.xarg.fullname .. '(' .. fallback .. ');\n}\n'
 	ret = proto .. [[ {
@@ -460,9 +474,12 @@ end
 local fill_shell_classes = function(classes, types)
 	local ret = {}
 	for c in pairs(classes) do
-		if c.destructor~='private' then
+		if c.shell then
 			c = fill_shell_class(c, types)
-			if c then ret [c] = true print(c.shell_class) end
+			if c then ret [c] = true print(c.shell_class)
+			else
+				io.stderr:write(c.fullname, '\n')
+			end
 		end
 	end
 	return ret
@@ -480,6 +497,56 @@ local print_virtual_overloads = function(classes, types)
 	return classes
 end
 
+local print_wrappers = function(index)
+	for c in pairs(index) do
+		local meta = {}
+		for _, f in ipairs(c.methods) do
+			if f.wrapper_code then
+				local out = 'extern "C" int lqt_bind'..f.xarg.id
+				..' (lua_State *L) {\n'.. f.wrapper_code .. '}\n'
+				if f.xarg.access=='public' then print(out) end
+				meta[f.xarg.id] = f.xarg.name
+			end
+		end
+		if c.shell then
+			for _, f in ipairs(c.constructors) do
+				if f.wrapper_code then
+					local out = 'extern "C" int lqt_bind'..f.xarg.id
+					    ..' (lua_State *L) {\n'.. f.wrapper_code .. '}\n'
+					if f.xarg.access=='public' then print(out) end
+					meta[f.xarg.id] = 'new'
+				end
+			end
+		end
+	end
+	return index
+end
+
+local fix_methods_wrappers = function(classes)
+	for c in pairs(classes) do
+		-- if class seems abstract but has a shell class
+		if c.abstract and c.destructor~='private' then
+			-- is it really abstract?
+			local a = false
+			for _, f in pairs(c.virtuals) do
+				-- if it is abstract but we cannot overload
+				if f.xarg.abstract=='1' and not f.virtual_overload then a = true break end
+			end
+			c.abstract = a
+		end
+		c.shell = (not c.abstract) and (c.destructor~='private')
+		for _, constr in ipairs(c.constructors) do
+			local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
+			constr.calling_line = '*new '..shellname..'(L'
+			for i=1,#(constr.arguments) do
+				constr.calling_line = constr.calling_line .. ', arg' .. i
+			end
+			constr.calling_line = constr.calling_line .. ')'
+		end
+	end
+	return classes
+end
+
 local functions = copy_functions(idindex)
 local functions = fix_functions(functions)
 
@@ -490,6 +557,7 @@ local classes = copy_classes(idindex)
 local classes = fill_virtuals(classes)
 local classes = fill_special_methods(classes)
 local classes = fill_copy_constructor(classes)
+local classes = fix_methods_wrappers(classes)
 
 local ntable = function(t) local ret=0 for _ in pairs(t) do ret=ret+1 end return ret end
 
@@ -509,6 +577,7 @@ local classes = fill_typesystem_with_classes(classes, typesystem)
 local functions = fill_wrappers(functions, typesystem)
 local classes = fill_shell_classes(classes, typesystem)
 local classes = print_virtual_overloads(classes, typesystem)
+local classes = print_wrappers(classes)
 debug('funcs', ntable(functions))
 debug('enums', ntable(enums))
 debug('class', ntable(classes))
