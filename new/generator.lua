@@ -547,6 +547,21 @@ local fix_methods_wrappers = function(classes)
 	return classes
 end
 
+local print_enum_tables = function(enums)
+	for e in pairs(enums) do
+		local table = 'lqt_Enum lqt_enum'..e.xarg.id..'[] = {\n'
+		for _,v in pairs(e.values) do
+			table = table .. '  { "' .. v.xarg.name
+				.. '", static_cat<int>('..v.xarg.fullname..') },\n'
+		end
+		table = table .. '  { 0, 0 }\n'
+		table = table .. '};\n'
+		e.enum_table = table
+		print(table)
+	end
+	return enums
+end
+
 local functions = copy_functions(idindex)
 local functions = fix_functions(functions)
 
@@ -578,6 +593,7 @@ local functions = fill_wrappers(functions, typesystem)
 local classes = fill_shell_classes(classes, typesystem)
 local classes = print_virtual_overloads(classes, typesystem)
 local classes = print_wrappers(classes)
+local enums = print_enum_tables(enums)
 debug('funcs', ntable(functions))
 debug('enums', ntable(enums))
 debug('class', ntable(classes))

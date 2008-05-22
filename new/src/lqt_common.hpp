@@ -73,6 +73,12 @@ extern int lqtL_gc (lua_State *);
 extern int lqtL_index (lua_State *);
 extern int lqtL_newindex (lua_State *);
 
+typedef struct {
+	const char *name;
+	int value;
+} lqt_Enum;
+extern int lqtL_createenum(lua_State *, lqt_Enum[], const char *);
+
 
 #endif // __LQT_COMMON_HPP
 
