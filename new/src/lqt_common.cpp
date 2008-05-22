@@ -70,7 +70,11 @@ static int lqtL_indexfun (lua_State *L) {
 	while (!lua_isnone(L, lua_upvalueindex(i))) {
 		lua_pop(L, 1);
 		lua_pushvalue(L, 2);
-		lua_gettable(L, lua_upvalueindex(i));
+		if (i==1) {
+			lua_rawget(L, lua_upvalueindex(i));
+		} else {
+			lua_gettable(L, lua_upvalueindex(i));
+		}
 		if (!lua_isnil(L, -1)) break;
 		i++;
 	}
@@ -98,6 +102,8 @@ int lqtL_createclasses (lua_State *L, lqt_Class *list) {
 		lua_settable(L, -3);
 		lqtL_pushindexfunc(L, list->name, list->bases);
 		lua_setfield(L, -2, "__index");
+		lua_pushvalue(L, -1);
+		lua_setmetatable(L, -2);
 		lua_pop(L, 1);
 		list++;
 	}
@@ -118,6 +124,17 @@ bool lqtL_isstring (lua_State *L, int i) {
 }
 bool lqtL_isboolean (lua_State *L, int i) {
 	return lua_type(L, i)==LUA_TBOOLEAN;
+}
+bool lqtL_missarg (lua_State *L, int index, int n) {
+	bool ret = true;
+	int i = 0;
+	for (i=index;i<index+n;i++) {
+		if (!lua_isnoneornil(L, i)) {
+			ret = false;
+			break;
+		}
+	}
+	return ret;
 }
 
 void lqtL_passudata (lua_State *L, const void *p, const char *name) {
@@ -141,7 +158,7 @@ void lqtL_passudata (lua_State *L, const void *p, const char *name) {
 	}
 	luaL_newmetatable(L, name);
 	lua_setmetatable(L, -2);
-	lua_pop(L, 2);
+	lua_remove(L, -2);
 	return;
 }
 
@@ -161,10 +178,10 @@ bool lqtL_testudata (lua_State *L, int index, const char *name) {
 	if (!lua_isuserdata(L, index) || lua_islightuserdata(L, index)) return false;
 	lua_getfield(L, index, name);
 	if (!lua_isboolean(L, -1) || !lua_toboolean(L, -1)) {
-		lua_pop(L, -1);
+		lua_pop(L, 1);
 		return false;
 	}
-	lua_pop(L, -1);
+	lua_pop(L, 1);
 	return true;
 }
 

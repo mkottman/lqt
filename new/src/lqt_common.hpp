@@ -69,7 +69,7 @@ extern bool lqtL_isnumber (lua_State *, int);
 extern bool lqtL_isstring (lua_State *, int);
 extern bool lqtL_isboolean (lua_State *, int);
 
-
+extern bool lqtL_missarg (lua_State *, int, int);
 //extern int lqtL_baseindex (lua_State *, int, int);
 
 //extern int lqtL_gc (lua_State *);

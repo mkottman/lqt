@@ -41,7 +41,11 @@ local copy_functions = function(index)
 	return ret, copied
 end
 
-local fix_functions = function(index)
+local fix_functions = function(index, all)
+	local fullnames = {}
+	for e in pairs(all or {}) do
+		if e.xarg.fullname then fullnames[e.xarg.fullname] = true end
+	end
 	for f in pairs(index) do
 		local args = {}
 		for i, a in ipairs(f) do
@@ -49,6 +53,18 @@ local fix_functions = function(index)
 			if a.xarg.type_name=='void' and i==1 and f[2]==nil then break end
 			if a.label=='Argument' then
 				table.insert(args, a)
+				if a.xarg.default=='1' and string.match(a.xarg.defaultvalue, '%D') then
+					local dv = a.xarg.defaultvalue
+					if not fullnames[dv] then
+						dv = a.xarg.context..'::'..dv
+					end
+					if fullnames[dv] then
+						a.xarg.defaultvalue = dv
+					else
+						a.xarg.default = nil
+						a.xarg.defaultvalue = nil
+					end
+				end
 			end
 		end
 		f.arguments = args
@@ -372,6 +388,14 @@ local fill_wrapper_code = function(f, types, debug)
 		if not types[a.xarg.type_name] then debug(a.xarg.type_name) return nil end -- print(a.xarg.type_name) return nil end
 		local aget, an = types[a.xarg.type_name].get(stackn)
 		wrap = wrap .. '  ' .. a.xarg.type_name .. ' arg' .. tostring(argn) .. ' = '
+		if a.xarg.default=='1' and an>0 then
+			wrap = wrap .. 'lua_isnoneornil(L, '..stackn..')'
+			for j = stackn+1,stackn+an-1 do
+				wrap = wrap .. ' && lua_isnoneornil(L, '..j..')'
+			end
+			local dv = a.xarg.defaultvalue
+			wrap = wrap .. ' ? ' .. dv .. ' : '
+		end
 		wrap = wrap .. aget .. ';\n'
 		line = line .. (argn==1 and 'arg' or ', arg') .. argn
 		stackn = stackn + an
@@ -406,10 +430,17 @@ local fill_test_code = function(f, types)
 	for i, a in ipairs(f.arguments) do
 		if not types[a.xarg.type_name] then return nil end -- print(a.xarg.type_name) return nil end
 		local atest, an = types[a.xarg.type_name].test(stackn)
-		test = test .. ' && ' .. atest
+		if a.xarg.default=='1' and an>0 then
+			test = test .. ' && (lqtL_missarg(L, ' .. stackn .. ', ' .. an .. ') || '
+			test = test .. atest .. ')'
+		else
+			test = test .. ' && ' .. atest
+		end
 		stackn = stackn + an
 	end
-	test = '(lua_gettop(L)==' .. (stackn-1) .. ')' .. test
+	-- can't make use of default values if I fix number of args
+	--test = '(lua_gettop(L)==' .. (stackn-1) .. ')' .. test
+	test = 'true' .. test
 	f.test_code = test
 	return f
 end
@@ -691,7 +722,7 @@ extern "C" int luaopen_]]..n..[[ (lua_State *L) {
 end
 
 local functions = copy_functions(idindex)
-local functions = fix_functions(functions)
+local functions = fix_functions(functions, idindex)
 
 local enums = copy_enums(idindex)
 local enums = fix_enums(enums)
@@ -738,12 +769,16 @@ local print_virtuals = function(index)
 end
 
 
-for f in pairs(idindex) do if f.label=='Function' and f.xarg.name=='connect' then
-	debug(f.xarg.fullname, f.xarg.wrapper_code and 'true' or 'false')
-	local w = fill_wrapper_code(f, typesystem, debug)
-	debug(w)
-	--print(k, v.get'INDEX')
-end end
+for f in pairs(idindex) do
+	if f.label=='Function' and f.xarg.name=='connect' then
+		--debug(f.xarg.fullname, f.xarg.wrapper_code and 'true' or 'false')
+		local w = fill_wrapper_code(f, typesystem, debug)
+		--debug(w)
+		--print(k, v.get'INDEX')
+	elseif f.label=='Function' and f.xarg.name=='QObject' then
+		debug('==>', #f.arguments, f.wrapper_code and 'wrapped' or 'gone')
+	end
+end
 
 --print_virtuals(classes)
 
