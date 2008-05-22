@@ -27,6 +27,175 @@
 #include "lqt_common.hpp"
 #include <cstring>
 
+#include <QDebug>
+
+void lqtL_getenumtable (lua_State *L) {
+	lua_getfield(L, LUA_REGISTRYINDEX, LQT_ENUMS);
+	if (lua_isnil(L, -1)) {
+		lua_pop(L, 1);
+		lua_newtable(L);
+		lua_pushvalue(L, -1);
+		lua_setfield(L, LUA_REGISTRYINDEX, LQT_ENUMS);
+	}
+}
+
+int lqtL_createenum (lua_State *L, lqt_Enum e[], const char *n) {
+	lqtL_getenumtable(L);
+	lua_newtable(L);
+	lua_pushvalue(L, -1);
+	lua_setfield(L, -3, n);
+	while ( (e->name!=0) ) {
+		lua_pushstring(L, e->name);
+		lua_pushinteger(L, e->value);
+		lua_settable(L, -3);
+		lua_pushinteger(L, e->value);
+		lua_pushstring(L, e->name);
+		lua_settable(L, -3);
+		e++;
+	}
+	lua_pop(L, 2);
+	return 0;
+}
+int lqtL_createenumlist (lua_State *L, lqt_Enumlist list[]) {
+	while (list->enums!=0 && list->name!=0) {
+		lqtL_createenum(L, list->enums, list->name);
+		list++;
+	}
+	return 0;
+}
+
+static int lqtL_indexfun (lua_State *L) {
+	int i = 1;
+	lua_pushnil(L);
+	while (!lua_isnone(L, lua_upvalueindex(i))) {
+		lua_pop(L, 1);
+		lua_pushvalue(L, 2);
+		lua_gettable(L, lua_upvalueindex(i));
+		if (!lua_isnil(L, -1)) break;
+		i++;
+	}
+	return 1;
+}
+
+static int lqtL_pushindexfunc (lua_State *L, const char *name, lqt_Base *bases) {
+	int upnum = 1;
+	luaL_newmetatable(L, name);
+	while (bases->basename!=NULL) {
+		luaL_newmetatable(L, bases->basename);
+		upnum++;
+		bases++;
+	}
+	lua_pushcclosure(L, lqtL_indexfun, upnum);
+	return 1;
+}
+
+int lqtL_createclasses (lua_State *L, lqt_Class *list) {
+	while (list->name!=0) {
+		luaL_newmetatable(L, list->name);
+		luaL_register(L, NULL, list->mt);
+		lua_pushstring(L, list->name);
+		lua_pushboolean(L, 1);
+		lua_settable(L, -3);
+		lqtL_pushindexfunc(L, list->name, list->bases);
+		lua_setfield(L, -2, "__index");
+		lua_pop(L, 1);
+		list++;
+	}
+	return 0;
+}
+
+bool lqtL_isinteger (lua_State *L, int i) {
+	if (lua_type(L, i)==LUA_TNUMBER)
+		return lua_tointeger(L, i)==lua_tonumber(L, i);
+	else
+		return false;
+}
+bool lqtL_isnumber (lua_State *L, int i) {
+	return lua_type(L, i)==LUA_TNUMBER;
+}
+bool lqtL_isstring (lua_State *L, int i) {
+	return lua_type(L, i)==LUA_TSTRING;
+}
+bool lqtL_isboolean (lua_State *L, int i) {
+	return lua_type(L, i)==LUA_TBOOLEAN;
+}
+
+void lqtL_passudata (lua_State *L, const void *p, const char *name) {
+	lua_getfield(L, LUA_REGISTRYINDEX, LQT_POINTERS);
+	if (lua_isnil(L, -1)) {
+		lua_pop(L, 1);
+		lua_newtable(L);
+		lua_pushvalue(L, -1);
+		lua_setfield(L, LUA_REGISTRYINDEX, LQT_POINTERS);
+	}
+	lua_pushlightuserdata(L, const_cast<void*>(p));
+	lua_gettable(L, -2);
+	if (lua_isnil(L, -1)) {
+		lua_pop(L, 1);
+		lua_pushlightuserdata(L, const_cast<void*>(p));
+		void **pp = static_cast<void**>(lua_newuserdata(L, sizeof(void*)));
+		*pp = const_cast<void*>(p);
+		lua_settable(L, -3);
+		lua_pushlightuserdata(L, const_cast<void*>(p));
+		lua_gettable(L, -2);
+	}
+	luaL_newmetatable(L, name);
+	lua_setmetatable(L, -2);
+	lua_pop(L, 2);
+	return;
+}
+
+void lqtL_pushudata (lua_State *L, const void *p, const char *name) {
+	lqtL_passudata(L, p, name);
+}
+
+void *lqtL_toudata (lua_State *L, int index, const char *name) {
+	void *ret = 0;
+	if (!lqtL_testudata(L, index, name)) return 0;
+	void **pp = static_cast<void**>(lua_touserdata(L, index));
+	ret = *pp;
+	return ret;
+}
+
+bool lqtL_testudata (lua_State *L, int index, const char *name) {
+	if (!lua_isuserdata(L, index) || lua_islightuserdata(L, index)) return false;
+	lua_getfield(L, index, name);
+	if (!lua_isboolean(L, -1) || !lua_toboolean(L, -1)) {
+		lua_pop(L, -1);
+		return false;
+	}
+	lua_pop(L, -1);
+	return true;
+}
+
+void lqtL_pushenum (lua_State *L, int value, const char *name) {
+	lqtL_getenumtable(L);
+	lua_getfield(L, -1, name);
+	lua_remove(L, -2);
+	if (!lua_istable(L, -1)) {
+		lua_pop(L, 1);
+		lua_pushnil(L);
+		return;
+	}
+	lua_pushnumber(L, value);
+	lua_gettable(L, -2);
+	lua_remove(L, -2);
+}
+bool lqtL_isenum (lua_State *L, int index, const char *) {
+	return lua_isstring(L, index);
+}
+int lqtL_toenum (lua_State *L, int index, const char *name) {
+	int ret = -1;
+	lqtL_getenumtable(L);
+	lua_pushvalue(L, index);
+	lua_gettable(L, -2);
+	ret = lua_tointeger(L, -1);
+	lua_pop(L, 2);
+	return ret;
+}
+
+#if 0
+
 #define LQT_FIXEDINDEX(i)  (i<0?(1+lua_gettop(L)+i):i)
 #define LQT_MAX_ARGS 50
 
@@ -663,4 +832,4 @@ int lqtL_gc (lua_State *L) {
   return 0;
 }
 
-
+#endif

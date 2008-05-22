@@ -44,16 +44,14 @@ extern "C" {
 #define LQT_POINTERS "Registry Pointers"
 #define LQT_ENUMS "Registry Enumerations"
 
-template<typename T> class LuaBinder;
+//extern int& lqtL_tointref (lua_State *, int);
 
-extern int& lqtL_tointref (lua_State *, int);
+//extern void lqtL_pusharguments (lua_State *, char**);
+//extern char** lqtL_toarguments (lua_State *, int);
+//extern bool lqtL_testarguments (lua_State *, int);
 
-extern void lqtL_pusharguments (lua_State *, char**);
-extern char** lqtL_toarguments (lua_State *, int);
-extern bool lqtL_testarguments (lua_State *, int);
-
-extern void lqtL_manageudata (lua_State *, int);
-extern void lqtL_unmanageudata (lua_State *, int);
+//extern void lqtL_manageudata (lua_State *, int);
+//extern void lqtL_unmanageudata (lua_State *, int);
 extern void lqtL_pushudata (lua_State *, const void *, const char *);
 extern void lqtL_passudata (lua_State *, const void *, const char *);
 extern void * lqtL_toudata (lua_State *, int, const char *);
@@ -72,11 +70,11 @@ extern bool lqtL_isstring (lua_State *, int);
 extern bool lqtL_isboolean (lua_State *, int);
 
 
-extern int lqtL_baseindex (lua_State *, int, int);
+//extern int lqtL_baseindex (lua_State *, int, int);
 
-extern int lqtL_gc (lua_State *);
-extern int lqtL_index (lua_State *);
-extern int lqtL_newindex (lua_State *);
+//extern int lqtL_gc (lua_State *);
+//extern int lqtL_index (lua_State *);
+//extern int lqtL_newindex (lua_State *);
 
 typedef struct {
 	const char *name;
@@ -88,8 +86,20 @@ typedef struct {
 	const char *name;
 } lqt_Enumlist;
 
-extern int lqtL_createenum(lua_State *, lqt_Enum[], const char *);
-extern int lqtL_createenumlist(lua_State *, lqt_Enumlist[]);
+extern int lqtL_createenum (lua_State *, lqt_Enum[], const char *);
+extern int lqtL_createenumlist (lua_State *, lqt_Enumlist[]);
+
+typedef struct {
+	const char *basename;
+} lqt_Base;
+
+typedef struct {
+	luaL_Reg *mt;
+	lqt_Base *bases;
+	const char * name;
+} lqt_Class;
+
+extern int lqtL_createclasses (lua_State *, lqt_Class *);
 
 
 #endif // __LQT_COMMON_HPP
