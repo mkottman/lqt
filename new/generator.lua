@@ -80,7 +80,8 @@ local copy_enums = function(index)
 	local ret = {}
 	for e in pairs(index) do
 		if e.label=='Enum'
-			and e.xarg.access~='public' then
+			and not string.match(e.xarg.fullname, '%b<>')
+			and e.xarg.access~='private' then
 			ret[e] = true
 		end
 	end
@@ -91,8 +92,8 @@ local fix_enums = function(index)
 	for e in pairs(index) do
 		local values = {}
 		for _, v in ipairs(e) do
-			if v.label=='Enumerators' then
-				values[#values] = v.xarg.name
+			if v.label=='Enumerator' then
+				table.insert(values, v)
 			end
 		end
 		e.values = values
@@ -252,6 +253,9 @@ local fill_typesystem_with_enums = function(enums, types)
 					return 'static_cast<'..e.xarg.fullname..'>'
 					..'(lqtL_toenum(L, '..n..', "'..e.xarg.fullname..'"))', 1
 				end,
+				test = function(n)
+					return '(lua_type(L, '..n..')==LUA_TSTRING)', 1
+				end,
 			}
 		else
 			--io.stderr:write(e.xarg.fullname, ': already present\n')
@@ -274,6 +278,9 @@ local fill_typesystem_with_classes = function(classes, types)
 					return 'static_cast<'..c.xarg.fullname..'*>'
 					..'(lqtL_toudata(L, '..n..', "'..c.xarg.fullname..'*"))', 1
 				end,
+				test = function(n)
+					return 'lqtL_isudata(L, '..n..', "'..c.xarg.fullname..'*")', 1
+				end,
 			}
 			types[c.xarg.fullname..'&'] = {
 				-- the argument is a reference to class
@@ -283,6 +290,9 @@ local fill_typesystem_with_classes = function(classes, types)
 				get = function(n)
 					return '*static_cast<'..c.xarg.fullname..'*>'
 					..'(lqtL_toudata(L, '..n..', "'..c.xarg.fullname..'*"))', 1
+				end,
+				test = function(n)
+					return 'lqtL_isudata(L, '..n..', "'..c.xarg.fullname..'*")', 1
 				end,
 			}
 			if c.constructors.copy~='private' then -- and c.destructor~='private' then
@@ -297,6 +307,9 @@ local fill_typesystem_with_classes = function(classes, types)
 						return '*static_cast<'..c.xarg.fullname..'*>'
 						..'(lqtL_toudata(L, '..n..', "'..c.xarg.fullname..'*"))', 1
 					end,
+					test = function(n)
+						return 'lqtL_isudata(L, '..n..', "'..c.xarg.fullname..'*")', 1
+					end,
 				}
 				types[c.xarg.fullname..' const&'] = {
 					-- the argument is a pointer to class
@@ -307,6 +320,9 @@ local fill_typesystem_with_classes = function(classes, types)
 					get = function(n)
 						return '*static_cast<'..c.xarg.fullname..'*>'
 						..'(lqtL_toudata(L, '..n..', "'..c.xarg.fullname..'*"))', 1
+					end,
+					test = function(n)
+						return 'lqtL_isudata(L, '..n..', "'..c.xarg.fullname..'*")', 1
 					end,
 				}
 			else
@@ -364,11 +380,31 @@ local fill_wrapper_code = function(f, types)
 	return f
 end
 
+local fill_test_code = function(f, types)
+	local stackn = 1
+	local test = ''
+	if f.xarg.member_of_class and f.xarg.static~='1' then
+		if not types[f.xarg.member_of_class..'*'] then return nil end -- print(f.xarg.member_of_class) return nil end
+		local stest, sn = types[f.xarg.member_of_class..'*'].test(stackn)
+		test = test .. stest
+		stackn = stackn + sn
+	end
+	for i, a in ipairs(f.arguments) do
+		if not types[a.xarg.type_name] then return nil end -- print(a.xarg.type_name) return nil end
+		local atest, an = types[a.xarg.type_name].test(stackn)
+		test = test .. (test=='' and '' or ' && ') .. atest
+		stackn = stackn + an
+	end
+	f.test_code = test
+	return f
+end
+
 local fill_wrappers = function(functions, types)
 	local ret = {}
 	for f in pairs(functions) do
 		f = fill_wrapper_code(f, types)
 		if f then
+			f = assert(fill_test_code(f, types), f.xarg.fullname) -- MUST pass
 			ret[f] = true
 			local out = 'extern "C" int lqt_bind'..f.xarg.id..' (lua_State *L) {\n'
 			.. f.wrapper_code .. '}\n'
@@ -550,9 +586,10 @@ end
 local print_enum_tables = function(enums)
 	for e in pairs(enums) do
 		local table = 'lqt_Enum lqt_enum'..e.xarg.id..'[] = {\n'
+		io.stderr:write(e.xarg.fullname, '\t', #e.values, '\n')
 		for _,v in pairs(e.values) do
 			table = table .. '  { "' .. v.xarg.name
-				.. '", static_cat<int>('..v.xarg.fullname..') },\n'
+				.. '", static_cast<int>('..v.xarg.fullname..') },\n'
 		end
 		table = table .. '  { 0, 0 }\n'
 		table = table .. '};\n'
