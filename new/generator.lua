@@ -386,15 +386,16 @@ local fill_test_code = function(f, types)
 	if f.xarg.member_of_class and f.xarg.static~='1' then
 		if not types[f.xarg.member_of_class..'*'] then return nil end -- print(f.xarg.member_of_class) return nil end
 		local stest, sn = types[f.xarg.member_of_class..'*'].test(stackn)
-		test = test .. stest
+		test = test .. ' && ' .. stest
 		stackn = stackn + sn
 	end
 	for i, a in ipairs(f.arguments) do
 		if not types[a.xarg.type_name] then return nil end -- print(a.xarg.type_name) return nil end
 		local atest, an = types[a.xarg.type_name].test(stackn)
-		test = test .. (test=='' and '' or ' && ') .. atest
+		test = test .. ' && ' .. atest
 		stackn = stackn + an
 	end
+	test = '(lua_gettop(L)==' .. (stackn-1) .. ')' .. test
 	f.test_code = test
 	return f
 end
@@ -540,8 +541,10 @@ local print_wrappers = function(index)
 			if f.wrapper_code then
 				local out = 'extern "C" int lqt_bind'..f.xarg.id
 				..' (lua_State *L) {\n'.. f.wrapper_code .. '}\n'
-				if f.xarg.access=='public' then print(out) end
-				meta[f.xarg.id] = f.xarg.name
+				if f.xarg.access=='public' then
+					print(out)
+					meta[f] = f.xarg.name
+				end
 			end
 		end
 		if c.shell then
@@ -549,13 +552,42 @@ local print_wrappers = function(index)
 				if f.wrapper_code then
 					local out = 'extern "C" int lqt_bind'..f.xarg.id
 					    ..' (lua_State *L) {\n'.. f.wrapper_code .. '}\n'
-					if f.xarg.access=='public' then print(out) end
-					meta[f.xarg.id] = 'new'
+					if f.xarg.access=='public' then
+						print(out)
+						meta[f] = 'new'
+					end
 				end
 			end
 		end
+		c.meta = meta
 	end
 	return index
+end
+
+local print_metatable = function(c)
+	local methods = {}
+	for m, n in pairs(c.meta) do
+		methods[n] = methods[n] or {}
+		table.insert(methods[n], m)
+	end
+	for n, l in pairs(methods) do
+		local disp = 'extern "C" int lqt_dispatcher_'..n..c.xarg.id..' (lua_State *L) {\n'
+		for _, f in ipairs(l) do
+			disp = disp..'  if ('..f.test_code..') return lqt_bind'..f.xarg.id..'(L);\n'
+		end
+		disp = disp .. '  lua_settop(L, 0);\n'
+		disp = disp .. '  lua_pushstring(L, "incorrect arguments");\n'
+		disp = disp .. '  return lua_error(L);\n}\n' 
+		print(disp)
+	end
+	return c
+end
+
+local print_metatables = function(classes)
+	for c in pairs(classes) do
+		print_metatable(c)
+	end
+	return classes
 end
 
 local fix_methods_wrappers = function(classes)
@@ -585,7 +617,7 @@ end
 
 local print_enum_tables = function(enums)
 	for e in pairs(enums) do
-		local table = 'lqt_Enum lqt_enum'..e.xarg.id..'[] = {\n'
+		local table = 'static lqt_Enum lqt_enum'..e.xarg.id..'[] = {\n'
 		io.stderr:write(e.xarg.fullname, '\t', #e.values, '\n')
 		for _,v in pairs(e.values) do
 			table = table .. '  { "' .. v.xarg.name
@@ -596,6 +628,17 @@ local print_enum_tables = function(enums)
 		e.enum_table = table
 		print(table)
 	end
+	return enums
+end
+local print_enum_creator = function(enums)
+	local out = 'static lqt_Enumlist lqt_enum_list[] = {\n'
+	for e in pairs(enums) do
+		out = out..'  { lqt_enum'..e.xarg.id..', "'..e.xarg.fullname..'" },\n'
+	end
+	out = out..'  { 0, 0 },\n};\n'
+	out = out .. 'extern "C" int lqt_create_enums (lua_State *L) {\n'
+	out = out .. '  lqtL_createenumlist(L, lqt_enum_list);  return 0;\n}\n'
+	print(out)
 	return enums
 end
 
@@ -631,6 +674,8 @@ local classes = fill_shell_classes(classes, typesystem)
 local classes = print_virtual_overloads(classes, typesystem)
 local classes = print_wrappers(classes)
 local enums = print_enum_tables(enums)
+local enums = print_enum_creator(enums)
+local classes = print_metatables(classes)
 debug('funcs', ntable(functions))
 debug('enums', ntable(enums))
 debug('class', ntable(classes))
