@@ -66,6 +66,11 @@ extern void lqtL_pushenum (lua_State *, int, const char *);
 extern bool lqtL_isenum (lua_State *, int, const char *);
 extern int lqtL_toenum (lua_State *, int, const char *);
 
+extern bool lqtL_isinteger (lua_State *, int);
+extern bool lqtL_isnumber (lua_State *, int);
+extern bool lqtL_isstring (lua_State *, int);
+extern bool lqtL_isboolean (lua_State *, int);
+
 
 extern int lqtL_baseindex (lua_State *, int, int);
 
@@ -77,7 +82,14 @@ typedef struct {
 	const char *name;
 	int value;
 } lqt_Enum;
+
+typedef struct {
+	lqt_Enum *enums;
+	const char *name;
+} lqt_Enumlist;
+
 extern int lqtL_createenum(lua_State *, lqt_Enum[], const char *);
+extern int lqtL_createenumlist(lua_State *, lqt_Enumlist[]);
 
 
 #endif // __LQT_COMMON_HPP
