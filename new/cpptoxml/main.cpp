@@ -232,19 +232,17 @@ QString XMLVisitor::visit(CodeModelItem i) {
 		if (ClassModelItem c = model_dynamic_cast<ClassModelItem>(current_scope.last()))
 			ret += ATTR_STR("member_of_class", c->qualifiedName().join("::"));
 
-		ret += " access=\"";
 		switch (m->accessPolicy()) {
 			case CodeModel::Public:
-				ret += "public";
+				ret += ATTR_STR("access", "public");
 				break;
 			case CodeModel::Private:
-				ret += "private";
+				ret += ATTR_STR("access", "private");
 				break;
 			case CodeModel::Protected:
-				ret += "protected";
+				ret += ATTR_STR("access", "protected");
 				break;
 		};
-		ret += "\"";
 
 		ret += visit(m->type(), m->scope());
 		QString tp = templateParametersToString(m->templateParameters());
@@ -292,11 +290,20 @@ QString XMLVisitor::visit(CodeModelItem i) {
 		}
 		QString tp = templateParametersToString(c->templateParameters());
 		if (tp!=QString()) ret += ATTR_STR("member_template_parameters", tp);
-		// TODO also list templateParameters (maybe in content?)
 		// TODO also list propertyDeclarations (maybe in content?)
 	}
 	if (EnumModelItem e = model_dynamic_cast<EnumModelItem>(i)) {
-		// TODO try to understand the meaning of the access policy of enums
+		switch (e->accessPolicy()) {
+			case CodeModel::Public:
+				ret += ATTR_STR("access", "public");
+				break;
+			case CodeModel::Private:
+				ret += ATTR_STR("access", "private");
+				break;
+			case CodeModel::Protected:
+				ret += ATTR_STR("access", "protected");
+				break;
+		};
 	}
 	if (EnumeratorModelItem e = model_dynamic_cast<EnumeratorModelItem>(i)) {
 		ret += e->value().prepend(" value=\"").append("\"");
