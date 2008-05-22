@@ -282,6 +282,19 @@ local fill_typesystem_with_classes = function(classes, types)
 					return 'lqtL_isudata(L, '..n..', "'..c.xarg.fullname..'*")', 1
 				end,
 			}
+			types[c.xarg.fullname..' const*'] = {
+				-- the argument is a pointer to constant class instance
+				push = function(n)
+					return 'lqtL_passudata(L, '..n..', "'..c.xarg.fullname..'*")', 1
+				end,
+				get = function(n)
+					return 'static_cast<'..c.xarg.fullname..'*>'
+					..'(lqtL_toudata(L, '..n..', "'..c.xarg.fullname..'*"))', 1
+				end,
+				test = function(n)
+					return 'lqtL_isudata(L, '..n..', "'..c.xarg.fullname..'*")', 1
+				end,
+			}
 			types[c.xarg.fullname..'&'] = {
 				-- the argument is a reference to class
 				push = function(n)
@@ -335,7 +348,8 @@ local fill_typesystem_with_classes = function(classes, types)
 	return ret
 end
 
-local fill_wrapper_code = function(f, types)
+local fill_wrapper_code = function(f, types, debug)
+	debug = debug or function()end
 	local stackn, argn = 1, 1
 	local wrap, line = '', ''
 	if f.xarg.member_of_class and f.xarg.static~='1' then
@@ -355,7 +369,7 @@ local fill_wrapper_code = function(f, types)
 		line = f.xarg.fullname..'('
 	end
 	for i, a in ipairs(f.arguments) do
-		if not types[a.xarg.type_name] then return nil end -- print(a.xarg.type_name) return nil end
+		if not types[a.xarg.type_name] then debug(a.xarg.type_name) return nil end -- print(a.xarg.type_name) return nil end
 		local aget, an = types[a.xarg.type_name].get(stackn)
 		wrap = wrap .. '  ' .. a.xarg.type_name .. ' arg' .. tostring(argn) .. ' = '
 		wrap = wrap .. aget .. ';\n'
@@ -580,6 +594,18 @@ local print_metatable = function(c)
 		disp = disp .. '  return lua_error(L);\n}\n' 
 		print(disp)
 	end
+	local metatable = 'static luaL_Reg lqt_metatable'..c.xarg.id..'[] = {\n'
+	for n, l in pairs(methods) do
+		metatable = metatable .. '  { "'..n..'", lqt_dispatcher_'..n..c.xarg.id..' },\n'
+	end
+	metatable = metatable .. '  { 0, 0 },\n};\n'
+	print(metatable)
+	local bases = ''
+	for b in string.gmatch(c.xarg.bases or '', '([^;]*);') do
+		bases = bases .. '{"' .. b .. '*"}, '
+	end
+	bases = 'static lqt_Base lqt_base'..c.xarg.id..'[] = { '..bases..'{NULL} };\n'
+	print(bases)
 	return c
 end
 
@@ -587,6 +613,17 @@ local print_metatables = function(classes)
 	for c in pairs(classes) do
 		print_metatable(c)
 	end
+	return classes
+end
+
+local print_class_list = function(classes)
+	local list = 'static lqt_Class lqt_class_list[] = {\n'
+	for c in pairs(classes) do
+		class = '{ lqt_metatable'..c.xarg.id..', lqt_base'..c.xarg.id..', "'..c.xarg.fullname..'*" },\n'
+		list = list .. '  ' .. class
+	end
+	list = list .. '  { 0, 0, 0 },\n};\n'
+	print(list)
 	return classes
 end
 
@@ -642,6 +679,17 @@ local print_enum_creator = function(enums)
 	return enums
 end
 
+local print_openmodule = function(n)
+	print([[
+
+extern "C" int luaopen_]]..n..[[ (lua_State *L) {
+  lqt_create_enums(L);
+  lqtL_createclasses(L, lqt_class_list);
+  return 0;
+}
+]])
+end
+
 local functions = copy_functions(idindex)
 local functions = fix_functions(functions)
 
@@ -660,7 +708,7 @@ local typesystem = dofile'types.lua'
 
 local debug = function(...)
 	for i = 1, select('#',...) do
-		io.stderr:write((i==1) and '' or '\t', (select(i,...)))
+		io.stderr:write((i==1) and '' or '\t', tostring(select(i,...)))
 	end
 	io.stderr:write'\n'
 end
@@ -676,9 +724,11 @@ local classes = print_wrappers(classes)
 local enums = print_enum_tables(enums)
 local enums = print_enum_creator(enums)
 local classes = print_metatables(classes)
+local classes = print_class_list(classes)
 debug('funcs', ntable(functions))
 debug('enums', ntable(enums))
 debug('class', ntable(classes))
+print_openmodule'src'
 
 local print_virtuals = function(index)
 	for c in pairs(index) do
@@ -688,9 +738,12 @@ local print_virtuals = function(index)
 end
 
 
-for k,v in pairs(typesystem) do
+for f in pairs(idindex) do if f.label=='Function' and f.xarg.name=='connect' then
+	debug(f.xarg.fullname, f.xarg.wrapper_code and 'true' or 'false')
+	local w = fill_wrapper_code(f, typesystem, debug)
+	debug(w)
 	--print(k, v.get'INDEX')
-end
+end end
 
 --print_virtuals(classes)
 
