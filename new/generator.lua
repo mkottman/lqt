@@ -439,8 +439,7 @@ local fill_test_code = function(f, types)
 		stackn = stackn + an
 	end
 	-- can't make use of default values if I fix number of args
-	--test = '(lua_gettop(L)==' .. (stackn-1) .. ')' .. test
-	test = 'true' .. test
+	test = '(lua_gettop(L)<' .. stackn .. ')' .. test
 	f.test_code = test
 	return f
 end
@@ -621,7 +620,7 @@ local print_metatable = function(c)
 			disp = disp..'  if ('..f.test_code..') return lqt_bind'..f.xarg.id..'(L);\n'
 		end
 		disp = disp .. '  lua_settop(L, 0);\n'
-		disp = disp .. '  lua_pushstring(L, "incorrect arguments");\n'
+		disp = disp .. '  lua_pushstring(L, "incorrect or extra arguments");\n'
 		disp = disp .. '  return lua_error(L);\n}\n' 
 		print(disp)
 	end
