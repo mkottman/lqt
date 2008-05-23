@@ -35,11 +35,14 @@ extern "C" {
 
 //#include <iostream>
 
-#define lqtL_register(L, p, n) ( (void)L, (void)p, (void)n )
-#define lqtL_unregister(L, p) ( (void)L, (void)p )
+//#define lqtL_register(L, p, n) ( (void)L, (void)p, (void)n )
+//#define lqtL_unregister(L, p) ( (void)L, (void)p )
 
 #define LQT_POINTERS "Registry Pointers"
 #define LQT_ENUMS "Registry Enumerations"
+
+extern void lqtL_register(lua_State *, const void *);
+extern void lqtL_unregister(lua_State *, const void *);
 
 //extern int& lqtL_tointref (lua_State *, int);
 
