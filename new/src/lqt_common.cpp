@@ -39,27 +39,37 @@ static void lqtL_getenumtable (lua_State *L) {
 	}
 }
 
-static int lqtL_createenum (lua_State *L, lqt_Enum e[], const char *n) {
-	lqtL_getenumtable(L);
-	lua_newtable(L);
-	lua_pushvalue(L, -1);
-	lua_setfield(L, -3, n);
-	while ( (e->name!=0) ) {
-		lua_pushstring(L, e->name);
-		lua_pushinteger(L, e->value);
-		lua_settable(L, -3);
-		lua_pushinteger(L, e->value);
-		lua_pushstring(L, e->name);
-		lua_settable(L, -3);
-		e++;
+static void lqtL_getpointertable (lua_State *L) {
+	lua_getfield(L, LUA_REGISTRYINDEX, LQT_POINTERS); // (1) get storage for pointers
+	if (lua_isnil(L, -1)) { // (1) if there is not
+		lua_pop(L, 1); // (0) pop the nil value
+		lua_newtable(L); // (1) create a new one
+		lua_pushvalue(L, -1); // (2) duplicate it
+		lua_setfield(L, LUA_REGISTRYINDEX, LQT_POINTERS); // (1) put one copy as storage
 	}
-	lua_pop(L, 2);
+}
+
+static int lqtL_createenum (lua_State *L, lqt_Enum e[], const char *n) {
+	lqtL_getenumtable(L); // (1)
+	lua_newtable(L); // (2)
+	lua_pushvalue(L, -1); // (3)
+	lua_setfield(L, -3, n); // (2)
+	while ( (e->name!=0) ) { // (2)
+		lua_pushstring(L, e->name); // (3)
+		lua_pushinteger(L, e->value); // (4)
+		lua_settable(L, -3); // (2)
+		lua_pushinteger(L, e->value); // (3)
+		lua_pushstring(L, e->name); // (4)
+		lua_settable(L, -3); // (2)
+		e++; // (2)
+	}
+	lua_pop(L, 2); // (0)
 	return 0;
 }
 
 int lqtL_createenumlist (lua_State *L, lqt_Enumlist list[]) {
 	while (list->enums!=0 && list->name!=0) {
-		lqtL_createenum(L, list->enums, list->name);
+		lqtL_createenum(L, list->enums, list->name); // (0)
 		list++;
 	}
 	return 0;
@@ -67,49 +77,49 @@ int lqtL_createenumlist (lua_State *L, lqt_Enumlist list[]) {
 
 static int lqtL_indexfunc (lua_State *L) {
 	int i = 1;
-	lua_pushnil(L);
-	while (!lua_isnone(L, lua_upvalueindex(i))) {
-		lua_pop(L, 1);
-		lua_pushvalue(L, 2);
+	lua_pushnil(L); // (+1)
+	while (!lua_isnone(L, lua_upvalueindex(i))) { // (+1)
+		lua_pop(L, 1); // (+0)
+		lua_pushvalue(L, 2); // (+1)
 		if (i==1) {
-			lua_rawget(L, lua_upvalueindex(i));
+			lua_rawget(L, lua_upvalueindex(i)); // (+1)
 		} else {
-			lua_gettable(L, lua_upvalueindex(i));
+			lua_gettable(L, lua_upvalueindex(i)); // (+1)
 		}
 		if (!lua_isnil(L, -1)) break;
 		i++;
 	}
-	return 1;
+	return 1; // (+1)
 }
 
 static int lqtL_pushindexfunc (lua_State *L, const char *name, lqt_Base *bases) {
 	int upnum = 1;
-	luaL_newmetatable(L, name);
+	luaL_newmetatable(L, name); // (1)
 	while (bases->basename!=NULL) {
-		luaL_newmetatable(L, bases->basename);
+		luaL_newmetatable(L, bases->basename); // (upnum)
 		upnum++;
 		bases++;
 	}
-	lua_pushcclosure(L, lqtL_indexfunc, upnum);
+	lua_pushcclosure(L, lqtL_indexfunc, upnum); // (1)
 	return 1;
 }
 
 int lqtL_createclasses (lua_State *L, lqt_Class *list) {
-	while (list->name!=0) {
-		luaL_newmetatable(L, list->name);
-		luaL_register(L, NULL, list->mt);
-		lua_pushstring(L, list->name);
-		lua_pushboolean(L, 1);
-		lua_settable(L, -3);
-		lqtL_pushindexfunc(L, list->name, list->bases);
-		lua_setfield(L, -2, "__index");
-		lua_pushvalue(L, -1);
-		lua_setmetatable(L, -2);
-		lua_pop(L, 1);
-		lua_pushlstring(L, list->name, strlen(list->name)-1);
-		lua_newtable(L);
-		luaL_register(L, NULL, list->mt);
-		lua_settable(L, LUA_GLOBALSINDEX);
+	while (list->name!=0) { // (0)
+		luaL_newmetatable(L, list->name); // (1)
+		luaL_register(L, NULL, list->mt); // (1)
+		lua_pushstring(L, list->name); // (2)
+		lua_pushboolean(L, 1); // (3)
+		lua_settable(L, -3); // (1)
+		lqtL_pushindexfunc(L, list->name, list->bases); // (2)
+		lua_setfield(L, -2, "__index"); // (1)
+		lua_pushvalue(L, -1); // (2)
+		lua_setmetatable(L, -2); // (1)
+		lua_pop(L, 1); // (0)
+		lua_pushlstring(L, list->name, strlen(list->name)-1); // (1)
+		lua_newtable(L); // (2)
+		luaL_register(L, NULL, list->mt); // (2)
+		lua_settable(L, LUA_GLOBALSINDEX); // (0)
 		list++;
 	}
 	return 0;
@@ -142,33 +152,54 @@ bool lqtL_missarg (lua_State *L, int index, int n) {
 	return ret;
 }
 
+static void lqtL_ensurepointer (lua_State *L, const void *p) { // (+1)
+	lqtL_getpointertable(L); // (1)
+	lua_pushlightuserdata(L, const_cast<void*>(p)); // (2)
+	lua_gettable(L, -2); // (2)
+	if (lua_isnil(L, -1)) { // (2)
+		lua_pop(L, 1); // (1)
+		const void **pp = static_cast<const void**>(lua_newuserdata(L, sizeof(void*))); // (2)
+		*pp = p; // (2)
+		lua_pushlightuserdata(L, const_cast<void*>(p)); // (3)
+		lua_pushvalue(L, -2); // (4)
+		lua_settable(L, -4); // (2)
+	}
+	// (2)
+	lua_remove(L, -2); // (1)
+}
+
+void lqtL_register (lua_State *L, const void *p) { // (+0)
+	lqtL_ensurepointer(L, p);
+	lua_pop(L, 1);
+}
+
+void lqtL_unregister (lua_State *L, const void *p) {
+	lqtL_getpointertable(L); // (1)
+	lua_pushlightuserdata(L, const_cast<void*>(p)); // (2)
+	lua_gettable(L, -2); // (2)
+	if (lua_isuserdata(L, -1)) {
+		const void **pp = static_cast<const void**>(lua_touserdata(L, -1)); // (2)
+		*pp = 0;
+	}
+	lua_pop(L, 1); // (1)
+	lua_pushlightuserdata(L, const_cast<void*>(p)); // (2)
+	lua_pushnil(L); // (3)
+	lua_settable(L, -3); // (1)
+	lua_pop(L, 1); // (0)
+}
+
 void lqtL_passudata (lua_State *L, const void *p, const char *name) {
-	lua_getfield(L, LUA_REGISTRYINDEX, LQT_POINTERS);
-	if (lua_isnil(L, -1)) {
-		lua_pop(L, 1);
-		lua_newtable(L);
-		lua_pushvalue(L, -1);
-		lua_setfield(L, LUA_REGISTRYINDEX, LQT_POINTERS);
-	}
-	lua_pushlightuserdata(L, const_cast<void*>(p));
-	lua_gettable(L, -2);
-	if (lua_isnil(L, -1)) {
-		lua_pop(L, 1);
-		lua_pushlightuserdata(L, const_cast<void*>(p));
-		void **pp = static_cast<void**>(lua_newuserdata(L, sizeof(void*)));
-		*pp = const_cast<void*>(p);
-		lua_settable(L, -3);
-		lua_pushlightuserdata(L, const_cast<void*>(p));
-		lua_gettable(L, -2);
-	}
-	luaL_newmetatable(L, name);
-	lua_setmetatable(L, -2);
-	lua_remove(L, -2);
+	lqtL_ensurepointer(L, p); // (1)
+	luaL_newmetatable(L, name); // (2)
+	lua_setmetatable(L, -2); // (1)
 	return;
 }
 
 void lqtL_pushudata (lua_State *L, const void *p, const char *name) {
-	lqtL_passudata(L, p, name);
+	lqtL_ensurepointer(L, p); // (1)
+	luaL_newmetatable(L, name); // (2)
+	lua_setmetatable(L, -2); // (1)
+	return;
 }
 
 void *lqtL_toudata (lua_State *L, int index, const char *name) {
