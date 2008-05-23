@@ -28,6 +28,11 @@ OTHER DEALINGS IN THE SOFTWARE.
 --]]
 
 local path = string.match(arg[0], '(.*/)[^%/]+') or ''
+local module_name = 'qtcore'
+local output_includes = {
+	'<QtCore>',
+	'"lqt_common.hpp"',
+}
 
 local my = {
 	readfile = function(fn) local f = assert(io.open(fn)) local s = f:read'*a' f:close() return s end
@@ -593,13 +598,23 @@ local fill_shell_classes = function(classes, types)
 	for c in pairs(classes) do
 		if c.shell then
 			c = fill_shell_class(c, types)
-			if c then ret [c] = true print(c.shell_class)
+			if c then ret[c] = true end
+		end
+	end
+	return ret
+end
+
+local print_shell_classes = function(classes)
+	for c in pairs(classes) do
+		if c.shell then
+			if c then
+				print(c.shell_class)
 			else
 				io.stderr:write(c.fullname, '\n')
 			end
 		end
 	end
-	return ret
+	return classes
 end
 
 local print_virtual_overloads = function(classes, types)
@@ -805,6 +820,15 @@ local enums = fill_typesystem_with_enums(enums, typesystem)
 local classes = fill_typesystem_with_classes(classes, typesystem)
 local functions = fill_wrappers(functions, typesystem)
 local classes = fill_shell_classes(classes, typesystem)
+
+------------- BEGIN OUTPUT
+
+for _, i in ipairs(output_includes) do
+	print('#include '..i)
+end
+print()
+
+local classes = print_shell_classes(classes)
 local classes = print_virtual_overloads(classes, typesystem)
 local classes = print_wrappers(classes)
 local enums = print_enum_tables(enums)
@@ -814,7 +838,7 @@ local classes = print_class_list(classes)
 --debug('funcs', ntable(functions))
 --debug('enums', ntable(enums))
 --debug('class', ntable(classes))
-print_openmodule'src'
+print_openmodule(module_name)
 
 local print_virtuals = function(index)
 	for c in pairs(index) do
