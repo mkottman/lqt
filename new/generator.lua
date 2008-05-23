@@ -552,6 +552,7 @@ local fill_shell_class = function(c, types)
 			if v.virtual_proto then shell = shell .. '  virtual ' .. v.virtual_proto .. ';\n' end
 		end
 	end
+	shell = shell .. '  ~'..shellname..'() {}\n'
 	shell = shell .. '};\n'
 	c.shell_class = shell
 	return c
@@ -607,6 +608,12 @@ local print_wrappers = function(index)
 					end
 				end
 			end
+			--local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
+			local out = 'extern "C" int lqt_delete'..c.xarg.id..' (lua_State *L) {\n'
+			out = out ..'  '..c.xarg.fullname..' *p = static_cast<'
+				..c.xarg.fullname..'*>(lqtL_toudata(L, 1, "'..c.xarg.fullname..'*"));\n'
+			out = out .. '  if (p) delete p;\n  return 0;}\n'
+			print(out)
 		end
 		c.meta = meta
 	end
@@ -632,6 +639,9 @@ local print_metatable = function(c)
 	local metatable = 'static luaL_Reg lqt_metatable'..c.xarg.id..'[] = {\n'
 	for n, l in pairs(methods) do
 		metatable = metatable .. '  { "'..n..'", lqt_dispatcher_'..n..c.xarg.id..' },\n'
+	end
+	if c.shell then
+		metatable = metatable .. '  { "delete", lqt_delete'..c.xarg.id..' },\n'
 	end
 	metatable = metatable .. '  { 0, 0 },\n};\n'
 	print(metatable)
@@ -665,7 +675,7 @@ end
 local fix_methods_wrappers = function(classes)
 	for c in pairs(classes) do
 		-- if class seems abstract but has a shell class
-		-- FIXME: destructor should not matter
+		-- FIXME: destructor should not matter?
 		if c.abstract and c.destructor~='private' then
 			-- is it really abstract?
 			local a = false
@@ -675,7 +685,7 @@ local fix_methods_wrappers = function(classes)
 			end
 			c.abstract = a
 		end
-		-- FIXME: destructor should not matter
+		-- FIXME: destructor should not matter?
 		c.shell = (not c.abstract) and (c.destructor~='private')
 		for _, constr in ipairs(c.constructors) do
 			local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
