@@ -537,7 +537,9 @@ local fill_shell_class = function(c, types)
 				cline = cline .. ', ' .. argument_name(a.xarg.type_name, 'arg'..i)
 				argline = argline .. (i>1 and ', arg' or 'arg') .. i
 			end
-			cline = cline .. ') : ' .. c.xarg.fullname .. '(' .. argline .. '), L(l) {}\n'
+			cline = cline .. ') : ' .. c.xarg.fullname
+				.. '(' .. argline .. '), L(l) '
+				.. '{ lqtL_register(L, this); }\n'
 			shell = shell .. cline
 		end
 	end
@@ -552,7 +554,7 @@ local fill_shell_class = function(c, types)
 			if v.virtual_proto then shell = shell .. '  virtual ' .. v.virtual_proto .. ';\n' end
 		end
 	end
-	shell = shell .. '  ~'..shellname..'() {}\n'
+	shell = shell .. '  ~'..shellname..'() { lqtL_unregister(L, this); }\n'
 	shell = shell .. '};\n'
 	c.shell_class = shell
 	return c
