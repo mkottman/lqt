@@ -33,9 +33,6 @@ extern "C" {
 #include <lauxlib.h>
 }
 
-#include <QVariant>
-#include <QIcon>
-#include <QLocale>
 //#include <iostream>
 
 #define lqtL_register(L, p, n) ( (void)L, (void)p, (void)n )
