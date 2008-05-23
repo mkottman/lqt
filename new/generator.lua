@@ -4,8 +4,7 @@ local my = {
 	readfile = function(fn) local f = assert(io.open(fn)) local s = f:read'*a' f:close() return s end
 }
 
-local entities = dofile'entities.lua'
-local elements = entities
+local elements = dofile'entities.lua'
 assert_function = function(f)
 	assert(entities.is_function(f), 'argument is not a function')
 end
@@ -13,8 +12,14 @@ end
 local filename = ...
 local path = string.match(arg[0], '(.*/)[^%/]+') or ''
 local xmlstream, idindex = dofile(path..'xml.lua')(my.readfile(filename))
-io.stderr:write'parsed XML\n'
-local code = xmlstream[1]
+--local code = xmlstream[1]
+
+local debug = function(...)
+	for i = 1, select('#',...) do
+		io.stderr:write((i==1) and '' or '\t', tostring(select(i,...)))
+	end
+	io.stderr:write'\n'
+end
 
 ----------------------------------------------------------------------------------
 
@@ -355,10 +360,10 @@ local fill_typesystem_with_classes = function(classes, types)
 					end,
 				}
 			else
-				io.stderr:write(c.xarg.fullname, ': no copy constructor\n')
+				--io.stderr:write(c.xarg.fullname, ': no copy constructor\n')
 			end
 		else
-			io.stderr:write(c.xarg.fullname, ': already present\n')
+			--io.stderr:write(c.xarg.fullname, ': already present\n')
 		end
 	end
 	return ret
@@ -660,6 +665,7 @@ end
 local fix_methods_wrappers = function(classes)
 	for c in pairs(classes) do
 		-- if class seems abstract but has a shell class
+		-- FIXME: destructor should not matter
 		if c.abstract and c.destructor~='private' then
 			-- is it really abstract?
 			local a = false
@@ -669,6 +675,7 @@ local fix_methods_wrappers = function(classes)
 			end
 			c.abstract = a
 		end
+		-- FIXME: destructor should not matter
 		c.shell = (not c.abstract) and (c.destructor~='private')
 		for _, constr in ipairs(c.constructors) do
 			local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
@@ -685,7 +692,7 @@ end
 local print_enum_tables = function(enums)
 	for e in pairs(enums) do
 		local table = 'static lqt_Enum lqt_enum'..e.xarg.id..'[] = {\n'
-		io.stderr:write(e.xarg.fullname, '\t', #e.values, '\n')
+		--io.stderr:write(e.xarg.fullname, '\t', #e.values, '\n')
 		for _,v in pairs(e.values) do
 			table = table .. '  { "' .. v.xarg.name
 				.. '", static_cast<int>('..v.xarg.fullname..') },\n'
@@ -736,15 +743,9 @@ local ntable = function(t) local ret=0 for _ in pairs(t) do ret=ret+1 end return
 
 local typesystem = dofile'types.lua'
 
-local debug = function(...)
-	for i = 1, select('#',...) do
-		io.stderr:write((i==1) and '' or '\t', tostring(select(i,...)))
-	end
-	io.stderr:write'\n'
-end
-debug('funcs', ntable(functions))
-debug('enums', ntable(enums))
-debug('class', ntable(classes))
+--debug('funcs', ntable(functions))
+--debug('enums', ntable(enums))
+--debug('class', ntable(classes))
 local enums = fill_typesystem_with_enums(enums, typesystem)
 local classes = fill_typesystem_with_classes(classes, typesystem)
 local functions = fill_wrappers(functions, typesystem)
@@ -755,9 +756,9 @@ local enums = print_enum_tables(enums)
 local enums = print_enum_creator(enums)
 local classes = print_metatables(classes)
 local classes = print_class_list(classes)
-debug('funcs', ntable(functions))
-debug('enums', ntable(enums))
-debug('class', ntable(classes))
+--debug('funcs', ntable(functions))
+--debug('enums', ntable(enums))
+--debug('class', ntable(classes))
 print_openmodule'src'
 
 local print_virtuals = function(index)
@@ -775,7 +776,7 @@ for f in pairs(idindex) do
 		--debug(w)
 		--print(k, v.get'INDEX')
 	elseif f.label=='Function' and f.xarg.name=='QObject' then
-		debug('==>', #f.arguments, f.wrapper_code and 'wrapped' or 'gone')
+		--debug('==>', #f.arguments, f.wrapper_code and 'wrapped' or 'gone')
 	end
 end
 
