@@ -1,16 +1,16 @@
 #!/usr/bin/lua
+local path = string.match(arg[0], '(.*/)[^%/]+') or ''
 
 local my = {
 	readfile = function(fn) local f = assert(io.open(fn)) local s = f:read'*a' f:close() return s end
 }
 
-local elements = dofile'entities.lua'
+local elements = dofile(path..'entities.lua')
 assert_function = function(f)
 	assert(entities.is_function(f), 'argument is not a function')
 end
 
 local filename = ...
-local path = string.match(arg[0], '(.*/)[^%/]+') or ''
 local xmlstream, idindex = dofile(path..'xml.lua')(my.readfile(filename))
 --local code = xmlstream[1]
 
@@ -614,7 +614,7 @@ local print_wrappers = function(index)
 			local out = 'extern "C" int lqt_delete'..c.xarg.id..' (lua_State *L) {\n'
 			out = out ..'  '..c.xarg.fullname..' *p = static_cast<'
 				..c.xarg.fullname..'*>(lqtL_toudata(L, 1, "'..c.xarg.fullname..'*"));\n'
-			out = out .. '  if (p) delete p;\n  return 0;}\n'
+			out = out .. '  if (p) delete p;\n  return 0;\n}\n'
 			print(out)
 		end
 		c.meta = meta
