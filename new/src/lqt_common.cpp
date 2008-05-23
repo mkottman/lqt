@@ -29,7 +29,7 @@
 
 #include <QDebug>
 
-void lqtL_getenumtable (lua_State *L) {
+static void lqtL_getenumtable (lua_State *L) {
 	lua_getfield(L, LUA_REGISTRYINDEX, LQT_ENUMS);
 	if (lua_isnil(L, -1)) {
 		lua_pop(L, 1);
@@ -39,7 +39,7 @@ void lqtL_getenumtable (lua_State *L) {
 	}
 }
 
-int lqtL_createenum (lua_State *L, lqt_Enum e[], const char *n) {
+static int lqtL_createenum (lua_State *L, lqt_Enum e[], const char *n) {
 	lqtL_getenumtable(L);
 	lua_newtable(L);
 	lua_pushvalue(L, -1);
@@ -56,6 +56,7 @@ int lqtL_createenum (lua_State *L, lqt_Enum e[], const char *n) {
 	lua_pop(L, 2);
 	return 0;
 }
+
 int lqtL_createenumlist (lua_State *L, lqt_Enumlist list[]) {
 	while (list->enums!=0 && list->name!=0) {
 		lqtL_createenum(L, list->enums, list->name);
@@ -64,7 +65,7 @@ int lqtL_createenumlist (lua_State *L, lqt_Enumlist list[]) {
 	return 0;
 }
 
-static int lqtL_indexfun (lua_State *L) {
+static int lqtL_indexfunc (lua_State *L) {
 	int i = 1;
 	lua_pushnil(L);
 	while (!lua_isnone(L, lua_upvalueindex(i))) {
@@ -89,7 +90,7 @@ static int lqtL_pushindexfunc (lua_State *L, const char *name, lqt_Base *bases) 
 		upnum++;
 		bases++;
 	}
-	lua_pushcclosure(L, lqtL_indexfun, upnum);
+	lua_pushcclosure(L, lqtL_indexfunc, upnum);
 	return 1;
 }
 
@@ -105,6 +106,10 @@ int lqtL_createclasses (lua_State *L, lqt_Class *list) {
 		lua_pushvalue(L, -1);
 		lua_setmetatable(L, -2);
 		lua_pop(L, 1);
+		lua_pushlstring(L, list->name, strlen(list->name)-1);
+		lua_newtable(L);
+		luaL_register(L, NULL, list->mt);
+		lua_settable(L, LUA_GLOBALSINDEX);
 		list++;
 	}
 	return 0;
@@ -198,8 +203,21 @@ void lqtL_pushenum (lua_State *L, int value, const char *name) {
 	lua_gettable(L, -2);
 	lua_remove(L, -2);
 }
-bool lqtL_isenum (lua_State *L, int index, const char *) {
-	return lua_isstring(L, index);
+bool lqtL_isenum (lua_State *L, int index, const char *name) {
+	bool ret = false;
+	if (!lua_isstring(L, index)) return false;
+	lqtL_getenumtable(L);
+	lua_getfield(L, -1, name);
+	if (!lua_istable(L, -1)) {
+		lua_pop(L, 2);
+		return false;
+	}
+	lua_remove(L, -2);
+	lua_pushvalue(L, index);
+	lua_gettable(L, -2);
+	ret = lua_isnumber(L, -1);
+	lua_pop(L, 2);
+	return ret;
 }
 int lqtL_toenum (lua_State *L, int index, const char *name) {
 	int ret = -1;

@@ -275,7 +275,7 @@ local fill_typesystem_with_enums = function(enums, types)
 					..'(lqtL_toenum(L, '..n..', "'..e.xarg.fullname..'"))', 1
 				end,
 				test = function(n)
-					return '(lua_type(L, '..n..')==LUA_TSTRING)', 1
+					return 'lqtL_isenum(L, '..n..', "'..e.xarg.fullname..'")', 1
 				end,
 			}
 		else
@@ -741,7 +741,22 @@ local classes = fix_methods_wrappers(classes)
 
 local ntable = function(t) local ret=0 for _ in pairs(t) do ret=ret+1 end return ret end
 
-local typesystem = dofile'types.lua'
+
+local typesystem = {}
+do
+	local ts = dofile'types.lua'
+	setmetatable(typesystem, {
+		__newindex = function(t, k, v)
+			--debug('added type', k)
+			ts[k] = v
+		end,
+		__index = function(t, k)
+			local ret = ts[k]
+			--if not ret then debug("unknown type:", tostring(k), ret) end
+			return ret
+		end,
+	})
+end
 
 --debug('funcs', ntable(functions))
 --debug('enums', ntable(enums))
