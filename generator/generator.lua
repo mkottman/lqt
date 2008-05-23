@@ -756,7 +756,7 @@ local ntable = function(t) local ret=0 for _ in pairs(t) do ret=ret+1 end return
 
 local typesystem = {}
 do
-	local ts = dofile'types.lua'
+	local ts = dofile('types.lua')
 	setmetatable(typesystem, {
 		__newindex = function(t, k, v)
 			--debug('added type', k)
