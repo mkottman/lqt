@@ -102,7 +102,7 @@ local copy_enums = function(index)
 	for e in pairs(index) do
 		if e.label=='Enum'
 			and not string.match(e.xarg.fullname, '%b<>')
-			and e.xarg.access~='private' then
+			and e.xarg.access=='public' then
 			ret[e] = true
 		end
 	end
