@@ -95,14 +95,6 @@ else
 end
 
 local xmlstream, idindex = dofile(path..'xml.lua')(readfile(filename))
---local code = xmlstream[1]
-
---function(...)
-	--for i = 1, select('#',...) do
-		--io.stderr:write((i==1) and '' or '\t', tostring(select(i,...)))
-	--end
-	--io.stderr:write'\n'
---end
 
 ----------------------------------------------------------------------------------
 
@@ -110,14 +102,6 @@ local copy_functions = function(index)
 	local ret, copied = {}, 0
 	for e in pairs(index) do
 		if e.label:match'^Function' then
-			--[[and not (e.xarg.name:match'^[%a]*'=='operator'
-			or e.xarg.fullname:match'%b<>'
-			or e.xarg.name:match'_'
-			or e.xarg.name:match'[xX]11'
-			or e.xarg.fullname:match'QInternal'
-			or e.xarg.access=='private'
-			or e.xarg.access=='protected' -- FIXME
-			or e.xarg.fullname=='QVariant::canConvert') then --]]
 			e.label = 'Function'
 			ret[e] = true
 			copied = copied + 1
@@ -837,6 +821,8 @@ extern "C" int luaopen_]]..n..[[ (lua_State *L) {
 ]])
 end
 
+--------------------------------------------------------------------------------------
+
 local functions = copy_functions(idindex)
 local functions = fix_functions(functions, idindex)
 
@@ -898,26 +884,5 @@ local classes = print_class_list(classes)
 --debug('class', ntable(classes))
 print_openmodule(module_name)
 
-local print_virtuals = function(index)
-	for c in pairs(index) do
-		debug(c.xarg.name)
-		for n, f in pairs(c.virtuals) do debug('  '..n, f.xarg.fullname) end
-	end
-end
 
-
-for f in pairs(idindex) do
-	if f.label=='Function' and f.xarg.name=='connect' then
-		--debug(f.xarg.fullname, f.xarg.wrapper_code and 'true' or 'false')
-		--local w = fill_wrapper_code(f, typesystem, debug)
-		--debug(w)
-		--print(k, v.get'INDEX')
-	elseif f.label=='Function' and f.xarg.name=='QObject' then
-		--debug('==>', #f.arguments, f.wrapper_code and 'wrapped' or 'gone')
-	end
-end
-
---print_virtuals(classes)
-
---print(copy_functions(idindex))
 
