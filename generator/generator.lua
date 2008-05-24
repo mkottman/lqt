@@ -29,12 +29,13 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 local path = string.match(arg[0], '(.*/)[^%/]+') or ''
 local filename = nil
+local cppname = nil
+local hppname = nil
 local module_name = nil
 local typefiles = {}
 local output_includes = {
 	'"lqt_common.hpp"',
 }
-
 
 do
 	local i = 1
@@ -49,6 +50,12 @@ do
 		elseif argi=='-t' then
 			i = i + 1
 			table.insert(typefiles, (select(i, ...)))
+		elseif argi=='-h' then
+			i = i + 1
+			hppname = select(i, ...)
+		elseif argi=='-c' then
+			i = i + 1
+			cppname = select(i, ...)
 		else
 			filename = filename and error'duplicate filename' or argi
 		end
@@ -63,6 +70,25 @@ local readfile = function(fn)
 	return s
 end
 
+local printf = function(f)
+	return function(...)
+		for i = 1, select('#',...) do
+			f:write((i==1) and '' or '\t', tostring(select(i,...)))
+		end
+		f:write'\n'
+	end
+end
+
+local debug = fprint(io.stderr)
+local cpp, hpp = nil, nil
+do
+	local cppfile = assert(io.open(cppname, 'w'))
+	local hppfile = assert(io.open(hppname, 'w'))
+	cpp = fprint(cppfile)
+	hpp = fprint(hppfile)
+end
+
+
 local elements = dofile(path..'entities.lua')
 assert_function = function(f)
 	assert(entities.is_function(f), 'argument is not a function')
@@ -71,12 +97,12 @@ end
 local xmlstream, idindex = dofile(path..'xml.lua')(readfile(filename))
 --local code = xmlstream[1]
 
-local debug = function(...)
-	for i = 1, select('#',...) do
-		io.stderr:write((i==1) and '' or '\t', tostring(select(i,...)))
-	end
-	io.stderr:write'\n'
-end
+--function(...)
+	--for i = 1, select('#',...) do
+		--io.stderr:write((i==1) and '' or '\t', tostring(select(i,...)))
+	--end
+	--io.stderr:write'\n'
+--end
 
 ----------------------------------------------------------------------------------
 
@@ -134,7 +160,7 @@ local fix_functions = function(index, all)
 			f.xarg.fullname = '*new '..f.xarg.fullname
 			f.return_type = f.xarg.type_base..'&'
 			f.xarg.static = '1'
-		elseif elements.is_destructor(f) or f.xarg.type_name=='void' then
+		elseif string.match(f.xarg.name, '~') or f.xarg.type_name=='void' then
 			f.return_type = nil
 		else
 			if false and f.xarg.access=='protected' then
