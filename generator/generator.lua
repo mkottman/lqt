@@ -99,25 +99,43 @@ local xmlstream, idindex = dofile(path..'xml.lua')(readfile(filename))
 ----------------------------------------------------------------------------------
 
 local copy_functions = function(index)
-	local ret, copied = {}, 0
+	local ret = {}
 	for e in pairs(index) do
 		if e.label:match'^Function' then
 			e.label = 'Function'
 			ret[e] = true
-			copied = copied + 1
-		else
-			--removed = removed + (e.label:match'^Function' and 1 or 0)
-			--removed = removed + 1
 		end
 	end
-	return ret, copied
+	return ret
 end
 
-local fix_functions = function(index, all)
+
+local fix_arguments = function(all)
 	local fullnames = {}
 	for e in pairs(all or {}) do
 		if e.xarg.fullname then fullnames[e.xarg.fullname] = true end
 	end
+	for a in pairs(all) do
+		if a.label=='Argument'
+			and a.xarg.default=='1'
+			and string.match(a.xarg.defaultvalue, '%D') then
+			local dv = a.xarg.defaultvalue
+			if not fullnames[dv] then
+				dv = a.xarg.context..'::'..dv
+			end
+			if fullnames[dv] then
+				a.xarg.defaultvalue = dv
+			else
+				a.xarg.default = nil
+				a.xarg.defaultvalue = nil
+			end
+		end
+	end
+	return all
+end
+
+local fix_functions = function(index, all)
+	all = fix_arguments(all)
 	for f in pairs(index) do
 		local args = {}
 		for i, a in ipairs(f) do
@@ -125,18 +143,6 @@ local fix_functions = function(index, all)
 			if a.xarg.type_name=='void' and i==1 and f[2]==nil then break end
 			if a.label=='Argument' then
 				table.insert(args, a)
-				if a.xarg.default=='1' and string.match(a.xarg.defaultvalue, '%D') then
-					local dv = a.xarg.defaultvalue
-					if not fullnames[dv] then
-						dv = a.xarg.context..'::'..dv
-					end
-					if fullnames[dv] then
-						a.xarg.defaultvalue = dv
-					else
-						a.xarg.default = nil
-						a.xarg.defaultvalue = nil
-					end
-				end
 			end
 		end
 		f.arguments = args
@@ -835,8 +841,6 @@ local classes = fill_special_methods(classes)
 local classes = fill_copy_constructor(classes)
 local classes = fix_methods_wrappers(classes)
 
-local ntable = function(t) local ret=0 for _ in pairs(t) do ret=ret+1 end return ret end
-
 
 local typesystem = {}
 do
@@ -857,9 +861,6 @@ do
 	})
 end
 
---debug('funcs', ntable(functions))
---debug('enums', ntable(enums))
---debug('class', ntable(classes))
 local enums = fill_typesystem_with_enums(enums, typesystem)
 local classes = fill_typesystem_with_classes(classes, typesystem)
 local functions = fill_wrappers(functions, typesystem)
@@ -879,9 +880,7 @@ local enums = print_enum_tables(enums)
 local enums = print_enum_creator(enums)
 local classes = print_metatables(classes)
 local classes = print_class_list(classes)
---debug('funcs', ntable(functions))
---debug('enums', ntable(enums))
---debug('class', ntable(classes))
+
 print_openmodule(module_name)
 
 
