@@ -28,23 +28,47 @@ OTHER DEALINGS IN THE SOFTWARE.
 --]]
 
 local path = string.match(arg[0], '(.*/)[^%/]+') or ''
-local module_name = 'qtcore'
+local filename = nil
+local module_name = nil
+local typefiles = {}
 local output_includes = {
-	'<QtCore>',
 	'"lqt_common.hpp"',
 }
 
-local my = {
-	readfile = function(fn) local f = assert(io.open(fn)) local s = f:read'*a' f:close() return s end
-}
+
+do
+	local i = 1
+	while select(i, ...) do
+		local argi = select(i, ...)
+		if argi=='-n' then
+			i = i + 1
+			module_name = select(i, ...)
+		elseif argi=='-i' then
+			i = i + 1
+			table.insert(output_includes, (select(i, ...)))
+		elseif argi=='-t' then
+			i = i + 1
+			table.insert(typefiles, (select(i, ...)))
+		else
+			filename = filename and error'duplicate filename' or argi
+		end
+		i = i + 1
+	end
+end
+
+local readfile = function(fn)
+	local f = assert(io.open(fn))
+	local s = f:read'*a'
+	f:close()
+	return s
+end
 
 local elements = dofile(path..'entities.lua')
 assert_function = function(f)
 	assert(entities.is_function(f), 'argument is not a function')
 end
 
-local filename = ...
-local xmlstream, idindex = dofile(path..'xml.lua')(my.readfile(filename))
+local xmlstream, idindex = dofile(path..'xml.lua')(readfile(filename))
 --local code = xmlstream[1]
 
 local debug = function(...)
@@ -610,7 +634,7 @@ local print_shell_classes = function(classes)
 			if c then
 				print(c.shell_class)
 			else
-				io.stderr:write(c.fullname, '\n')
+				--io.stderr:write(c.fullname, '\n')
 			end
 		end
 	end
@@ -799,7 +823,10 @@ local ntable = function(t) local ret=0 for _ in pairs(t) do ret=ret+1 end return
 
 local typesystem = {}
 do
-	local ts = dofile(path..'types.lua')
+	local ts = {}
+	for i, ft in ipairs(typefiles) do
+		ts = dofile(ft)
+	end
 	setmetatable(typesystem, {
 		__newindex = function(t, k, v)
 			--debug('added type', k)
@@ -851,7 +878,7 @@ end
 for f in pairs(idindex) do
 	if f.label=='Function' and f.xarg.name=='connect' then
 		--debug(f.xarg.fullname, f.xarg.wrapper_code and 'true' or 'false')
-		local w = fill_wrapper_code(f, typesystem, debug)
+		--local w = fill_wrapper_code(f, typesystem, debug)
 		--debug(w)
 		--print(k, v.get'INDEX')
 	elseif f.label=='Function' and f.xarg.name=='QObject' then
