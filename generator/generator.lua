@@ -94,12 +94,6 @@ else
 	hpp = print
 end
 
-
-local elements = dofile(path..'entities.lua')
-assert_function = function(f)
-	assert(entities.is_function(f), 'argument is not a function')
-end
-
 local xmlstream, idindex = dofile(path..'xml.lua')(readfile(filename))
 --local code = xmlstream[1]
 
@@ -162,7 +156,12 @@ local fix_functions = function(index, all)
 			end
 		end
 		f.arguments = args
-		if elements.is_constructor(f) then
+		local is_constructor = function(f)
+			return (f.xarg.member_of_class and f.xarg.member_of_class~=''
+			and f.xarg.fullname==(f.xarg.member_of_class..'::'..f.xarg.name) -- this should be always true
+			and string.match(f.xarg.member_of_class, f.xarg.name..'$'))
+		end
+		if is_constructor(f) then
 			f.xarg.fullname = '*new '..f.xarg.fullname
 			f.return_type = f.xarg.type_base..'&'
 			f.xarg.static = '1'
