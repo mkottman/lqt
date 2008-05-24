@@ -829,19 +829,6 @@ end
 
 --------------------------------------------------------------------------------------
 
-local functions = copy_functions(idindex)
-local functions = fix_functions(functions, idindex)
-
-local enums = copy_enums(idindex)
-local enums = fix_enums(enums)
-
-local classes = copy_classes(idindex)
-local classes = fill_virtuals(classes)
-local classes = fill_special_methods(classes)
-local classes = fill_copy_constructor(classes)
-local classes = fix_methods_wrappers(classes)
-
-
 local typesystem = {}
 do
 	local ts = {}
@@ -861,6 +848,18 @@ do
 	})
 end
 
+local functions = copy_functions(idindex)
+local functions = fix_functions(functions, idindex)
+
+local enums = copy_enums(idindex)
+local enums = fix_enums(enums)
+
+local classes = copy_classes(idindex)
+local classes = fill_virtuals(classes)
+local classes = fill_special_methods(classes)
+local classes = fill_copy_constructor(classes)
+local classes = fix_methods_wrappers(classes)
+
 local enums = fill_typesystem_with_enums(enums, typesystem)
 local classes = fill_typesystem_with_classes(classes, typesystem)
 local functions = fill_wrappers(functions, typesystem)
@@ -877,11 +876,11 @@ local classes = print_shell_classes(classes)
 local classes = print_virtual_overloads(classes, typesystem)
 local classes = print_wrappers(classes)
 local enums = print_enum_tables(enums)
-local enums = print_enum_creator(enums)
+local enums = print_enum_creator(enums) -- does that + print enum list
 local classes = print_metatables(classes)
-local classes = print_class_list(classes)
+local classes = print_class_list(classes) -- does that
 
-print_openmodule(module_name)
+print_openmodule(module_name) -- does that
 
 
 
