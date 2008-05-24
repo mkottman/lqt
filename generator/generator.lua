@@ -134,8 +134,7 @@ local fix_arguments = function(all)
 	return all
 end
 
-local fix_functions = function(index, all)
-	all = fix_arguments(all)
+local fix_functions = function(index)
 	for f in pairs(index) do
 		local args = {}
 		for i, a in ipairs(f) do
@@ -187,7 +186,7 @@ local copy_enums = function(index)
 	return ret
 end
 
-local fix_enums = function(index)
+local fill_enums = function(index)
 	for e in pairs(index) do
 		local values = {}
 		for _, v in ipairs(e) do
@@ -848,14 +847,15 @@ do
 	})
 end
 
-local functions = copy_functions(idindex)
-local functions = fix_functions(functions, idindex)
+fix_arguments(idindex) -- fixes default arguments if they are context-relative
+local functions = copy_functions(idindex) -- pics functions and fixes label
+local functions = fix_functions(functions)
 
-local enums = copy_enums(idindex)
-local enums = fix_enums(enums)
+local enums = copy_enums(idindex) -- picks enums if public
+local enums = fill_enums(enums) -- fills field "values"
 
-local classes = copy_classes(idindex)
-local classes = fill_virtuals(classes)
+local classes = copy_classes(idindex) -- picks classes if not private and not blacklisted
+local classes = fill_virtuals(classes) -- does that, destructor ("~") included
 local classes = fill_special_methods(classes)
 local classes = fill_copy_constructor(classes)
 local classes = fix_methods_wrappers(classes)
@@ -872,12 +872,12 @@ for _, i in ipairs(output_includes) do
 end
 print()
 
-local classes = print_shell_classes(classes)
-local classes = print_virtual_overloads(classes, typesystem)
-local classes = print_wrappers(classes)
-local enums = print_enum_tables(enums)
+local classes = print_shell_classes(classes) -- does that
+local classes = print_virtual_overloads(classes, typesystem) -- does that
+local classes = print_wrappers(classes) -- does that + FIXME: checks if has shell for constr/destr and compiles metatable list
+local enums = print_enum_tables(enums) -- does that
 local enums = print_enum_creator(enums) -- does that + print enum list
-local classes = print_metatables(classes)
+local classes = print_metatables(classes) -- does that + print dispatchers
 local classes = print_class_list(classes) -- does that
 
 print_openmodule(module_name) -- does that
