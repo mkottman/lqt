@@ -70,7 +70,7 @@ local readfile = function(fn)
 	return s
 end
 
-local printf = function(f)
+local fprint = function(f)
 	return function(...)
 		for i = 1, select('#',...) do
 			f:write((i==1) and '' or '\t', tostring(select(i,...)))
@@ -81,11 +81,17 @@ end
 
 local debug = fprint(io.stderr)
 local cpp, hpp = nil, nil
-do
+if cppname then
 	local cppfile = assert(io.open(cppname, 'w'))
-	local hppfile = assert(io.open(hppname, 'w'))
 	cpp = fprint(cppfile)
+else
+	cpp = print
+end
+if hppname then
+	local hppfile = assert(io.open(hppname, 'w'))
 	hpp = fprint(hppfile)
+else
+	hpp = print
 end
 
 
@@ -667,7 +673,7 @@ local print_shell_classes = function(classes)
 	return classes
 end
 
-local print_virtual_overloads = function(classes, types)
+local print_virtual_overloads = function(classes)
 	for c in pairs(classes) do
 		local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
 		for _,v in pairs(c.virtuals) do
