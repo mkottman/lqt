@@ -273,18 +273,12 @@ local fill_virtuals = function(index)
 	return index
 end
 
-local fill_special_methods = function(index)
+local distinguish_methods = function(index)
 	for c in pairs(index) do
 		local construct, destruct, normal = {}, nil, {}
 		local n = c.xarg.name
 		local copy = nil
 		for _, f in ipairs(c) do
-			if n==f.xarg.name then
-				if #(f.arguments or {})==1 and
-					f.arguments[1].xarg.type_name==(c.xarg.fullname..' const&') then
-					copy = f.xarg.access or 'PUBLIC?'
-				end
-			end
 			if n==f.xarg.name then
 				table.insert(construct, f)
 			elseif f.xarg.name:match'~' then
@@ -296,10 +290,34 @@ local fill_special_methods = function(index)
 				end
 			end
 		end
-		construct.copy = (copy==nil and 'auto' or copy) -- FIXME: must try
 		c.constructors = construct
-		c.destructor = destruct and (destruct.xarg.access or 'PUBLIC?') or 'auto'
+		c.destructor = destruct
 		c.methods = normal
+	end
+	return index
+end
+
+local fill_public_destr = function(index)
+	local classes = {}
+	for c in pairs(index) do
+		classes[c.xarg.fullname] = c
+	end
+	local destr_is_public
+	destr_is_public = function(c)
+		if c.destructor then
+			return c.destructor.xarg.access=='public'
+		else
+			for b in string.gmatch(c.xarg.bases or '', '([^;]+);') do
+				local base = classes[b]
+				if base and not destr_is_public(base) then
+					return false
+				end
+			end
+			return true
+		end
+	end
+	for c in pairs(index) do
+		c.public_destr = destr_is_public(c)
 	end
 	return index
 end
@@ -309,39 +327,35 @@ local fill_copy_constructor = function(index)
 	for c in pairs(index) do
 		classes[c.xarg.name] = c
 	end
-	local destr
-	destr = function(c)
-		if c.destructor=='auto' then
-			local ret = nil
-			for b in string.gmatch(c.xarg.bases or '', '([^;]+);') do
-				local base = classes[b]
-				if base and destr(base)=='private' then
-					c.destructor = 'private'
-					return 'private'
-				end
+	for c in pairs(index) do
+		local copy = nil
+		for _, f in ipairs(c.constructors) do
+			if #(f.arguments)==1
+				and f.arguments[1].xarg.type_name==c.xarg.name..' const&' then
+				copy = f
+				break
 			end
 		end
-		return c.destructor
+		c.copy_constructor = copy
 	end
-	local copy_constr
-	copy_constr = function(c)
-		if c.constructors.copy=='auto' then
+	local copy_constr_is_public
+	copy_constr_is_public = function(c)
+		if c.copy_constructor then
+			return (c.copy_constructor.xarg.access=='public')
+			or (c.copy_constructor.xarg.access=='protected')
+		else
 			local ret = nil
 			for b in string.gmatch(c.xarg.bases or '', '([^;]+);') do
 				local base = classes[b]
-				if base and copy_constr(base)=='private' then
-					c.constructors.copy = 'private'
-					return 'private'
+				if base and not copy_constr_is_public(base) then
+					return false
 				end
 			end
+			return true
 		end
-		return c.constructors.copy
 	end
 	for c in pairs(index) do
-		c.constructors.copy = copy_constr(c)
-		c.destructor = destr(c)
-		--io.stderr:write(c.xarg.fullname, '\t', c.constructors.copy, '\n')
-		--io.stderr:write(c.xarg.fullname, '\t', c.destructor, '\n')
+		c.public_constr = copy_constr_is_public(c)
 	end
 	return index
 end
@@ -414,7 +428,7 @@ local fill_typesystem_with_classes = function(classes, types)
 					return 'lqtL_isudata(L, '..n..', "'..c.xarg.fullname..'*")', 1
 				end,
 			}
-			if c.constructors.copy~='private' then -- and c.destructor~='private' then
+			if c.public_constr and c.shell then
 				local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
 				types[c.xarg.fullname] = {
 					-- the argument is the class itself
@@ -444,11 +458,7 @@ local fill_typesystem_with_classes = function(classes, types)
 						return 'lqtL_isudata(L, '..n..', "'..c.xarg.fullname..'*")', 1
 					end,
 				}
-			else
-				--io.stderr:write(c.xarg.fullname, ': no copy constructor\n')
 			end
-		else
-			--io.stderr:write(c.xarg.fullname, ': already present\n')
 		end
 	end
 	return ret
@@ -771,18 +781,20 @@ end
 local fix_methods_wrappers = function(classes)
 	for c in pairs(classes) do
 		-- if class seems abstract but has a shell class
-		-- FIXME: destructor should not matter?
-		if c.abstract and c.destructor~='private' then
+		if c.abstract then
 			-- is it really abstract?
 			local a = false
 			for _, f in pairs(c.virtuals) do
 				-- if it is abstract but we cannot overload
+				-- FIXME: this always fails: f.virtual_overload is not filled yet
+				-- maybe this check must be moved later:
+				-- we don't use shell class to move instances to Lua
+				-- but we want to instantiate if we can wrap all virtuals...
 				if f.xarg.abstract=='1' and not f.virtual_overload then a = true break end
 			end
 			c.abstract = a
 		end
-		-- FIXME: destructor should not matter?
-		c.shell = (not c.abstract) and (c.destructor~='private')
+		c.shell = (not c.abstract) and c.public_destr
 		for _, constr in ipairs(c.constructors) do
 			local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
 			constr.calling_line = '*new '..shellname..'(L'
@@ -863,8 +875,9 @@ local enums = fill_enums(enums) -- fills field "values"
 
 local classes = copy_classes(idindex) -- picks classes if not private and not blacklisted
 local classes = fill_virtuals(classes) -- does that, destructor ("~") excluded
-local classes = fill_special_methods(classes)
-local classes = fill_copy_constructor(classes)
+local classes = distinguish_methods(classes) -- does that
+local classes = fill_public_destr(classes) -- does that: checks if destructor is public
+local classes = fill_copy_constructor(classes) -- does that: checks if copy contructor is public or protected
 local classes = fix_methods_wrappers(classes)
 
 local enums = fill_typesystem_with_enums(enums, typesystem) -- does that
