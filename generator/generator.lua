@@ -331,7 +331,7 @@ local fill_copy_constructor = function(index)
 		local copy = nil
 		for _, f in ipairs(c.constructors) do
 			if #(f.arguments)==1
-				and f.arguments[1].xarg.type_name==c.xarg.name..' const&' then
+				and f.arguments[1].xarg.type_name==c.xarg.fullname..' const&' then
 				copy = f
 				break
 			end
@@ -637,7 +637,7 @@ local fill_shell_class = function(c, types)
 			shell = shell .. cline
 		end
 	end
-	if c.constructors.copy=='auto' then
+	if c.copy_constructor==nil and c.public_constr then
 		local cline = '  '..shellname..' (lua_State *l, '..c.xarg.fullname..' const& arg1)'
 		cline = cline .. ' : ' .. c.xarg.fullname .. '(arg1), L(l) {}\n'
 		shell = shell .. cline
