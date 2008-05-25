@@ -868,7 +868,7 @@ do
 end
 
 fix_arguments(idindex) -- fixes default arguments if they are context-relative
-local functions = copy_functions(idindex) -- pics functions and fixes label
+local functions = copy_functions(idindex) -- picks functions and fixes label
 local functions = fix_functions(functions) -- fixes name and fullname and fills arguments
 
 local enums = copy_enums(idindex) -- picks enums if public
