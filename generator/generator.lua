@@ -446,8 +446,7 @@ local fill_typesystem_with_classes = function(classes, types)
 	return ret
 end
 
-local fill_wrapper_code = function(f, types, debug)
-	debug = debug or function()end
+local fill_wrapper_code = function(f, types)
 	local stackn, argn = 1, 1
 	local wrap, line = '', ''
 	if f.xarg.member_of_class and f.xarg.static~='1' then
@@ -467,7 +466,7 @@ local fill_wrapper_code = function(f, types, debug)
 		line = f.xarg.fullname..'('
 	end
 	for i, a in ipairs(f.arguments) do
-		if not types[a.xarg.type_name] then debug(a.xarg.type_name) return nil end -- print(a.xarg.type_name) return nil end
+		if not types[a.xarg.type_name] then return nil end
 		local aget, an = types[a.xarg.type_name].get(stackn)
 		wrap = wrap .. '  ' .. a.xarg.type_name .. ' arg' .. tostring(argn) .. ' = '
 		if a.xarg.default=='1' and an>0 then
@@ -476,7 +475,7 @@ local fill_wrapper_code = function(f, types, debug)
 				wrap = wrap .. ' && lua_isnoneornil(L, '..j..')'
 			end
 			local dv = a.xarg.defaultvalue
-			wrap = wrap .. ' ? ' .. dv .. ' : '
+			wrap = wrap .. ' ? static_cast< ' .. a.xarg.type_name .. ' >(' .. dv .. ') : '
 		end
 		wrap = wrap .. aget .. ';\n'
 		line = line .. (argn==1 and 'arg' or ', arg') .. argn
@@ -642,7 +641,7 @@ local fill_shell_classes = function(classes, types)
 	for c in pairs(classes) do
 		if c.shell then
 			c = fill_shell_class(c, types)
-			if c then ret[c] = true end
+			if c then ret[c] = true else error(c.xarg.fullname) end
 		end
 	end
 	return ret
@@ -849,7 +848,7 @@ end
 
 fix_arguments(idindex) -- fixes default arguments if they are context-relative
 local functions = copy_functions(idindex) -- pics functions and fixes label
-local functions = fix_functions(functions)
+local functions = fix_functions(functions) -- fixes name and fullname and fills arguments
 
 local enums = copy_enums(idindex) -- picks enums if public
 local enums = fill_enums(enums) -- fills field "values"
@@ -860,7 +859,7 @@ local classes = fill_special_methods(classes)
 local classes = fill_copy_constructor(classes)
 local classes = fix_methods_wrappers(classes)
 
-local enums = fill_typesystem_with_enums(enums, typesystem)
+local enums = fill_typesystem_with_enums(enums, typesystem) -- does that
 local classes = fill_typesystem_with_classes(classes, typesystem)
 local functions = fill_wrappers(functions, typesystem)
 local classes = fill_shell_classes(classes, typesystem)
