@@ -465,6 +465,7 @@ local fill_typesystem_with_classes = function(classes, types)
 end
 
 local fill_wrapper_code = function(f, types)
+	if f.wrapper_code then return f end
 	local stackn, argn = 1, 1
 	local wrap, line = '', ''
 	if f.xarg.member_of_class and f.xarg.static~='1' then
