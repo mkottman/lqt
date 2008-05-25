@@ -277,10 +277,9 @@ local fill_special_methods = function(index)
 	for c in pairs(index) do
 		local construct, destruct, normal = {}, nil, {}
 		local n = c.xarg.name
-		local auto, copy = true, nil
+		local copy = nil
 		for _, f in ipairs(c) do
 			if n==f.xarg.name then
-				auto = false
 				if #(f.arguments or {})==1 and
 					f.arguments[1].xarg.type_name==(c.xarg.fullname..' const&') then
 					copy = f.xarg.access or 'PUBLIC?'
@@ -297,7 +296,6 @@ local fill_special_methods = function(index)
 				end
 			end
 		end
-		construct.auto = auto
 		construct.copy = (copy==nil and 'auto' or copy) -- FIXME: must try
 		c.constructors = construct
 		c.destructor = destruct and (destruct.xarg.access or 'PUBLIC?') or 'auto'
@@ -864,7 +862,7 @@ local enums = copy_enums(idindex) -- picks enums if public
 local enums = fill_enums(enums) -- fills field "values"
 
 local classes = copy_classes(idindex) -- picks classes if not private and not blacklisted
-local classes = fill_virtuals(classes) -- does that, destructor ("~") included
+local classes = fill_virtuals(classes) -- does that, destructor ("~") excluded
 local classes = fill_special_methods(classes)
 local classes = fill_copy_constructor(classes)
 local classes = fix_methods_wrappers(classes)
