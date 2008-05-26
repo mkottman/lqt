@@ -86,6 +86,7 @@ local fprint = function(f)
 			f:write((i==1) and '' or '\t', tostring(select(i,...)))
 		end
 		f:write'\n'
+		f:flush()
 	end
 end
 
@@ -883,8 +884,9 @@ local classes = fix_methods_wrappers(classes)
 
 local enums = fill_typesystem_with_enums(enums, typesystem) -- does that
 local classes = fill_typesystem_with_classes(classes, typesystem)
+
 local functions = fill_wrappers(functions, typesystem)
-local classes = fill_shell_classes(classes, typesystem)
+local classes = fill_shell_classes(classes, typesystem) -- does that, also only selects those with a shell class
 
 ------------- BEGIN OUTPUT
 
@@ -913,5 +915,3 @@ local classes = print_class_list(classes) -- does that
 print_openmodule(module_name) -- does that
 
 hpp('#endif // LQT_BIND_'..module_name)
-
-
