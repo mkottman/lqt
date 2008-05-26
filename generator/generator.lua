@@ -853,7 +853,7 @@ local typesystem = {}
 do
 	local ts = {}
 	for i, ft in ipairs(typefiles) do
-		ts = dofile(ft)
+		ts = loadfile(ft)(ts)
 	end
 	setmetatable(typesystem, {
 		__newindex = function(t, k, v)
