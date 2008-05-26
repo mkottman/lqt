@@ -156,30 +156,9 @@ local fix_functions = function(index)
 			end
 		end
 		f.arguments = args
-		local is_constructor = function(f)
-			return (f.xarg.member_of_class and f.xarg.member_of_class~=''
-			and f.xarg.fullname==(f.xarg.member_of_class..'::'..f.xarg.name) -- this should be always true
-			and string.match(f.xarg.member_of_class, f.xarg.name..'$'))
-		end
-		if is_constructor(f) then
-			f.xarg.fullname = '*new '..f.xarg.fullname
-			f.return_type = f.xarg.type_base..'&'
-			f.xarg.static = '1'
-		elseif string.match(f.xarg.name, '~') or f.xarg.type_name=='void' then
+		f.return_type = f.xarg.type_name
+		if f.xarg.type_name=='void' then
 			f.return_type = nil
-		else
-			if false and f.xarg.access=='protected' then
-				local shellname = 'lqt_shell_'..string.gsub(f.parent.xarg.fullname, '::', '_LQT_')
-				f.xarg.fullname = shellname..'::'..f.xarg.name
-				if f.xarg.static~='1' then
-					f.xarg.static='1'
-					local newarg = { label='Argument', xarg = {
-						type_name = f.xarg.member_of_class..'*',
-					}, }
-					table.insert(args, newarg, 1)
-				end
-			end
-			f.return_type = f.xarg.type_name
 		end
 	end
 	return index
@@ -804,6 +783,11 @@ local fix_methods_wrappers = function(classes)
 				constr.calling_line = constr.calling_line .. ', arg' .. i
 			end
 			constr.calling_line = constr.calling_line .. ')'
+			constr.xarg.static = '1'
+			constr.return_type = constr.xarg.type_base..'&'
+		end
+		if c.destructor then
+			c.destructor.return_type = nil
 		end
 	end
 	return classes
