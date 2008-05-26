@@ -39,6 +39,7 @@ extern "C" {
 //#define lqtL_unregister(L, p) ( (void)L, (void)p )
 
 #define LQT_POINTERS "Registry Pointers"
+#define LQT_REFS "Registry References"
 #define LQT_ENUMS "Registry Enumerations"
 
 extern void lqtL_register(lua_State *, const void *);
@@ -99,6 +100,13 @@ typedef struct {
 } lqt_Class;
 
 extern int lqtL_createclasses (lua_State *, lqt_Class *);
+
+/* functions to get/push special types */
+
+extern void * lqtL_getref (lua_State *, size_t);
+extern int * lqtL_tointref (lua_State *, int);
+extern char ** lqtL_toarguments (lua_State *, int);
+extern void lqtL_pusharguments (lua_State *, char **);
 
 
 #endif // __LQT_COMMON_HPP
