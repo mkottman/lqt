@@ -71,4 +71,11 @@ qt_types['QRectF'] = {
 }
 qt_types['QRectF const&'] = qt_types['QRectF']
 
+qt_types['QByteArray'] = {
+	get = function(i) return 'QByteArray(lua_tostring(L, '..i..'), lua_objlen(L, '..i..'))', 1 end,
+	push = function(i) return 'lua_pushlstring(L, '..i..'.constData(), '..i..'.size())', 1 end,
+	test = function(i) return 'lua_isstring(L, '..i..')', 1 end,
+}
+qt_types['QByteArray const&'] = qt_types['QByteArray']
+
 return qt_types
