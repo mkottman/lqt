@@ -44,7 +44,11 @@ static void lqtL_getpointertable (lua_State *L) {
 	if (lua_isnil(L, -1)) { // (1) if there is not
 		lua_pop(L, 1); // (0) pop the nil value
 		lua_newtable(L); // (1) create a new one
-		lua_pushvalue(L, -1); // (2) duplicate it
+		lua_newtable(L); // (2) create an empty metatable
+		lua_pushstring(L, "v"); // (3) push the mode value: weak values are enough
+		lua_setfield(L, -2, "__mode"); // (2) set the __mode field
+		lua_setmetatable(L, -2); // (1) set it as the metatable
+		lua_pushvalue(L, -1); // (2) duplicate the new pointer table
 		lua_setfield(L, LUA_REGISTRYINDEX, LQT_POINTERS); // (1) put one copy as storage
 	}
 }
@@ -150,6 +154,14 @@ bool lqtL_missarg (lua_State *L, int index, int n) {
 		}
 	}
 	return ret;
+}
+
+static void CS(lua_State *L) {
+	qDebug() << "++++++++++";
+	for (int i=1;i<=lua_gettop(L);i++) {
+		qDebug() << luaL_typename(L, i) << lua_touserdata(L, i);
+	}
+	qDebug() << "----------";
 }
 
 static void lqtL_ensurepointer (lua_State *L, const void *p) { // (+1)
