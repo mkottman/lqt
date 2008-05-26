@@ -160,6 +160,19 @@ static int lqtL_gcfunc (lua_State *L) {
 	return 0; // (+0)
 }
 
+static int lqtL_newindexfunc (lua_State *L) {
+	lua_settop(L, 3); // (=3)
+	if (!lua_isuserdata(L, 1) || lua_islightuserdata(L, 1)) return 0;
+	lua_getfenv(L, 1); // (+1)
+	if (!lua_istable(L, -1)) {
+		lua_pop(L, 1); // (+0)
+		return 0;
+	}
+	lua_remove(L, 1); // (+0)
+	lua_insert(L, 1); // (+0)
+	lua_rawset(L, 1); // (-2)
+	return 0;
+}
 static int lqtL_indexfunc (lua_State *L) {
 	int i = 1;
 	if (lua_isuserdata(L, 1) || !lua_islightuserdata(L, 1)) {
@@ -208,6 +221,8 @@ int lqtL_createclasses (lua_State *L, lqt_Class *list) {
 		lua_settable(L, -3); // (1)
 		lqtL_pushindexfunc(L, list->name, list->bases); // (2)
 		lua_setfield(L, -2, "__index"); // (1)
+		lua_pushcfunction(L, lqtL_newindexfunc); // (2)
+		lua_setfield(L, -2, "__newindex"); // (1)
 		lua_pushcfunction(L, lqtL_gcfunc); // (2)
 		lua_setfield(L, -2, "__gc"); // (1)
 		lua_pushvalue(L, -1); // (2)
