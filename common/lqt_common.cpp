@@ -311,16 +311,38 @@ void lqtL_unregister (lua_State *L, const void *p) {
 }
 
 void lqtL_passudata (lua_State *L, const void *p, const char *name) {
+	bool already = false;
 	lqtL_ensurepointer(L, p); // (1)
-	luaL_newmetatable(L, name); // (2)
-	lua_setmetatable(L, -2); // (1)
+	if (lua_getmetatable(L, -1)) {
+		// (2)
+		lua_pop(L, 1); // (1)
+		lua_getfield(L, -1, name); // (2)
+		already = lua_toboolean(L, -1); // (2)
+		lua_pop(L, 1); // (1)
+	} else {
+		// (1)
+	}
+	if (!already) {
+		luaL_newmetatable(L, name); // (2)
+		lua_setmetatable(L, -2); // (1)
+	}
 	return;
 }
 
 void lqtL_pushudata (lua_State *L, const void *p, const char *name) {
+	bool already = false;
 	lqtL_ensurepointer(L, p); // (1)
-	luaL_newmetatable(L, name); // (2)
-	lua_setmetatable(L, -2); // (1)
+	lua_getmetatable(L, -1); // (2)
+	if (!lua_isnil(L, -1)) {
+		lua_pop(L, 1); // (1)
+		lua_getfield(L, -1, name); // (2)
+		already = lua_toboolean(L, -1); // (2)
+	}
+	lua_pop(L, 1); // (1)
+	if (!already) {
+		luaL_newmetatable(L, name); // (2)
+		lua_setmetatable(L, -2); // (1)
+	}
 	return;
 }
 
@@ -376,11 +398,31 @@ bool lqtL_isenum (lua_State *L, int index, const char *name) {
 
 int lqtL_toenum (lua_State *L, int index, const char *name) {
 	int ret = -1;
-	lqtL_getenumtable(L);
-	lua_pushvalue(L, index);
-	lua_gettable(L, -2);
-	ret = lua_tointeger(L, -1);
-	lua_pop(L, 2);
+	lqtL_getenumtable(L); // (1)
+	lua_getfield(L, -1, name); // (2)
+	if (lua_isnil(L, -1)) {
+		lua_pop(L, 2); //(0)
+		return 0;
+	}
+	lua_pushvalue(L, index); // (3)
+	lua_gettable(L, -2); // (3)
+	ret = lua_tointeger(L, -1); // (3)
+	lua_pop(L, 3); // (0)
 	return ret;
 }
+
+int lqtL_getflags (lua_State *L, int index, const char *name) {
+	return 0;
+	lqtL_getenumtable(L);
+	lua_getfield(L, -1, name);
+	lua_remove(L, -2);
+}
+
+void lqtL_pushflags (lua_State *L, int index, const char *name) {
+	lua_pushnil(L);
+	return;
+}
+
+
+
 

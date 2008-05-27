@@ -108,6 +108,9 @@ extern int * lqtL_tointref (lua_State *, int);
 extern char ** lqtL_toarguments (lua_State *, int);
 extern void lqtL_pusharguments (lua_State *, char **);
 
+extern int lqtL_getflags (lua_State *, int, const char *);
+extern void lqtL_pushflags (lua_State *, int, const char *);
+
 
 #endif // __LQT_COMMON_HPP
 
