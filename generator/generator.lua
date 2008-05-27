@@ -34,6 +34,7 @@ local hppname = nil
 local dirname = nil
 local module_name = nil
 local typefiles = {}
+local filterfiles = {}
 local output_includes = {
 	'"lqt_common.hpp"',
 }
@@ -57,6 +58,9 @@ do
 		elseif argi=='-t' then
 			i = i + 1
 			table.insert(typefiles, (select(i, ...)))
+		elseif argi=='-f' then
+			i = i + 1
+			table.insert(filterfiles, (select(i, ...)))
 		elseif argi=='-h' then
 			i = i + 1
 			hppname = select(i, ...)
@@ -868,6 +872,10 @@ local classes = distinguish_methods(classes) -- does that
 local classes = fill_public_destr(classes) -- does that: checks if destructor is public
 local classes = fill_copy_constructor(classes) -- does that: checks if copy contructor is public or protected
 local classes = fix_methods_wrappers(classes)
+
+for _, f in ipairs(filterfiles) do
+	classes, enums = loadfile(f)(classes, enums)
+end
 
 local enums = fill_typesystem_with_enums(enums, typesystem) -- does that
 local classes = fill_typesystem_with_classes(classes, typesystem)
