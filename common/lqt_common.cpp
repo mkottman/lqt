@@ -412,10 +412,34 @@ int lqtL_toenum (lua_State *L, int index, const char *name) {
 }
 
 int lqtL_getflags (lua_State *L, int index, const char *name) {
-	return 0;
-	lqtL_getenumtable(L);
-	lua_getfield(L, -1, name);
-	lua_remove(L, -2);
+	int ret = 0;
+	int eindex = 0;
+	int i = 1;
+	if (!lua_istable(L, index)) return 0;
+	lqtL_getenumtable(L); // (1)
+	lua_getfield(L, -1, name); // (2)
+	if (!lua_istable(L, -1)) {
+		// (2)
+		lua_pop(L, 2);
+		return 0;
+	}
+	// (2)
+	lua_remove(L, -2); // (1)
+	eindex = lua_gettop(L);
+	for (i=1;;i++) { // (1)
+		lua_rawgeti(L, index, i); // (2)
+		if (lua_type(L, -1)!=LUA_TSTRING) {
+			lua_pop(L, 1); // (1)
+			break;
+		} else {
+			lua_gettable(L, eindex); // (2)
+			ret = ret | (int)lua_tointeger(L, -1);
+			lua_pop(L, 1); // (1)
+		}
+	}
+	// (1)
+	lua_pop(L, 1); // (0)
+	return ret;
 }
 
 void lqtL_pushflags (lua_State *L, int index, const char *name) {
