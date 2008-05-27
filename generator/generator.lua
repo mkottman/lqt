@@ -454,7 +454,8 @@ end
 local fill_wrapper_code = function(f, types)
 	if f.wrapper_code then return f end
 	local stackn, argn = 1, 1
-	local wrap, line = '', ''
+	local wrap, line = '  int oldtop = lua_gettop(L);\n', ''
+	if f.xarg.abstract then return nil end
 	if f.xarg.member_of_class and f.xarg.static~='1' then
 		if not types[f.xarg.member_of_class..'*'] then return nil end -- print(f.xarg.member_of_class) return nil end
 		local sget, sn = types[f.xarg.member_of_class..'*'].get(stackn)
@@ -492,7 +493,7 @@ local fill_wrapper_code = function(f, types)
 	-- FIXME: hack follows for constructors
 	if f.calling_line then line = f.calling_line end
 	if f.return_type then line = f.return_type .. ' ret = ' .. line end
-	wrap = wrap .. '  ' .. line .. ';\n  lua_settop(L, 0);\n' -- lua_pop(L, '..stackn..');\n'
+	wrap = wrap .. '  ' .. line .. ';\n  lua_settop(L, oldtop);\n' -- lua_pop(L, '..stackn..');\n'
 	if f.return_type then
 		if not types[f.return_type] then return nil end
 		local rput, rn = types[f.return_type].push'ret'
@@ -632,7 +633,6 @@ local fill_shell_class = function(c, types)
 	end
 	for i, v in pairs(c.virtuals) do
 		if v.xarg.access~='private' then
-			local vret = virtual_overload(v, types)
 			if v.virtual_proto then shell = shell .. '  virtual ' .. v.virtual_proto .. ';\n' end
 		end
 	end
@@ -642,13 +642,25 @@ local fill_shell_class = function(c, types)
 	return c
 end
 
+local fill_virtual_overloads = function(classes, types)
+	for c in pairs(classes) do
+		for i, v in pairs(c.virtuals) do
+			if v.xarg.access~='private' then
+				local vret = virtual_overload(v, types)
+			end
+		end
+	end
+	return classes
+end
+
 local fill_shell_classes = function(classes, types)
 	local ret = {}
 	for c in pairs(classes) do
 		if c.shell then
 			c = fill_shell_class(c, types)
-			if c then ret[c] = true else error(c.xarg.fullname) end
+			if c then ret[c] = true end
 		end
+		ret[c] = true
 	end
 	return ret
 end
@@ -668,10 +680,12 @@ end
 
 local print_virtual_overloads = function(classes)
 	for c in pairs(classes) do
-		local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
-		for _,v in pairs(c.virtuals) do
-			if v.virtual_overload then
-				cpp((string.gsub(v.virtual_overload, ';;', shellname..'::', 1)))
+		if c.shell then
+			local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
+			for _,v in pairs(c.virtuals) do
+				if v.virtual_overload then
+					cpp((string.gsub(v.virtual_overload, ';;', shellname..'::', 1)))
+				end
 			end
 		end
 	end
@@ -881,7 +895,8 @@ local enums = fill_typesystem_with_enums(enums, typesystem) -- does that
 local classes = fill_typesystem_with_classes(classes, typesystem)
 
 local functions = fill_wrappers(functions, typesystem)
-local classes = fill_shell_classes(classes, typesystem) -- does that, also only selects those with a shell class
+local classes = fill_virtual_overloads(classes, typesystem) -- does that
+local classes = fill_shell_classes(classes, typesystem) -- does that
 
 ------------- BEGIN OUTPUT
 
