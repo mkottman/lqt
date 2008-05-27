@@ -48,6 +48,9 @@ do
 		elseif argi=='-d' then
 			i = i + 1
 			dirname = select(i, ...)
+			if dirname~='' and not string.match(dirname, '/$') then
+				dirname = dirname .. '/'
+			end
 		elseif argi=='-i' then
 			i = i + 1
 			table.insert(output_includes, (select(i, ...)))
