@@ -577,7 +577,7 @@ local virtual_overload = function(v, types)
 		stack = stack + an
 	end
 	-- make lua call
-	local luacall = 'lua_pcall(L, '..stack..', '..rn..', 0)'
+	local luacall = 'lua_pcall(L, '..(stack+1)..', '..rn..', 0)'
 	-- make prototype and fallback
 	local proto = (v.return_type or 'void')..' ;;'..v.xarg.name..' ('
 	local fallback = ''
@@ -596,7 +596,7 @@ local virtual_overload = function(v, types)
   if (lua_isfunction(L, -1)) {
     lua_insert(L, -2);
 ]] .. pushlines .. [[
-    if (]]..luacall..[[) {
+    if (!]]..luacall..[[) {
       ]]..retget..[[;
     }
   }
