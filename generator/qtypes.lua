@@ -78,4 +78,28 @@ qt_types['QByteArray'] = {
 }
 qt_types['QByteArray const&'] = qt_types['QByteArray']
 
+if not getmetatable(qt_types) then
+	setmetatable(qt_types, {
+		__index = function(t, k)
+			if type(k)=='string'
+				and string.match(k, '^QFlags<[%w:]+>$') then
+				local e = string.match(k, '^QFlags<([%w:]+)>$')
+				if not qt_types[e] then return nil end
+				local ret = {
+					get = function(i)
+						return '('..k..'()&lqtL_getflags(L, '..i..', "'..e..'"))', 1
+					end,
+					push = function(i)
+						return 'lqtL_pushflags(L, '..i..', "'..e..'")', 1
+					end,
+					test = function(i)
+						return 'lua_istable(L, '..i..')', 1
+					end,
+				}
+				return ret
+			end
+		end,
+	})
+end
+
 return qt_types
