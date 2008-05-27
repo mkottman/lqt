@@ -87,7 +87,7 @@ if not getmetatable(qt_types) then
 				if not qt_types[e] then return nil end
 				local ret = {
 					get = function(i)
-						return '('..k..'()&lqtL_getflags(L, '..i..', "'..e..'"))', 1
+						return '('..k..'(lqtL_getflags(L, '..i..', "'..e..'")))', 1
 					end,
 					push = function(i)
 						return 'lqtL_pushflags(L, '..i..', "'..e..'")', 1
