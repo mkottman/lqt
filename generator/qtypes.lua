@@ -30,49 +30,49 @@ OTHER DEALINGS IN THE SOFTWARE.
 local qt_types = (...) or {}
 
 qt_types['QSizeF'] = {
-	get = function(i) return 'QSizeF(lua_tonumber(L, '..i..'), lua_tonumber(L, '..i..'+1))', 2 end,
+	get = function(i) return 'QSizeF(lua_tonumber(L, '..i..'), lua_tonumber(L, '..i..'+1))', 2, 'QSizeF' end,
 	push = function(i) return 'lua_pushnumber(L, '..i..'.width()), lua_pushnumber(L, '..i..'.height())', 2 end,
 	test = function(i) return '(lqtL_isnumber(L, '..i..') && lqtL_isnumber(L, '..i..'+1))', 2 end,
 }
 qt_types['QSizeF const&'] = qt_types['QSizeF']
 
 qt_types['QSize'] = {
-	get = function(i) return 'QSize(lua_tointeger(L, '..i..'), lua_tointeger(L, '..i..'+1))', 2 end,
+	get = function(i) return 'QSize(lua_tointeger(L, '..i..'), lua_tointeger(L, '..i..'+1))', 2, 'QSize' end,
 	push = function(i) return 'lua_pushinteger(L, '..i..'.width()), lua_pushinteger(L, '..i..'.height())', 2 end,
 	test = function(i) return '(lqtL_isinteger(L, '..i..') && lqtL_isinteger(L, '..i..'+1))', 2 end,
 }
 qt_types['QSize const&'] = qt_types['QSize']
 
 qt_types['QPoint'] = {
-	get = function(i) return 'QPoint(lua_tointeger(L, '..i..'), lua_tointeger(L, '..i..'+1))', 2 end,
+	get = function(i) return 'QPoint(lua_tointeger(L, '..i..'), lua_tointeger(L, '..i..'+1))', 2, 'QPoint' end,
 	push = function(i) return 'lua_pushinteger(L, '..i..'.x()), lua_pushinteger(L, '..i..'.y())', 2 end,
 	test = function(i) return '(lqtL_isinteger(L, '..i..') && lqtL_isinteger(L, '..i..'+1))', 2 end,
 }
 qt_types['QPoint const&'] = qt_types['QPoint']
 
 qt_types['QPointF'] = {
-	get = function(i) return 'QPointF(lua_tonumber(L, '..i..'), lua_tonumber(L, '..i..'+1))', 2 end,
+	get = function(i) return 'QPointF(lua_tonumber(L, '..i..'), lua_tonumber(L, '..i..'+1))', 2, 'QPointF' end,
 	push = function(i) return 'lua_pushnumber(L, '..i..'.x()), lua_pushnumber(L, '..i..'.y())', 2 end,
 	test = function(i) return '(lqtL_isnumber(L, '..i..') && lqtL_isnumber(L, '..i..'+1))', 2 end,
 }
 qt_types['QPointF const&'] = qt_types['QPointF']
 
 qt_types['QRect'] = {
-	get = function(i) return 'QRect(lua_tointeger(L, '..i..'), lua_tointeger(L, '..i..'+1), lua_tointeger(L, '..i..'+2), lua_tointeger(L, '..i..'+3))', 4 end,
+	get = function(i) return 'QRect(lua_tointeger(L, '..i..'), lua_tointeger(L, '..i..'+1), lua_tointeger(L, '..i..'+2), lua_tointeger(L, '..i..'+3))', 4, 'QRect' end,
 	push = function(i) return 'lua_pushinteger(L, '..i..'.x()), lua_pushinteger(L, '..i..'.y()), lua_pushinteger(L, '..i..'.width()), lua_pushinteger(L, '..i..'.height())', 4 end,
 	test = function(i) return '(lqtL_isinteger(L, '..i..') && lqtL_isinteger(L, '..i..'+1) && lqtL_isinteger(L, '..i..'+2) && lqtL_isinteger(L, '..i..'+3))', 4 end,
 }
 qt_types['QRect const&'] = qt_types['QRect']
 
 qt_types['QRectF'] = {
-	get = function(i) return 'QRectF(lua_tonumber(L, '..i..'), lua_tonumber(L, '..i..'+1), lua_tonumber(L, '..i..'+2), lua_tonumber(L, '..i..'+3))', 4 end,
+	get = function(i) return 'QRectF(lua_tonumber(L, '..i..'), lua_tonumber(L, '..i..'+1), lua_tonumber(L, '..i..'+2), lua_tonumber(L, '..i..'+3))', 4, 'QRectF' end,
 	push = function(i) return 'lua_pushnumber(L, '..i..'.x()), lua_pushnumber(L, '..i..'.y()), lua_pushnumber(L, '..i..'.width()), lua_pushnumber(L, '..i..'.height())', 4 end,
 	test = function(i) return '(lqtL_isnumber(L, '..i..') && lqtL_isnumber(L, '..i..'+1) && lqtL_isnumber(L, '..i..'+2) && lqtL_isnumber(L, '..i..'+3))', 4 end,
 }
 qt_types['QRectF const&'] = qt_types['QRectF']
 
 qt_types['QByteArray'] = {
-	get = function(i) return 'QByteArray(lua_tostring(L, '..i..'), lua_objlen(L, '..i..'))', 1 end,
+	get = function(i) return 'QByteArray(lua_tostring(L, '..i..'), lua_objlen(L, '..i..'))', 1, 'QByteArray' end,
 	push = function(i) return 'lua_pushlstring(L, '..i..'.constData(), '..i..'.size())', 1 end,
 	test = function(i) return 'lua_isstring(L, '..i..')', 1 end,
 }
