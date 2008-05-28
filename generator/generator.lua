@@ -29,8 +29,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 local path = string.match(arg[0], '(.*/)[^%/]+') or ''
 local filename = nil
-local cppname = nil
-local hppname = nil
 local dirname = nil
 local module_name = nil
 local typefiles = {}
@@ -46,12 +44,6 @@ do
 		if argi=='-n' then
 			i = i + 1
 			module_name = select(i, ...)
-		elseif argi=='-d' then
-			i = i + 1
-			dirname = select(i, ...)
-			if dirname~='' and not string.match(dirname, '/$') then
-				dirname = dirname .. '/'
-			end
 		elseif argi=='-i' then
 			i = i + 1
 			table.insert(output_includes, (select(i, ...)))
@@ -61,23 +53,11 @@ do
 		elseif argi=='-f' then
 			i = i + 1
 			table.insert(filterfiles, (select(i, ...)))
-		elseif argi=='-h' then
-			i = i + 1
-			hppname = select(i, ...)
-		elseif argi=='-c' then
-			i = i + 1
-			cppname = select(i, ...)
-		elseif argi=='-o' then
-			i = i + 1
-			local name = select(i, ...)
-			cppname = name..'.cpp'
-			hppname = name..'.hpp'
 		else
 			filename = filename and error'duplicate filename' or argi
 		end
 		i = i + 1
 	end
-	dirname = dirname or ''
 end
 
 local readfile = function(fn)
@@ -98,19 +78,10 @@ local fprint = function(f)
 end
 
 local debug = fprint(io.stderr)
-local cpp, hpp = nil, nil
-if cppname then
-	local cppfile = assert(io.open(dirname .. cppname, 'w'))
-	cpp = fprint(cppfile)
-else
-	cpp = print
-end
-if hppname then
-	local hppfile = assert(io.open(dirname .. hppname, 'w'))
-	hpp = fprint(hppfile)
-else
-	hpp = print
-end
+local print_head = fprint(assert(io.open(module_name..'_src/'..module_name..'_head.hpp', 'w')))
+local print_meta = fprint(assert(io.open(module_name..'_src/'..module_name..'_meta.cpp', 'w')))
+local print_enum = fprint(assert(io.open(module_name..'_src/'..module_name..'_enum.cpp', 'w')))
+local print_virt = fprint(assert(io.open(module_name..'_src/'..module_name..'_virt.cpp', 'w')))
 
 local xmlstream, idindex = dofile(path..'xml.lua')(readfile(filename))
 
@@ -669,7 +640,7 @@ local print_shell_classes = function(classes)
 	for c in pairs(classes) do
 		if c.shell then
 			if c then
-				hpp(c.shell_class)
+				print_head(c.shell_class)
 			else
 				--io.stderr:write(c.fullname, '\n')
 			end
@@ -684,7 +655,7 @@ local print_virtual_overloads = function(classes)
 			local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
 			for _,v in pairs(c.virtuals) do
 				if v.virtual_overload then
-					cpp((string.gsub(v.virtual_overload, ';;', shellname..'::', 1)))
+					print_virt((string.gsub(v.virtual_overload, ';;', shellname..'::', 1)))
 				end
 			end
 		end
@@ -700,7 +671,7 @@ local print_wrappers = function(index)
 				local out = 'extern "C" int lqt_bind'..f.xarg.id
 				..' (lua_State *L) {\n'.. f.wrapper_code .. '}\n'
 				if f.xarg.access=='public' then
-					cpp(out)
+					print_meta(out)
 					meta[f] = f.xarg.name
 				end
 			end
@@ -711,7 +682,7 @@ local print_wrappers = function(index)
 					local out = 'extern "C" int lqt_bind'..f.xarg.id
 					    ..' (lua_State *L) {\n'.. f.wrapper_code .. '}\n'
 					if f.xarg.access=='public' then
-						cpp(out)
+						print_meta(out)
 						meta[f] = 'new'
 					end
 				end
@@ -721,7 +692,7 @@ local print_wrappers = function(index)
 			out = out ..'  '..c.xarg.fullname..' *p = static_cast<'
 				..c.xarg.fullname..'*>(lqtL_toudata(L, 1, "'..c.xarg.fullname..'*"));\n'
 			out = out .. '  if (p) delete p;\n  return 0;\n}\n'
-			cpp(out)
+			print_meta(out)
 		end
 		c.meta = meta
 	end
@@ -742,7 +713,7 @@ local print_metatable = function(c)
 		disp = disp .. '  lua_settop(L, 0);\n'
 		disp = disp .. '  lua_pushstring(L, "incorrect or extra arguments");\n'
 		disp = disp .. '  return lua_error(L);\n}\n' 
-		cpp(disp)
+		print_meta(disp)
 	end
 	local metatable = 'static luaL_Reg lqt_metatable'..c.xarg.id..'[] = {\n'
 	for n, l in pairs(methods) do
@@ -752,13 +723,13 @@ local print_metatable = function(c)
 		metatable = metatable .. '  { "delete", lqt_delete'..c.xarg.id..' },\n'
 	end
 	metatable = metatable .. '  { 0, 0 },\n};\n'
-	cpp(metatable)
+	print_meta(metatable)
 	local bases = ''
 	for b in string.gmatch(c.xarg.bases or '', '([^;]*);') do
 		bases = bases .. '{"' .. b .. '*"}, '
 	end
 	bases = 'static lqt_Base lqt_base'..c.xarg.id..'[] = { '..bases..'{NULL} };\n'
-	cpp(bases)
+	print_meta(bases)
 	return c
 end
 
@@ -776,7 +747,7 @@ local print_class_list = function(classes)
 		list = list .. '  ' .. class
 	end
 	list = list .. '  { 0, 0, 0 },\n};\n'
-	cpp(list)
+	print_meta(list)
 	return classes
 end
 
@@ -825,27 +796,29 @@ local print_enum_tables = function(enums)
 		table = table .. '  { 0, 0 }\n'
 		table = table .. '};\n'
 		e.enum_table = table
-		cpp(table)
+		print_enum(table)
 	end
 	return enums
 end
-local print_enum_creator = function(enums)
+local print_enum_creator = function(enums, n)
 	local out = 'static lqt_Enumlist lqt_enum_list[] = {\n'
 	for e in pairs(enums) do
 		out = out..'  { lqt_enum'..e.xarg.id..', "'..e.xarg.fullname..'" },\n'
 	end
 	out = out..'  { 0, 0 },\n};\n'
-	out = out .. 'extern "C" int lqt_create_enums (lua_State *L) {\n'
-	out = out .. '  lqtL_createenumlist(L, lqt_enum_list);  return 0;\n}\n'
-	cpp(out)
+	out = out .. 'void lqt_create_enums_'..n..' (lua_State *L) {\n'
+	out = out .. '  lqtL_createenumlist(L, lqt_enum_list);  return;\n}\n'
+	print_enum(out)
 	return enums
 end
 
 local print_openmodule = function(n)
-	cpp([[
+	print_meta([[
+
+void lqt_create_enums_]]..n..[[(lua_State*);
 
 extern "C" int luaopen_]]..n..[[ (lua_State *L) {
-  lqt_create_enums(L);
+  lqt_create_enums_]]..n..[[(L);
   lqtL_createclasses(L, lqt_class_list);
   return 0;
 }
@@ -901,27 +874,27 @@ local classes = fill_shell_classes(classes, typesystem) -- does that
 ------------- BEGIN OUTPUT
 
 
-hpp('#ifndef LQT_BIND_'..module_name)
-hpp('#define LQT_BIND_'..module_name)
-hpp()
-hpp()
+print_head('#ifndef LQT_BIND_'..module_name)
+print_head('#define LQT_BIND_'..module_name)
+print_head()
+print_head()
 for _, i in ipairs(output_includes) do
-	hpp('#include '..i)
+	print_head('#include '..i)
 end
-hpp()
+print_head()
 
-cpp('#include "'..tostring(hppname)..'"')
-cpp()
-cpp()
+print_enum('#include "'..module_name..'_head.hpp'..'"\n\n')
+print_meta('#include "'..module_name..'_head.hpp'..'"\n\n')
+print_virt('#include "'..module_name..'_head.hpp'..'"\n\n')
 
 local classes = print_shell_classes(classes) -- does that
 local classes = print_virtual_overloads(classes, typesystem) -- does that
-local classes = print_wrappers(classes) -- does that + FIXME: checks if has shell for constr/destr and compiles metatable list
+local classes = print_wrappers(classes) -- does that + compiles metatable list
 local enums = print_enum_tables(enums) -- does that
-local enums = print_enum_creator(enums) -- does that + print enum list
+local enums = print_enum_creator(enums, module_name) -- does that + print enum list
 local classes = print_metatables(classes) -- does that + print dispatchers
 local classes = print_class_list(classes) -- does that
 
 print_openmodule(module_name) -- does that
 
-hpp('#endif // LQT_BIND_'..module_name)
+print_head('#endif // LQT_BIND_'..module_name)
