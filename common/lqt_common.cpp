@@ -140,7 +140,7 @@ int lqtL_createenumlist (lua_State *L, lqt_Enumlist list[]) {
 }
 
 static int lqtL_gcfunc (lua_State *L) {
-	if (!lua_isuserdata(L, 1) || lua_islightuserdata(L, 1)) return 0;
+	if (!lua_isuserdata(L, 1) && lua_islightuserdata(L, 1)) return 0;
 	lua_getfenv(L, 1); // (1)
 	if (!lua_istable(L, -1)) {
 		lua_pop(L, 1); // (0)
@@ -162,7 +162,7 @@ static int lqtL_gcfunc (lua_State *L) {
 
 static int lqtL_newindexfunc (lua_State *L) {
 	lua_settop(L, 3); // (=3)
-	if (!lua_isuserdata(L, 1) || lua_islightuserdata(L, 1)) return 0;
+	if (!lua_isuserdata(L, 1) && lua_islightuserdata(L, 1)) return 0;
 	lua_getfenv(L, 1); // (+1)
 	if (!lua_istable(L, -1)) {
 		lua_pop(L, 1); // (+0)
@@ -443,6 +443,7 @@ int lqtL_getflags (lua_State *L, int index, const char *name) {
 }
 
 void lqtL_pushflags (lua_State *L, int index, const char *name) {
+	// TODO
 	lua_pushnil(L);
 	return;
 }
