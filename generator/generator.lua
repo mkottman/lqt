@@ -422,6 +422,18 @@ local fill_typesystem_with_classes = function(classes, types)
 	return ret
 end
 
+local argument_name = function(tn, an)
+	local ret
+	if string.match(tn, '%(%*%)') then
+		ret = string.gsub(tn, '%(%*%)', '(*'..an..')', 1)
+	elseif string.match(tn, '%[.*%]') then
+		ret = string.gsub(tn, '(%[.*%])', an..'%1')
+	else
+		ret = tn .. ' ' .. an
+	end
+	return ret
+end
+
 local fill_wrapper_code = function(f, types)
 	if f.wrapper_code then return f end
 	local stackn, argn = 1, 1
@@ -445,8 +457,8 @@ local fill_wrapper_code = function(f, types)
 	end
 	for i, a in ipairs(f.arguments) do
 		if not types[a.xarg.type_name] then return nil end
-		local aget, an = types[a.xarg.type_name].get(stackn)
-		wrap = wrap .. '  ' .. a.xarg.type_name .. ' arg' .. tostring(argn) .. ' = '
+		local aget, an, arg_as = types[a.xarg.type_name].get(stackn)
+		wrap = wrap .. '  ' .. argument_name(arg_as or a.xarg.type_name, 'arg'..argn) .. ' = '
 		if a.xarg.default=='1' and an>0 then
 			wrap = wrap .. 'lua_isnoneornil(L, '..stackn..')'
 			for j = stackn+1,stackn+an-1 do
@@ -518,26 +530,14 @@ local fill_wrappers = function(functions, types)
 	return ret
 end
 
-local argument_name = function(tn, an)
-	local ret
-	if string.match(tn, '%(%*%)') then
-		ret = string.gsub(tn, '%(%*%)', '(*'..an..')', 1)
-	elseif string.match(tn, '%[.*%]') then
-		ret = string.gsub(tn, '(%[.*%])', an..'%1')
-	else
-		ret = tn .. ' ' .. an
-	end
-	return ret
-end
-
 local virtual_overload = function(v, types)
 	local ret = ''
 	if v.virtual_overload then return v end
 	-- make return type
 	if v.return_type and not types[v.return_type] then return nil end
 	local rget, rn = '', 0
-	if v.return_type then rget, rn = types[v.return_type].get'oldtop+1' end
-	local retget = (v.return_type and argument_name(v.return_type, 'ret')
+	if v.return_type then rget, rn, ret_as = types[v.return_type].get'oldtop+1' end
+	local retget = (v.return_type and argument_name(ret_as or v.return_type, 'ret')
 	.. ' = ' .. rget .. ';' or '') .. 'lua_settop(L, oldtop);return'
 	.. (v.return_type and ' ret' or '')
 	-- make argument push
