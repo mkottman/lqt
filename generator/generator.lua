@@ -319,6 +319,28 @@ local fill_copy_constructor = function(index)
 	return index
 end
 
+local typesystem_enum_filler = function(enums)
+	local ret = {}
+	for e in pairs(enums) do
+		local en = e.xarg.fullname
+		table.insert(ret, [[
+types[']]..en..[['] {
+	push = function(n)
+		return 'lqtL_pushenum(L, '..n..', "]]..en..[[")', 1
+	end,
+	get = function(n)
+		return 'static_cast<]]..en..[[>'
+		..'(lqtL_toenum(L, '..n..', "]]..en..[["))', 1
+	end,
+	test = function(n)
+		return 'lqtL_isenum(L, '..n..', "]]..en..[[")', 1
+	end,
+}
+]])
+	end
+	return ret
+end
+
 local fill_typesystem_with_enums = function(enums, types)
 	local etype = function(en)
 		return {
@@ -336,12 +358,118 @@ local fill_typesystem_with_enums = function(enums, types)
 	end
 	local ret = {}
 	for e in pairs(enums) do
-		if not types[e.xarg.fullname] then
+		if types[e.xarg.fullname]==nil then
 			ret[e] = true
 			types[e.xarg.fullname] = etype(e.xarg.fullname)
 		else
 			--io.stderr:write(e.xarg.fullname, ': already present\n')
 		end
+	end
+	return ret
+end
+
+local typesystem_class_filler = function(classes)
+	local pointer_t = function(fn)
+		return [[
+types[']]..fn..[[*'] = {
+	-- the argument is a pointer to class
+	push = function(n)
+		return 'lqtL_passudata(L, '..n..', "]]..fn..[[*")', 1
+	end,
+	get = function(n)
+		return 'static_cast<]]..fn..[[*>'
+		..'(lqtL_toudata(L, '..n..', "]]..fn..[[*"))', 1
+	end,
+	test = function(n)
+		return 'lqtL_isudata(L, '..n..', "]]..fn..[[*")', 1
+	end,
+}
+]]
+	end
+	local pointer_const_t = function(fn)
+		return [[
+types[']]..fn..[[ const*'] = {
+	-- the argument is a pointer to constant class
+	push = function(n)
+		return 'lqtL_passudata(L, '..n..', "]]..fn..[[*")', 1
+	end,
+	get = function(n)
+		return 'static_cast<]]..fn..[[*>'
+		..'(lqtL_toudata(L, '..n..', "]]..fn..[[*"))', 1
+	end,
+	test = function(n)
+		return 'lqtL_isudata(L, '..n..', "]]..fn..[[*")', 1
+	end,
+}
+]]
+	end
+	local ref_t = function(fn)
+		return [[
+types[']]..fn..[[&'] = {
+	-- the argument is a reference to class
+	push = function(n)
+		return 'lqtL_passudata(L, &'..n..', "]]..fn..[[*")', 1
+	end,
+	get = function(n)
+		return '*static_cast<]]..fn..[[*>'
+		..'(lqtL_toudata(L, '..n..', "]]..fn..[[*"))', 1
+	end,
+	test = function(n)
+		return 'lqtL_isudata(L, '..n..', "]]..fn..[[*")', 1
+	end,
+}
+]]
+	end
+	local instance_t = function(fn, sn)
+		return [[
+types[']]..fn..[['] = {
+	-- the argument is a instance of class
+	push = function(n)
+		return 'lqtL_passudata(L, new ]]..sn
+		..[[(L, '..n..'), "]]..fn..[[*")', 1
+	end,
+	get = function(n)
+		return '*static_cast<]]..fn..[[*>'
+		..'(lqtL_toudata(L, '..n..', "]]..fn..[[*"))', 1
+	end,
+	test = function(n)
+		return 'lqtL_isudata(L, '..n..', "]]..fn..[[*")', 1
+	end,
+}
+]]
+	end
+	local const_ref_t = function(fn, sn)
+		return [[
+types[']]..fn..[[ const&'] = {
+	-- the argument is a constant ref to class
+	push = function(n)
+		return 'lqtL_passudata(L, new ]]..sn
+		..[[(L, '..n..'), "]]..fn..[[*")', 1
+	end,
+	get = function(n)
+		return '*static_cast<]]..fn..[[*>'
+		..'(lqtL_toudata(L, '..n..', "]]..fn..[[*"))', 1
+	end,
+	test = function(n)
+		return 'lqtL_isudata(L, '..n..', "]]..fn..[[*")', 1
+	end,
+}
+]]
+	end
+	local ret = {}
+	for c in pairs(classes) do
+		local ctype = ''
+		local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
+		ctype = ctype .. pointer_t(c.xarg.fullname)
+		ctype = ctype .. pointer_const_t(c.xarg.fullname)
+		ctype = ctype .. ref_t(c.xarg.fullname)
+		if c.public_constr and c.shell then
+			ctype = ctype .. instance_t(c.xarg.fullname, shellname)
+			ctype = ctype .. const_ref_t(c.xarg.fullname, shellname)
+		else
+			ctype = ctype .. 'types["'..c.xarg.fullname..'"] = false\n'
+		end
+		table.insert(ret, ctype)
 	end
 	return ret
 end
@@ -426,7 +554,7 @@ local fill_typesystem_with_classes = function(classes, types)
 	end
 	local ret = {}
 	for c in pairs(classes) do
-		if not types[c.xarg.fullname] then
+		if types[c.xarg.fullname]==nil then
 			ret[c] = true
 			types[c.xarg.fullname..'*'] = pointer_t(c.xarg.fullname)
 			types[c.xarg.fullname..' const*'] =  pointer_const_t(c.xarg.fullname)
@@ -890,6 +1018,7 @@ local functions = fill_wrappers(functions, typesystem)
 local classes = fill_virtual_overloads(classes, typesystem) -- does that
 local classes = fill_shell_classes(classes, typesystem) -- does that
 
+
 ------------- BEGIN OUTPUT
 
 
@@ -905,6 +1034,15 @@ print_head()
 print_enum('#include "'..module_name..'_head.hpp'..'"\n\n')
 print_meta('#include "'..module_name..'_head.hpp'..'"\n\n')
 print_virt('#include "'..module_name..'_head.hpp'..'"\n\n')
+
+print_type'local types = ... or {}\n'
+for i, v in ipairs(typesystem_enum_filler(enums)) do
+	print_type(v)
+end
+for i, v in ipairs(typesystem_class_filler(classes)) do
+	print_type(v)
+end
+print_type'return types\n'
 
 local classes = print_shell_classes(classes) -- does that
 local classes = print_virtual_overloads(classes, typesystem) -- does that
