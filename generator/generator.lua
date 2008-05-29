@@ -324,7 +324,7 @@ local typesystem_enum_filler = function(enums)
 	for e in pairs(enums) do
 		local en = e.xarg.fullname
 		table.insert(ret, [[
-types[']]..en..[['] {
+types[']]..en..[['] = {
 	push = function(n)
 		return 'lqtL_pushenum(L, '..n..', "]]..en..[[")', 1
 	end,
