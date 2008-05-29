@@ -82,6 +82,7 @@ local print_head = fprint(assert(io.open(module_name..'_src/'..module_name..'_he
 local print_meta = fprint(assert(io.open(module_name..'_src/'..module_name..'_meta.cpp', 'w')))
 local print_enum = fprint(assert(io.open(module_name..'_src/'..module_name..'_enum.cpp', 'w')))
 local print_virt = fprint(assert(io.open(module_name..'_src/'..module_name..'_virt.cpp', 'w')))
+local print_type = fprint(assert(io.open(module_name..'_src/'..module_name..'_type.lua', 'w')))
 
 local xmlstream, idindex = dofile(path..'xml.lua')(readfile(filename))
 
@@ -319,22 +320,25 @@ local fill_copy_constructor = function(index)
 end
 
 local fill_typesystem_with_enums = function(enums, types)
+	local etype = function(en)
+		return {
+			push = function(n)
+				return 'lqtL_pushenum(L, '..n..', "'..en..'")', 1
+			end,
+			get = function(n)
+				return 'static_cast<'..en..'>'
+				..'(lqtL_toenum(L, '..n..', "'..en..'"))', 1
+			end,
+			test = function(n)
+				return 'lqtL_isenum(L, '..n..', "'..en..'")', 1
+			end,
+		}
+	end
 	local ret = {}
 	for e in pairs(enums) do
 		if not types[e.xarg.fullname] then
 			ret[e] = true
-			types[e.xarg.fullname] = {
-				push = function(n)
-					return 'lqtL_pushenum(L, '..n..', "'..e.xarg.fullname..'")', 1
-				end,
-				get = function(n)
-					return 'static_cast<'..e.xarg.fullname..'>'
-					..'(lqtL_toenum(L, '..n..', "'..e.xarg.fullname..'"))', 1
-				end,
-				test = function(n)
-					return 'lqtL_isenum(L, '..n..', "'..e.xarg.fullname..'")', 1
-				end,
-			}
+			types[e.xarg.fullname] = etype(e.xarg.fullname)
 		else
 			--io.stderr:write(e.xarg.fullname, ': already present\n')
 		end
@@ -343,79 +347,94 @@ local fill_typesystem_with_enums = function(enums, types)
 end
 
 local fill_typesystem_with_classes = function(classes, types)
+	local pointer_t = function(fn)
+		return {
+			-- the argument is a pointer to class
+			push = function(n)
+				return 'lqtL_passudata(L, '..n..', "'..fn..'*")', 1
+			end,
+			get = function(n)
+				return 'static_cast<'..fn..'*>'
+				..'(lqtL_toudata(L, '..n..', "'..fn..'*"))', 1
+			end,
+			test = function(n)
+				return 'lqtL_isudata(L, '..n..', "'..fn..'*")', 1
+			end,
+		}
+	end
+	local pointer_const_t = function(fn)
+		return {
+			-- the argument is a pointer to constant class instance
+			push = function(n)
+				return 'lqtL_passudata(L, '..n..', "'..fn..'*")', 1
+			end,
+			get = function(n)
+				return 'static_cast<'..fn..'*>'
+				..'(lqtL_toudata(L, '..n..', "'..fn..'*"))', 1
+			end,
+			test = function(n)
+				return 'lqtL_isudata(L, '..n..', "'..fn..'*")', 1
+			end,
+		}
+	end
+	local ref_t = function(fn)
+		return {
+			-- the argument is a reference to class
+			push = function(n)
+				return 'lqtL_passudata(L, &'..n..', "'..fn..'*")', 1
+			end,
+			get = function(n)
+				return '*static_cast<'..fn..'*>'
+				..'(lqtL_toudata(L, '..n..', "'..fn..'*"))', 1
+			end,
+			test = function(n)
+				return 'lqtL_isudata(L, '..n..', "'..fn..'*")', 1
+			end,
+		}
+	end
+	local instance_t = function(fn, sn)
+		return {
+			-- the argument is the class itself
+			push = function(n)
+				return 'lqtL_passudata(L, new '..sn
+				..'(L, '..n..'), "'..fn..'*")', 1
+			end,
+			get = function(n)
+				return '*static_cast<'..fn..'*>'
+				..'(lqtL_toudata(L, '..n..', "'..fn..'*"))', 1
+			end,
+			test = function(n)
+				return 'lqtL_isudata(L, '..n..', "'..fn..'*")', 1
+			end,
+		}
+	end
+	local const_ref_t = function(fn, sn)
+		return {
+			-- the argument is a pointer to class
+			push = function(n)
+				return 'lqtL_passudata(L, new '..sn
+				..'(L, '..n..'), "'..fn..'*")', 1
+			end,
+			get = function(n)
+				return '*static_cast<'..fn..'*>'
+				..'(lqtL_toudata(L, '..n..', "'..fn..'*"))', 1
+			end,
+			test = function(n)
+				return 'lqtL_isudata(L, '..n..', "'..fn..'*")', 1
+			end,
+		}
+	end
 	local ret = {}
 	for c in pairs(classes) do
 		if not types[c.xarg.fullname] then
 			ret[c] = true
-			types[c.xarg.fullname..'*'] = {
-				-- the argument is a pointer to class
-				push = function(n)
-					return 'lqtL_passudata(L, '..n..', "'..c.xarg.fullname..'*")', 1
-				end,
-				get = function(n)
-					return 'static_cast<'..c.xarg.fullname..'*>'
-					..'(lqtL_toudata(L, '..n..', "'..c.xarg.fullname..'*"))', 1
-				end,
-				test = function(n)
-					return 'lqtL_isudata(L, '..n..', "'..c.xarg.fullname..'*")', 1
-				end,
-			}
-			types[c.xarg.fullname..' const*'] = {
-				-- the argument is a pointer to constant class instance
-				push = function(n)
-					return 'lqtL_passudata(L, '..n..', "'..c.xarg.fullname..'*")', 1
-				end,
-				get = function(n)
-					return 'static_cast<'..c.xarg.fullname..'*>'
-					..'(lqtL_toudata(L, '..n..', "'..c.xarg.fullname..'*"))', 1
-				end,
-				test = function(n)
-					return 'lqtL_isudata(L, '..n..', "'..c.xarg.fullname..'*")', 1
-				end,
-			}
-			types[c.xarg.fullname..'&'] = {
-				-- the argument is a reference to class
-				push = function(n)
-					return 'lqtL_passudata(L, &'..n..', "'..c.xarg.fullname..'*")', 1
-				end,
-				get = function(n)
-					return '*static_cast<'..c.xarg.fullname..'*>'
-					..'(lqtL_toudata(L, '..n..', "'..c.xarg.fullname..'*"))', 1
-				end,
-				test = function(n)
-					return 'lqtL_isudata(L, '..n..', "'..c.xarg.fullname..'*")', 1
-				end,
-			}
+			types[c.xarg.fullname..'*'] = pointer_t(c.xarg.fullname)
+			types[c.xarg.fullname..' const*'] =  pointer_const_t(c.xarg.fullname)
+			types[c.xarg.fullname..'&'] = ref_t(c.xarg.fullname)
 			if c.public_constr and c.shell then
 				local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
-				types[c.xarg.fullname] = {
-					-- the argument is the class itself
-					push = function(n)
-						return 'lqtL_passudata(L, new '..shellname
-						..'(L, '..n..'), "'..c.xarg.fullname..'*")', 1
-					end,
-					get = function(n)
-						return '*static_cast<'..c.xarg.fullname..'*>'
-						..'(lqtL_toudata(L, '..n..', "'..c.xarg.fullname..'*"))', 1
-					end,
-					test = function(n)
-						return 'lqtL_isudata(L, '..n..', "'..c.xarg.fullname..'*")', 1
-					end,
-				}
-				types[c.xarg.fullname..' const&'] = {
-					-- the argument is a pointer to class
-					push = function(n)
-						return 'lqtL_passudata(L, new '..shellname
-						..'(L, '..n..'), "'..c.xarg.fullname..'*")', 1
-					end,
-					get = function(n)
-						return '*static_cast<'..c.xarg.fullname..'*>'
-						..'(lqtL_toudata(L, '..n..', "'..c.xarg.fullname..'*"))', 1
-					end,
-					test = function(n)
-						return 'lqtL_isudata(L, '..n..', "'..c.xarg.fullname..'*")', 1
-					end,
-				}
+				types[c.xarg.fullname] = instance_t(c.xarg.fullname, shellname)
+				types[c.xarg.fullname..' const&'] = const_ref_t(c.xarg.fullname, shellname)
 			end
 		end
 	end
