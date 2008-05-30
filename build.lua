@@ -34,11 +34,12 @@ modules = {
 
 Module = function(name)
 	local m = modules[name]
-	local ret = { name = name, }
+	local ret = { name = name, hppfiles={}, }
 	local deps = {}
 	for _, d in ipairs(m.depends) do
 		table.insert(deps, Module(d))
-		table.insert(m.types,d..'_src/'..d..'_type.lua')
+		table.insert(ret.hppfiles, d..'_head.hpp')
+		table.insert(m.types, d..'_src/'..d..'_type.lua')
 	end
 	for k, t in pairs(generator.default) do
 		local set = {}
@@ -56,6 +57,19 @@ Module = function(name)
 		end
 	end
 	return ret
+end
+
+qmake_project = function(n, ...)
+	return string.gsub([[
+TEMPLATE = lib
+TARGET = LQT_MODULE
+DEPENDPATH += .
+INCLUDEPATH += . ]]..table.concat({...}, ' ')..[[
+
+# Input
+HEADERS += LQT_MODULE_head.hpp
+SOURCES += LQT_MODULE_enum.cpp LQT_MODULE_meta.cpp LQT_MODULE_virt.cpp
+]], 'LQT_MODULE', n)
 end
 
 compile = function(name)
@@ -86,14 +100,22 @@ compile = function(name)
 	for _, i in ipairs(m.includes) do
 		cmd = cmd .. '-i \'' .. i .. '\' '
 	end
+	for _, h in ipairs(m.hppfiles) do
+		cmd = cmd .. '-i \'<' .. h .. '>\' '
+	end
 	for _, f in ipairs(m.filters) do
 		cmd = cmd .. '-f \'' .. f .. '\' '
 	end
 	cmd = cmd .. '-n ' .. m.name .. ' ' .. generator.directory..'/'..m.name..'.xml'
 	debug('executing', cmd)
 	os.execute(cmd)
+	debug('writing project file')
+	local qmake = qmake_project(name)
+	local f = io.open(name..'_src/'..name..'.pro', 'w')
+	f:write(qmake)
+	f:close()
 end
 
---compile'qtcore'
-compile'basegui'
+
+compile(tostring(... or 'qtcore'))
 

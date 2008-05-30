@@ -448,6 +448,10 @@ void lqtL_pushflags (lua_State *L, int index, const char *name) {
 	return;
 }
 
+extern "C" int luaopen_qtbase (lua_State *) {
+	return 0;
+}
+
 
 
 

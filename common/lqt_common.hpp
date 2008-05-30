@@ -111,6 +111,8 @@ extern void lqtL_pusharguments (lua_State *, char **);
 extern int lqtL_getflags (lua_State *, int, const char *);
 extern void lqtL_pushflags (lua_State *, int, const char *);
 
+extern "C" int luaopen_qtbase (lua_State *);
+
 
 #endif // __LQT_COMMON_HPP
 
