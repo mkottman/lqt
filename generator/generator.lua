@@ -79,10 +79,30 @@ end
 
 local debug = fprint(io.stderr)
 local print_head = fprint(assert(io.open(module_name..'_src/'..module_name..'_head.hpp', 'w')))
-local print_meta = fprint(assert(io.open(module_name..'_src/'..module_name..'_meta.cpp', 'w')))
 local print_enum = fprint(assert(io.open(module_name..'_src/'..module_name..'_enum.cpp', 'w')))
 local print_virt = fprint(assert(io.open(module_name..'_src/'..module_name..'_virt.cpp', 'w')))
 local print_type = fprint(assert(io.open(module_name..'_src/'..module_name..'_type.lua', 'w')))
+
+local meta_printer
+do
+	local n = 0
+	meta_printer = function()
+		n = n + 1
+		local f = assert(io.open(module_name..'_src/'..module_name..'_meta_'..n..'.cpp', 'w'))
+		f:write('#include "'..module_name..'_head.hpp'..'"\n\n\n')
+		return function(s)
+			if s==nil then
+				f:close()
+				return 0
+			else
+				s = tostring(s)
+				f:write(s, '\n')
+				f:flush()
+				return #s
+			end
+		end, n
+	end
+end
 
 local xmlstream, idindex = dofile(path..'xml.lua')(readfile(filename))
 
@@ -813,12 +833,14 @@ end
 local print_wrappers = function(index)
 	for c in pairs(index) do
 		local meta = {}
+		local wrappers = ''
 		for _, f in ipairs(c.methods) do
 			if f.wrapper_code then
 				local out = 'extern "C" int lqt_bind'..f.xarg.id
 				..' (lua_State *L) {\n'.. f.wrapper_code .. '}\n'
 				if f.xarg.access=='public' then
-					print_meta(out)
+					--print_meta(out)
+					wrappers = wrappers .. out .. '\n'
 					meta[f] = f.xarg.name
 				end
 			end
@@ -829,7 +851,8 @@ local print_wrappers = function(index)
 					local out = 'extern "C" int lqt_bind'..f.xarg.id
 					    ..' (lua_State *L) {\n'.. f.wrapper_code .. '}\n'
 					if f.xarg.access=='public' then
-						print_meta(out)
+						--print_meta(out)
+						wrappers = wrappers .. out .. '\n'
 						meta[f] = 'new'
 					end
 				end
@@ -839,15 +862,18 @@ local print_wrappers = function(index)
 			out = out ..'  '..c.xarg.fullname..' *p = static_cast<'
 				..c.xarg.fullname..'*>(lqtL_toudata(L, 1, "'..c.xarg.fullname..'*"));\n'
 			out = out .. '  if (p) delete p;\n  return 0;\n}\n'
-			print_meta(out)
+			--print_meta(out)
+			wrappers = wrappers .. out .. '\n'
 		end
 		c.meta = meta
+		c.wrappers = wrappers
 	end
 	return index
 end
 
 local print_metatable = function(c)
 	local methods = {}
+	local wrappers = c.wrappers
 	for m, n in pairs(c.meta) do
 		methods[n] = methods[n] or {}
 		table.insert(methods[n], m)
@@ -860,7 +886,8 @@ local print_metatable = function(c)
 		disp = disp .. '  lua_settop(L, 0);\n'
 		disp = disp .. '  lua_pushstring(L, "incorrect or extra arguments");\n'
 		disp = disp .. '  return lua_error(L);\n}\n' 
-		print_meta(disp)
+		--print_meta(disp)
+		wrappers = wrappers .. disp .. '\n'
 	end
 	local metatable = 'static luaL_Reg lqt_metatable'..c.xarg.id..'[] = {\n'
 	for n, l in pairs(methods) do
@@ -870,13 +897,16 @@ local print_metatable = function(c)
 		metatable = metatable .. '  { "delete", lqt_delete'..c.xarg.id..' },\n'
 	end
 	metatable = metatable .. '  { 0, 0 },\n};\n'
-	print_meta(metatable)
+	--print_meta(metatable)
+	wrappers = wrappers .. metatable .. '\n'
 	local bases = ''
 	for b in string.gmatch(c.xarg.bases or '', '([^;]*);') do
 		bases = bases .. '{"' .. b .. '*"}, '
 	end
 	bases = 'static lqt_Base lqt_base'..c.xarg.id..'[] = { '..bases..'{NULL} };\n'
-	print_meta(bases)
+	--print_meta(bases)
+	wrappers = wrappers .. bases .. '\n'
+	c.wrappers = wrappers
 	return c
 end
 
@@ -888,13 +918,44 @@ local print_metatables = function(classes)
 end
 
 local print_class_list = function(classes)
-	local list = 'static lqt_Class lqt_class_list[] = {\n'
+	local print_meta, n, lines, list
+	local begin = function()
+		print_meta, n = meta_printer()
+		lines = 0
+		list = 'static lqt_Class lqt_class_list_'..n..'[] = {\n'
+	end
+	local finish = function()
+		list = list .. '  { 0, 0, 0 },\n};\n'
+			.. 'extern "C" void lqtopen_meta_'..n..' (lua_State *L) {\n'
+			.. '  lqtL_createclasses(L, lqt_class_list_'..n..');\n}'
+	end
+	-- begin
+	begin()
 	for c in pairs(classes) do
 		class = '{ lqt_metatable'..c.xarg.id..', lqt_base'..c.xarg.id..', "'..c.xarg.fullname..'*" },\n'
 		list = list .. '  ' .. class
+		lines = lines + print_meta(c.wrappers)
+		if lines > 100000 then
+			finish()
+			print_meta(list)
+			begin()
+		end
 	end
-	list = list .. '  { 0, 0, 0 },\n};\n'
+	finish()
 	print_meta(list)
+	for i = 1, n do
+		print_meta('void lqtopen_meta_'..i..'(lua_State *);\n')
+	end
+	print_meta([[
+
+void lqt_create_enums_]]..module_name..[[(lua_State*);
+
+extern "C" int luaopen_]]..module_name..[[ (lua_State *L) {
+  lqt_create_enums_]]..module_name..[[(L);]])
+	for i = 1, n do
+		print_meta('  lqtopen_meta_'..i..'(L);')
+	end
+	print_meta('  return 0;\n}\n')
 	return classes
 end
 
@@ -959,19 +1020,6 @@ local print_enum_creator = function(enums, n)
 	return enums
 end
 
-local print_openmodule = function(n)
-	print_meta([[
-
-void lqt_create_enums_]]..n..[[(lua_State*);
-
-extern "C" int luaopen_]]..n..[[ (lua_State *L) {
-  lqt_create_enums_]]..n..[[(L);
-  lqtL_createclasses(L, lqt_class_list);
-  return 0;
-}
-]])
-end
-
 --------------------------------------------------------------------------------------
 
 local typesystem = {}
@@ -1032,7 +1080,6 @@ end
 print_head()
 
 print_enum('#include "'..module_name..'_head.hpp'..'"\n\n')
-print_meta('#include "'..module_name..'_head.hpp'..'"\n\n')
 print_virt('#include "'..module_name..'_head.hpp'..'"\n\n')
 
 print_type'local types = ... or {}\n'
@@ -1046,12 +1093,12 @@ print_type'return types\n'
 
 local classes = print_shell_classes(classes) -- does that
 local classes = print_virtual_overloads(classes, typesystem) -- does that
-local classes = print_wrappers(classes) -- does that + compiles metatable list
 local enums = print_enum_tables(enums) -- does that
 local enums = print_enum_creator(enums, module_name) -- does that + print enum list
+local classes = print_wrappers(classes) -- does that + compiles metatable list
 local classes = print_metatables(classes) -- does that + print dispatchers
 local classes = print_class_list(classes) -- does that
 
-print_openmodule(module_name) -- does that
+--print_openmodule(module_name) -- does that
 
 print_head('#endif // LQT_BIND_'..module_name)
