@@ -836,7 +836,7 @@ local print_wrappers = function(index)
 		local wrappers = ''
 		for _, f in ipairs(c.methods) do
 			if f.wrapper_code then
-				local out = 'extern "C" int lqt_bind'..f.xarg.id
+				local out = 'static int lqt_bind'..f.xarg.id
 				..' (lua_State *L) {\n'.. f.wrapper_code .. '}\n'
 				if f.xarg.access=='public' then
 					--print_meta(out)
@@ -848,7 +848,7 @@ local print_wrappers = function(index)
 		if c.shell then
 			for _, f in ipairs(c.constructors) do
 				if f.wrapper_code then
-					local out = 'extern "C" int lqt_bind'..f.xarg.id
+					local out = 'static int lqt_bind'..f.xarg.id
 					    ..' (lua_State *L) {\n'.. f.wrapper_code .. '}\n'
 					if f.xarg.access=='public' then
 						--print_meta(out)
@@ -858,7 +858,7 @@ local print_wrappers = function(index)
 				end
 			end
 			--local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
-			local out = 'extern "C" int lqt_delete'..c.xarg.id..' (lua_State *L) {\n'
+			local out = 'static int lqt_delete'..c.xarg.id..' (lua_State *L) {\n'
 			out = out ..'  '..c.xarg.fullname..' *p = static_cast<'
 				..c.xarg.fullname..'*>(lqtL_toudata(L, 1, "'..c.xarg.fullname..'*"));\n'
 			out = out .. '  if (p) delete p;\n  return 0;\n}\n'
@@ -879,7 +879,7 @@ local print_metatable = function(c)
 		table.insert(methods[n], m)
 	end
 	for n, l in pairs(methods) do
-		local disp = 'extern "C" int lqt_dispatcher_'..n..c.xarg.id..' (lua_State *L) {\n'
+		local disp = 'static int lqt_dispatcher_'..n..c.xarg.id..' (lua_State *L) {\n'
 		for _, f in ipairs(l) do
 			disp = disp..'  if ('..f.test_code..') return lqt_bind'..f.xarg.id..'(L);\n'
 		end
