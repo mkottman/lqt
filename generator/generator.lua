@@ -689,8 +689,8 @@ local fill_wrappers = function(functions, types)
 		if f then
 			f = assert(fill_test_code(f, types), f.xarg.fullname) -- MUST pass
 			ret[f] = true
-			local out = 'extern "C" int lqt_bind'..f.xarg.id..' (lua_State *L) {\n'
-			.. f.wrapper_code .. '}\n'
+			--local out = 'extern "C" int lqt_bind'..f.xarg.id..' (lua_State *L) {\n'
+			--.. f.wrapper_code .. '}\n'
 			--print(out)
 		end
 	end
@@ -926,7 +926,7 @@ local print_class_list = function(classes)
 	end
 	local finish = function()
 		list = list .. '  { 0, 0, 0 },\n};\n'
-			.. 'extern "C" void lqtopen_meta_'..n..' (lua_State *L) {\n'
+			.. 'void lqtopen_meta_'..n..' (lua_State *L) {\n'
 			.. '  lqtL_createclasses(L, lqt_class_list_'..n..');\n}'
 	end
 	-- begin
