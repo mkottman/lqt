@@ -80,7 +80,6 @@ end
 local debug = fprint(io.stderr)
 local print_head = fprint(assert(io.open(module_name..'_src/'..module_name..'_head.hpp', 'w')))
 local print_enum = fprint(assert(io.open(module_name..'_src/'..module_name..'_enum.cpp', 'w')))
-local print_virt = fprint(assert(io.open(module_name..'_src/'..module_name..'_virt.cpp', 'w')))
 local print_type = fprint(assert(io.open(module_name..'_src/'..module_name..'_type.lua', 'w')))
 
 local meta_printer
@@ -1076,7 +1075,6 @@ end
 print_head()
 
 print_enum('#include "'..module_name..'_head.hpp'..'"\n\n')
-print_virt('#include "'..module_name..'_head.hpp'..'"\n\n')
 
 print_type'local types = ... or {}\n'
 for i, v in ipairs(typesystem_enum_filler(enums)) do
