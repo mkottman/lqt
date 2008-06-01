@@ -193,16 +193,7 @@ local copy_classes = function(index)
 	for e in pairs(index) do
 		if e.label=='Class'
 			and e.xarg.access~='private'
-			and not (e.xarg.fullname:match'%b<>' 
-			or e.xarg.fullname=='QDebug::Stream'
-			or e.xarg.fullname=='QForeachContainerBase'
-			or e.xarg.fullname=='QByteArray::Data'
-			or e.xarg.fullname=='QVariant::Private::Data'
-			or e.xarg.fullname=='QRegion::QRegionData'
-			or e.xarg.fullname=='QTextStreamManipulator'
-			or e.xarg.fullname=='QString::Data'
-			or e.xarg.fullname=='QThreadStorageData'
-			) then
+			and not e.xarg.fullname:match'%b<>' then
 			ret[e] = true
 		end
 	end
