@@ -1089,9 +1089,9 @@ local classes = print_shell_classes(classes) -- does that
 local classes = print_virtual_overloads(classes, typesystem) -- does that
 local enums = print_enum_tables(enums) -- does that
 local enums = print_enum_creator(enums, module_name) -- does that + print enum list
-local classes = print_wrappers(classes) -- does that + compiles metatable list
-local classes = print_metatables(classes) -- does that + print dispatchers
-local classes = print_class_list(classes) -- does that
+local classes = print_wrappers(classes) -- just compiles metatable list
+local classes = print_metatables(classes) -- just collects the wrappers + generates dispatchers
+local classes = print_class_list(classes) -- does that + prints everything related to class
 
 --print_openmodule(module_name) -- does that
 
