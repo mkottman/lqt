@@ -819,12 +819,14 @@ end
 local print_virtual_overloads = function(classes)
 	for c in pairs(classes) do
 		if c.shell then
+			local vo = ''
 			local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
 			for _,v in pairs(c.virtuals) do
 				if v.virtual_overload then
-					print_virt((string.gsub(v.virtual_overload, ';;', shellname..'::', 1)))
+					vo = vo .. string.gsub(v.virtual_overload, ';;', shellname..'::', 1)
 				end
 			end
+			c.virtual_overloads = vo
 		end
 	end
 	return classes
@@ -935,6 +937,9 @@ local print_class_list = function(classes)
 		class = '{ lqt_metatable'..c.xarg.id..', lqt_base'..c.xarg.id..', "'..c.xarg.fullname..'*" },\n'
 		list = list .. '  ' .. class
 		lines = lines + print_meta(c.wrappers)
+		if c.virtual_overloads then
+			lines = lines + print_meta(c.virtual_overloads)
+		end
 		if lines > 100000 then
 			finish()
 			print_meta(list)
