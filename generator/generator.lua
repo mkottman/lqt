@@ -129,8 +129,10 @@ local fix_arguments = function(all)
 	for a in pairs(all) do
 		if a.label=='Argument'
 			and a.xarg.default=='1'
-			and string.match(a.xarg.defaultvalue, '%D')
-			and not string.match(a.xarg.defaultvalue, '^0x%d+$') then
+			and (not string.match(a.xarg.defaultvalue, '^[-+]?%d+%.?%d*$'))
+			and a.xarg.defaultvalue~='true'
+			and a.xarg.defaultvalue~='false'
+			and (not string.match(a.xarg.defaultvalue, '^0[xX]%d+$')) then
 			local dv = a.xarg.defaultvalue
 			if not fullnames[dv] then
 				dv = a.xarg.context..'::'..dv
@@ -836,7 +838,7 @@ local print_wrappers = function(index)
 		local meta = {}
 		local wrappers = ''
 		for _, f in ipairs(c.methods) do
-			if f.wrapper_code then
+			if f.wrapper_code and f.xarg.virtual~='1' then
 				local out = 'static int lqt_bind'..f.xarg.id
 				..' (lua_State *L) {\n'.. f.wrapper_code .. '}\n'
 				if f.xarg.access=='public' then
@@ -919,10 +921,10 @@ local print_metatables = function(classes)
 end
 
 local print_class_list = function(classes)
-	local print_meta, n, lines, list
+	local print_meta, n, bytes, list
 	local begin = function()
 		print_meta, n = meta_printer()
-		lines = 0
+		bytes = 0
 		list = 'static lqt_Class lqt_class_list_'..n..'[] = {\n'
 	end
 	local finish = function()
@@ -935,11 +937,11 @@ local print_class_list = function(classes)
 	for c in pairs(classes) do
 		class = '{ lqt_metatable'..c.xarg.id..', lqt_base'..c.xarg.id..', "'..c.xarg.fullname..'*" },\n'
 		list = list .. '  ' .. class
-		lines = lines + print_meta(c.wrappers)
+		bytes = bytes + print_meta(c.wrappers)
 		if c.virtual_overloads then
-			lines = lines + print_meta(c.virtual_overloads)
+			bytes = bytes + print_meta(c.virtual_overloads)
 		end
-		if lines > 100000 then
+		if bytes > 300000 then
 			finish()
 			print_meta(list)
 			begin()
