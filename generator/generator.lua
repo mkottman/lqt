@@ -129,7 +129,8 @@ local fix_arguments = function(all)
 	for a in pairs(all) do
 		if a.label=='Argument'
 			and a.xarg.default=='1'
-			and string.match(a.xarg.defaultvalue, '%D') then
+			and string.match(a.xarg.defaultvalue, '%D')
+			and not string.match(a.xarg.defaultvalue, '^0x%d+$') then
 			local dv = a.xarg.defaultvalue
 			if not fullnames[dv] then
 				dv = a.xarg.context..'::'..dv
