@@ -80,6 +80,8 @@ end
 local debug = fprint(io.stderr)
 local print_head = fprint(assert(io.open(module_name..'_src/'..module_name..'_head.hpp', 'w')))
 local print_enum = fprint(assert(io.open(module_name..'_src/'..module_name..'_enum.cpp', 'w')))
+local print_slot_h = fprint(assert(io.open(module_name..'_src/'..module_name..'_slot.hpp', 'w')))
+local print_slot_c = fprint(assert(io.open(module_name..'_src/'..module_name..'_slot.cpp', 'w')))
 local print_type = fprint(assert(io.open(module_name..'_src/'..module_name..'_type.lua', 'w')))
 
 local meta_printer
@@ -687,6 +689,17 @@ local fill_wrappers = function(functions, types)
 	return ret
 end
 
+local make_pushlines = function(args, types)
+	local pushlines, stack = '', 0
+	for i, a in ipairs(args) do
+		if not types[a.xarg.type_name] then return nil end
+		local apush, an = types[a.xarg.type_name].push('arg'..i)
+		pushlines = pushlines .. '    ' .. apush .. ';\n'
+		stack = stack + an
+	end
+	return pushlines, stack
+end
+
 local virtual_overload = function(v, types)
 	local ret = ''
 	if v.virtual_overload then return v end
@@ -698,13 +711,8 @@ local virtual_overload = function(v, types)
 	.. ' = ' .. rget .. ';' or '') .. 'lua_settop(L, oldtop);return'
 	.. (v.return_type and ' ret' or '')
 	-- make argument push
-	local pushlines, stack = '', 0
-	for i, a in ipairs(v.arguments) do
-		if not types[a.xarg.type_name] then return nil end
-		local apush, an = types[a.xarg.type_name].push('arg'..i)
-		pushlines = pushlines .. '    ' .. apush .. ';\n'
-		stack = stack + an
-	end
+	local pushlines, stack = make_pushlines(v.arguments, types)
+	if not pushlines then return nil end
 	-- make lua call
 	local luacall = 'lua_pcall(L, '..(stack+1)..', '..rn..', 0)'
 	-- make prototype and fallback
@@ -944,12 +952,14 @@ local print_class_list = function(classes)
 	print_meta([[
 
 void lqt_create_enums_]]..module_name..[[(lua_State*);
+extern "C" int lqt_slot (lua_State *);
 
 extern "C" int luaopen_]]..module_name..[[ (lua_State *L) {
   lqt_create_enums_]]..module_name..[[(L);]])
 	for i = 1, n do
 		print_meta('  lqtopen_meta_'..i..'(L);')
 	end
+	print_meta('  lua_pushcfunction(L, lqt_slot);\n  lua_setglobal(L, "newslot");\n')
 	print_meta('  return 0;\n}\n')
 	return classes
 end
@@ -1015,6 +1025,77 @@ local print_enum_creator = function(enums, n)
 	return enums
 end
 
+local copy_signals = function(functions)
+	local ret = {}
+	for f in pairs(functions) do
+		if f.xarg.signal=='1' then
+			ret[f] = 1
+		end
+	end
+	return ret
+end
+
+local slots_for_signals = function(signals, types)
+	local ret = {}
+	for sig in pairs(signals) do
+		local args, comma = '(', ''
+		for i, a in ipairs(sig.arguments) do
+			args = args .. comma .. a.xarg.type_name .. ' arg'..i
+			comma = ', '
+		end
+		args = args .. ')'
+		local pushlines, stack = make_pushlines(sig.arguments, types)
+		if not ret['void slot '..args] and pushlines then
+			ret['void slot '..args] = 'void LqtSlotAcceptor::slot '..args..[[ {
+  int oldtop = lua_gettop(L);
+  lqtL_pushudata(L, this, "QObject*");
+  lua_getfield(L, -1, "slot]]..string.gsub(args, ' arg.', '')..[[");
+  if (lua_isnil(L, -1)) {
+    lua_pop(L, 1);
+    lua_getfield(L, -1, "slot");
+  }
+  if (!lua_isfunction(L, -1)) {
+    lua_settop(L, oldtop);
+    return;
+  }
+  lua_insert(L, -2);
+]] .. pushlines .. [[
+  if (lua_pcall(L, ]]..stack..[[+1, 0, 0)) {
+	  lua_error(L);
+  }
+  lua_settop(L, oldtop);
+}
+]]
+		end
+	end
+	return ret
+end
+
+local print_slots = function(s)
+	print_slot_h'class LqtSlotAcceptor : public QObject {'
+	print_slot_h'  Q_OBJECT'
+	print_slot_h'  lua_State *L;'
+	print_slot_h'  public:'
+	print_slot_h'  LqtSlotAcceptor(lua_State *l, QObject *p=NULL) : QObject(p), L(l) { lqtL_register(L, this); }'
+	print_slot_h'  virtual ~LqtSlotAcceptor() { lqtL_unregister(L, this); }'
+	print_slot_h'  public slots:'
+	for p, b in pairs(s) do
+		print_slot_h('  '..p..';')
+	end
+	print_slot_h'};\n'
+	for p, b in pairs(s) do
+		print_slot_c(b)
+	end
+	print_slot_c[[
+
+extern "C" int lqt_slot (lua_State *L) {
+	lqtL_passudata(L, new LqtSlotAcceptor(L, 0), "QObject*");
+	return 1;
+}
+]]
+end
+
+
 --------------------------------------------------------------------------------------
 
 local typesystem = {}
@@ -1061,6 +1142,9 @@ local functions = fill_wrappers(functions, typesystem)
 local classes = fill_virtual_overloads(classes, typesystem) -- does that
 local classes = fill_shell_classes(classes, typesystem) -- does that
 
+local signals = copy_signals(functions)
+local slots = slots_for_signals(signals, typesystem)
+
 
 ------------- BEGIN OUTPUT
 
@@ -1075,6 +1159,8 @@ end
 print_head()
 
 print_enum('#include "'..module_name..'_head.hpp'..'"\n\n')
+print_slot_h('#include "'..module_name..'_head.hpp'..'"\n\n')
+print_slot_c('#include "'..module_name..'_slot.hpp'..'"\n\n')
 
 print_type'local types = ... or {}\n'
 for i, v in ipairs(typesystem_enum_filler(enums)) do
@@ -1092,6 +1178,8 @@ local enums = print_enum_creator(enums, module_name) -- does that + print enum l
 local classes = print_wrappers(classes) -- just compiles metatable list
 local classes = print_metatables(classes) -- just collects the wrappers + generates dispatchers
 local classes = print_class_list(classes) -- does that + prints everything related to class
+
+local slots = print_slots(slots)
 
 --print_openmodule(module_name) -- does that
 
