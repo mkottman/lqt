@@ -330,19 +330,7 @@ void lqtL_passudata (lua_State *L, const void *p, const char *name) {
 }
 
 void lqtL_pushudata (lua_State *L, const void *p, const char *name) {
-	bool already = false;
-	lqtL_ensurepointer(L, p); // (1)
-	lua_getmetatable(L, -1); // (2)
-	if (!lua_isnil(L, -1)) {
-		lua_pop(L, 1); // (1)
-		lua_getfield(L, -1, name); // (2)
-		already = lua_toboolean(L, -1); // (2)
-	}
-	lua_pop(L, 1); // (1)
-	if (!already) {
-		luaL_newmetatable(L, name); // (2)
-		lua_setmetatable(L, -2); // (1)
-	}
+	lqtL_passudata(L, p, name);
 	return;
 }
 
