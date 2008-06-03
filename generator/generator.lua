@@ -1092,7 +1092,8 @@ local print_slots = function(s)
 	print_slot_c[[
 
 extern "C" int lqt_slot (lua_State *L) {
-	lqtL_passudata(L, new LqtSlotAcceptor(L, 0), "QObject*");
+	QObject *parent = static_cast<QObject*>(lqtL_toudata(L, 1, "QObject*"));
+	lqtL_passudata(L, new LqtSlotAcceptor(L, parent), "QObject*");
 	return 1;
 }
 ]]
