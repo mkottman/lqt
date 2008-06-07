@@ -84,27 +84,6 @@ local print_slot_h = fprint(assert(io.open(module_name..'_src/'..module_name..'_
 local print_slot_c = fprint(assert(io.open(module_name..'_src/'..module_name..'_slot.cpp', 'w')))
 local print_type = fprint(assert(io.open(module_name..'_src/'..module_name..'_type.lua', 'w')))
 
-local meta_printer
-do
-	local n = 0
-	meta_printer = function()
-		n = n + 1
-		local f = assert(io.open(module_name..'_src/'..module_name..'_meta_'..n..'.cpp', 'w'))
-		f:write('#include "'..module_name..'_head.hpp'..'"\n\n\n')
-		return function(s)
-			if s==nil then
-				f:close()
-				return 0
-			else
-				s = tostring(s)
-				f:write(s, '\n')
-				f:flush()
-				return #s
-			end
-		end, n
-	end
-end
-
 local xmlstream, idindex = dofile(path..'xml.lua')(readfile(filename))
 
 ----------------------------------------------------------------------------------
@@ -921,68 +900,26 @@ local print_metatables = function(classes)
 end
 
 local print_class_list = function(classes)
-	local print_meta, n, bytes, list
-	local begin = function()
-		print_meta, n = meta_printer()
-		bytes = 0
-		list = 'static lqt_Class lqt_class_list_'..n..'[] = {\n'
-	end
-	local finish = function()
-		list = list .. '  { 0, 0, 0 },\n};\n'
-			.. 'void lqtopen_meta_'..n..' (lua_State *L) {\n'
-			.. '  lqtL_createclasses(L, lqt_class_list_'..n..');\n}'
-	end
-	-- begin
-	begin()
+	local fmeta = nil
 	for c in pairs(classes) do
-		class = '{ lqt_metatable'..c.xarg.id..', lqt_base'..c.xarg.id..', "'..c.xarg.fullname..'*" },\n'
-		list = list .. '  ' .. class
-		bytes = bytes + print_meta(c.wrappers)
+		if fmeta then fmeta:close() end
+		local n = string.gsub(c.xarg.fullname, '::', '_LQT_')
+		fmeta = assert(io.open(module_name..'_src/'..module_name..'_meta_'..n..'.cpp', 'w'))
+		local print_meta = function(...)
+			fmeta:write(...)
+			fmeta:write'\n'
+		end
+		print_meta('#include "'..module_name..'_head.hpp'..'"\n\n')
+		print_meta(c.wrappers)
 		if c.virtual_overloads then
-			bytes = bytes + print_meta(c.virtual_overloads)
-		end
-		if bytes > 300000 then
-			finish()
-			print_meta(list)
-			begin()
+			print_meta(c.virtual_overloads)
 		end
 	end
-	finish()
-	print_meta(list)
-	for i = 1, n do
-		print_meta('void lqtopen_meta_'..i..'(lua_State *);\n')
-	end
-	print_meta([[
-
-void lqt_create_enums_]]..module_name..[[(lua_State*);
-extern "C" int lqt_slot (lua_State *);
-
-extern "C" int luaopen_]]..module_name..[[ (lua_State *L) {
-  lqt_create_enums_]]..module_name..[[(L);]])
-	for i = 1, n do
-		print_meta('  lqtopen_meta_'..i..'(L);')
-	end
-	print_meta('  lua_pushcfunction(L, lqt_slot);\n  lua_setglobal(L, "newslot");\n')
-	print_meta('  return 0;\n}\n')
 	return classes
 end
 
 local fix_methods_wrappers = function(classes)
 	for c in pairs(classes) do
-		-- if class seems abstract but has a shell class
-		if c.abstract then
-			-- is it really abstract?
-			local a = false
-			for _, f in pairs(c.virtuals) do
-				-- if it is abstract but we cannot overload
-				-- FIXME: this always fails: f.virtual_overload is not filled yet
-				-- maybe this check must be moved later:
-				-- we don't use shell class to move instances to Lua
-				-- but we want to instantiate if we can wrap all virtuals...
-				if f.xarg.abstract=='1' and not f.virtual_overload then a = true break end
-			end
-			c.abstract = a
-		end
 		c.shell = (not c.abstract) and c.public_destr
 		for _, constr in ipairs(c.constructors) do
 			local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
