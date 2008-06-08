@@ -55,6 +55,7 @@ extern void lqtL_unregister(lua_State *, const void *);
 //extern void lqtL_unmanageudata (lua_State *, int);
 extern void lqtL_pushudata (lua_State *, const void *, const char *);
 extern void lqtL_passudata (lua_State *, const void *, const char *);
+extern void lqtL_copyudata (lua_State *, const void *, const char *);
 extern void * lqtL_toudata (lua_State *, int, const char *);
 extern bool lqtL_testudata (lua_State *, int, const char *);
 //#define lqtL_checkudata(a...) luaL_checkudata(a)
