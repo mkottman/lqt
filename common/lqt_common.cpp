@@ -329,7 +329,7 @@ void lqtL_unregister (lua_State *L, const void *p) {
 	lua_pop(L, 1); // (0)
 }
 
-void lqtL_passudata (lua_State *L, const void *p, const char *name) {
+void lqtL_pushudata (lua_State *L, const void *p, const char *name) {
 	bool already = false;
 	lqtL_ensurepointer(L, p); // (1)
 	if (lua_getmetatable(L, -1)) {
@@ -348,8 +348,8 @@ void lqtL_passudata (lua_State *L, const void *p, const char *name) {
 	return;
 }
 
-void lqtL_pushudata (lua_State *L, const void *p, const char *name) {
-	lqtL_passudata(L, p, name);
+void lqtL_passudata (lua_State *L, const void *p, const char *name) {
+	lqtL_pushudata(L, p, name);
 	return;
 }
 
