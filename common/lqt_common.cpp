@@ -212,6 +212,25 @@ static int lqtL_pushindexfunc (lua_State *L, const char *name, lqt_Base *bases) 
 	return 1;
 }
 
+int lqtL_createclass (lua_State *L, const char *name, luaL_Reg *mt, lqt_Base *bases) {
+	luaL_newmetatable(L, name); // (1)
+	luaL_register(L, NULL, mt); // (1)
+	lqtL_pushindexfunc(L, name, bases); // (2)
+	lua_setfield(L, -2, "__index"); // (1)
+	lua_pushcfunction(L, lqtL_newindexfunc); // (2)
+	lua_setfield(L, -2, "__newindex"); // (1)
+	lua_pushcfunction(L, lqtL_gcfunc); // (2)
+	lua_setfield(L, -2, "__gc"); // (1)
+	lua_pushvalue(L, -1); // (2)
+	lua_setmetatable(L, -2); // (1)
+	lua_pop(L, 1); // (0)
+	lua_pushlstring(L, name, strlen(name)-1); // (1)
+	lua_newtable(L); // (2)
+	luaL_register(L, NULL, mt); // (2)
+	lua_settable(L, LUA_GLOBALSINDEX); // (0)
+	return 0;
+}
+
 int lqtL_createclasses (lua_State *L, lqt_Class *list) {
 	while (list->name!=0) { // (0)
 		luaL_newmetatable(L, list->name); // (1)

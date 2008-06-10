@@ -101,6 +101,7 @@ typedef struct {
 } lqt_Class;
 
 extern int lqtL_createclasses (lua_State *, lqt_Class *);
+extern int lqtL_createclass (lua_State *, const char *, luaL_Reg *, lqt_Base *);
 
 /* functions to get/push special types */
 
