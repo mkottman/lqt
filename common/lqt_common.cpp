@@ -215,6 +215,9 @@ static int lqtL_pushindexfunc (lua_State *L, const char *name, lqt_Base *bases) 
 int lqtL_createclass (lua_State *L, const char *name, luaL_Reg *mt, lqt_Base *bases) {
 	luaL_newmetatable(L, name); // (1)
 	luaL_register(L, NULL, mt); // (1)
+	lua_pushstring(L, name); // (2) FIXME: remove
+	lua_pushboolean(L, 1); // (3) FIXME: remove
+	lua_settable(L, -3); // (1) FIXME: remove
 	lqtL_pushindexfunc(L, name, bases); // (2)
 	lua_setfield(L, -2, "__index"); // (1)
 	lua_pushcfunction(L, lqtL_newindexfunc); // (2)
@@ -350,6 +353,26 @@ void lqtL_pushudata (lua_State *L, const void *p, const char *name) {
 
 void lqtL_passudata (lua_State *L, const void *p, const char *name) {
 	lqtL_pushudata(L, p, name);
+	return;
+}
+
+void lqtL_copyudata (lua_State *L, const void *p, const char *name) {
+	luaL_newmetatable(L, name);
+	lua_pushstring(L, "__copy");
+	lua_rawget(L, -2);
+	if (lua_isnil(L, -1)) {
+		qDebug() << "cannot copy" << name;
+		lua_pop(L, 2);
+		lua_pushnil(L);
+	} else {
+		lua_remove(L, -2);
+		lqtL_pushudata(L, p, name);
+		if (lua_pcall(L, 1, 1, 0)) {
+			qDebug() << "error copying" << name;
+			lua_pop(L, 1);
+			lua_pushnil(L);
+		}
+	}
 	return;
 }
 
