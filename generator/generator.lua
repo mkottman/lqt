@@ -899,6 +899,7 @@ end
 
 local print_class_list = function(classes)
 	local fmeta = nil
+	local big_picture = {}
 	for c in pairs(classes) do
 		if fmeta then fmeta:close() end
 		local n = string.gsub(c.xarg.fullname, '::', '_LQT_')
@@ -912,7 +913,31 @@ local print_class_list = function(classes)
 		if c.virtual_overloads then
 			print_meta(c.virtual_overloads)
 		end
+		print_meta('extern "C" int luaopen_'..n..' (lua_State *L) {')
+		print_meta('\tlqtL_createclass(L, "'
+			..n..'*", lqt_metatable'
+			..c.xarg.id..', lqt_base'
+			..c.xarg.id..');')
+		print_meta'\treturn 0;'
+		print_meta'}'
+		print_meta''
+		table.insert(big_picture, 'luaopen_'..n)
 	end
+	if fmeta then fmeta:close() end
+	fmeta = assert(io.open(module_name..'_src/'..module_name..'_meta.cpp', 'w'))
+	local print_meta = function(...)
+		fmeta:write(...)
+		fmeta:write'\n'
+	end
+	for _, p in ipairs(big_picture) do
+		print_meta('extern "C" int '..p..'(lua_State *);')
+	end
+	print_meta('extern "C" int luaopen_'..module_name..' (lua_State *L) {')
+	for _, p in ipairs(big_picture) do
+		print_meta('\t'..p..'(L);')
+	end
+	print_meta('\treturn 0;\n}')
+	if fmeta then fmeta:close() end
 	return classes
 end
 
