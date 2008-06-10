@@ -12,7 +12,7 @@ local new_MyWidget = function(...)
 	return this
 end
 
-app = QApplication.new(select('#', ...), {...})
+app = QApplication.new(1 + select('#', ...), {arg[0], ...})
 
 widget = new_MyWidget()
 widget:show()

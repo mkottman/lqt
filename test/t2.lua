@@ -2,7 +2,7 @@
 
 require'qtgui'
 
-app = QApplication.new(select('#', ...), {...})
+app = QApplication.new(1 + select('#', ...), {arg[0], ...})
 
 quit = QPushButton.new(QString.new("Quit"))
 quit:resize(75, 30)

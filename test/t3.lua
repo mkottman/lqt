@@ -2,7 +2,7 @@
 
 require'qtgui'
 
-app = QApplication.new(select('#', ...), {...})
+app = QApplication.new(1 + select('#', ...), {arg[0], ...})
 
 window = QWidget.new()
 window:resize(200, 120)
