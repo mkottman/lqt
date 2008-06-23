@@ -37,6 +37,7 @@ local escapes = {
 
 local strip_escapes = function (s)
 	s = string.gsub(s, '&(%a+);', escapes)
+	s = string.gsub(s, '&amp;', '&')
 	return s
 end
 
