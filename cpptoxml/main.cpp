@@ -312,6 +312,7 @@ QString XMLVisitor::visit(CodeModelItem i) {
 		ret += visit(t->type(), t->scope());
 	}
 
+	ret.replace('&', "&amp;");
 	ret.replace('>', "&gt;");
 	ret.replace('<', "&lt;");
 	ret = "<" + ret + " >\n";
