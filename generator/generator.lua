@@ -653,7 +653,20 @@ local fill_shell_classes = function(classes, types)
 end
 
 local print_shell_classes = function(classes)
+	local fhead = nil
 	for c in pairs(classes) do
+		if fhead then fhead:close() end
+		local n = string.gsub(c.xarg.fullname, '::', '_LQT_')
+		fhead = assert(io.open(module_name..'_src/'..module_name..'_head_'..n..'.hpp', 'w'))
+		local print_head = function(...)
+			fhead:write(...)
+			fhead:write'\n'
+		end
+		print_head('#ifndef LQT_HEAD_'..n)
+		print_head('#define LQT_HEAD_'..n)
+		print_head'#include "lqt_common.hpp"'
+		print_head('#include <'..string.match(c.xarg.fullname, '^[^:]+')..'>')
+		print_head''
 		if c.shell then
 			if c then
 				print_head(c.shell_class)
@@ -661,7 +674,9 @@ local print_shell_classes = function(classes)
 				--io.stderr:write(c.fullname, '\n')
 			end
 		end
+		print_head('#endif // LQT_HEAD_'..n)
 	end
+	if fhead then fhead:close() end
 	return classes
 end
 
@@ -779,7 +794,7 @@ local print_class_list = function(classes)
 			fmeta:write(...)
 			fmeta:write'\n'
 		end
-		print_meta('#include "'..module_name..'_head.hpp'..'"\n\n')
+		print_meta('#include "'..module_name..'_head_'..n..'.hpp'..'"\n\n')
 		print_meta(c.wrappers)
 		if c.virtual_overloads then
 			print_meta(c.virtual_overloads)
@@ -800,13 +815,16 @@ local print_class_list = function(classes)
 		fmeta:write(...)
 		fmeta:write'\n'
 	end
+	print_meta('#include "lqt_common.hpp"')
 	for _, p in ipairs(big_picture) do
-		print_meta('extern "C" int '..p..'(lua_State *);')
+		print_meta('extern "C" int '..p..' (lua_State *);')
 	end
+	print_meta('extern "C" int lqt_create_enums_'..module_name..' (lua_State *);')
 	print_meta('extern "C" int luaopen_'..module_name..' (lua_State *L) {')
 	for _, p in ipairs(big_picture) do
 		print_meta('\t'..p..'(L);')
 	end
+	print_meta('\tlqt_create_enums_'..module_name..'(L);')
 	print_meta('\treturn 0;\n}')
 	if fmeta then fmeta:close() end
 	return classes
