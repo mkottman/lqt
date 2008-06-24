@@ -10,6 +10,11 @@ Here there is a simple and quick method for obtaining the
 bindings to the QtGui module of (auspicably) any Qt release
 of the Qt4 series.
 
+The generator has been tested only with
+ * gcc 4.3.1
+ * lua 5.1.3
+ * qt 4.3.3-5 and 4.4.0
+
 == Unpack the tarball and enter the directory ==
 
 tar xzf lqt*.tar.gz
