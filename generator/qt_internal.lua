@@ -5,6 +5,7 @@ local ret1, ret2 = {}, {}
 for c in pairs(classes) do
 	local n = c.xarg.name
 	if n~=string.lower(n) and not (string.match(n, '_')
+			or c.xarg.fullname=='QAtomic'
 			or c.xarg.fullname=='QDebug::Stream'
 			or c.xarg.fullname=='QForeachContainerBase'
 			or c.xarg.fullname=='QByteArray::Data'
