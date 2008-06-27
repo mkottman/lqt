@@ -37,7 +37,7 @@ echo '#include <QtGui>' > ./src/qtgui.cpp
 ./cpptoxml/cpptoxml -C cpptoxml/parser/rpp/pp-qt-configuration ./src/qtgui.cpp > src/qtgui.xml
 
 Rememebr that you have to set the QTDIR env variable such that
-$QTDIR/include contains the QtCore, QtGui, etc... directories
+$QTDIR contains the QtCore, QtGui, etc... directories
 
 The same command could be issued directly on the header file
 e.g.
