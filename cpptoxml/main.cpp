@@ -401,8 +401,6 @@ int main (int argc, char **argv) {
 		return false;
 	}
 
-	qtdir += "/include";
-
 	QString currentDir = QDir::current().absolutePath();
 	QFileInfo sourceInfo(sourceName);
 	//QDir::setCurrent(sourceInfo.absolutePath());
