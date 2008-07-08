@@ -13,6 +13,7 @@ local new_MyWidget = function(...)
 end
 
 app = QApplication.new(1 + select('#', ...), {arg[0], ...})
+app.__gc = app.delete -- take ownership of object
 
 widget = new_MyWidget()
 widget:show()
