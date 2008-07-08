@@ -3,6 +3,7 @@
 require'qtgui'
 
 app = QApplication.new(select('#', ...), {...})
+app.__gc = app.delete -- take ownership of object
 
 window = QWidget.new()
 window:resize(200, 120)
