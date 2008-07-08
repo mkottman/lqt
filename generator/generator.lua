@@ -60,6 +60,12 @@ do
 	end
 end
 
+local my_includes = ''
+for _, i in ipairs(output_includes) do
+	my_includes = my_includes .. '#include '..i..'\n'
+end
+output_includes = my_includes .. '\n'
+
 local readfile = function(fn)
 	local f = assert(io.open(fn))
 	local s = f:read'*a'
@@ -663,8 +669,7 @@ local print_shell_classes = function(classes)
 		end
 		print_head('#ifndef LQT_HEAD_'..n)
 		print_head('#define LQT_HEAD_'..n)
-		print_head'#include "lqt_common.hpp"'
-		print_head'#include "custom_includes.hpp"'
+		print_head(output_includes)
 		print_head('#include <'..string.match(c.xarg.fullname, '^[^:]+')..'>')
 		print_head''
 		if c.shell then
@@ -783,30 +788,34 @@ local print_metatables = function(classes)
 	return classes
 end
 
+local print_single_class = function(c)
+	local n = string.gsub(c.xarg.fullname, '::', '_LQT_')
+	local fmeta = assert(io.open(module_name..'_src/'..module_name..'_meta_'..n..'.cpp', 'w'))
+	local print_meta = function(...)
+		fmeta:write(...)
+		fmeta:write'\n'
+	end
+	print_meta('#include "'..module_name..'_head_'..n..'.hpp'..'"\n\n')
+	print_meta(c.wrappers)
+	if c.virtual_overloads then
+		print_meta(c.virtual_overloads)
+	end
+	print_meta('extern "C" int luaopen_'..n..' (lua_State *L) {')
+	print_meta('\tlqtL_createclass(L, "'
+		..n..'*", lqt_metatable'
+		..c.xarg.id..', lqt_base'
+		..c.xarg.id..');')
+	print_meta'\treturn 0;'
+	print_meta'}'
+	print_meta''
+	fmeta:close()
+end
+
 local print_class_list = function(classes)
-	local fmeta = nil
 	local big_picture = {}
 	for c in pairs(classes) do
-		if fmeta then fmeta:close() end
 		local n = string.gsub(c.xarg.fullname, '::', '_LQT_')
-		fmeta = assert(io.open(module_name..'_src/'..module_name..'_meta_'..n..'.cpp', 'w'))
-		local print_meta = function(...)
-			fmeta:write(...)
-			fmeta:write'\n'
-		end
-		print_meta('#include "'..module_name..'_head_'..n..'.hpp'..'"\n\n')
-		print_meta(c.wrappers)
-		if c.virtual_overloads then
-			print_meta(c.virtual_overloads)
-		end
-		print_meta('extern "C" int luaopen_'..n..' (lua_State *L) {')
-		print_meta('\tlqtL_createclass(L, "'
-			..n..'*", lqt_metatable'
-			..c.xarg.id..', lqt_base'
-			..c.xarg.id..');')
-		print_meta'\treturn 0;'
-		print_meta'}'
-		print_meta''
+		print_single_class(c)
 		table.insert(big_picture, 'luaopen_'..n)
 	end
 	if fmeta then fmeta:close() end
@@ -819,7 +828,7 @@ local print_class_list = function(classes)
 	for _, p in ipairs(big_picture) do
 		print_meta('extern "C" int '..p..' (lua_State *);')
 	end
-	print_meta('extern "C" int lqt_create_enums_'..module_name..' (lua_State *);')
+	print_meta('int lqt_create_enums_'..module_name..' (lua_State *);')
 	print_meta('extern "C" int luaopen_'..module_name..' (lua_State *L) {')
 	for _, p in ipairs(big_picture) do
 		print_meta('\t'..p..'(L);')
@@ -1002,9 +1011,11 @@ local slots = slots_for_signals(signals, typesystem)
 ------------- BEGIN OUTPUT
 
 
-print_enum('#include "'..module_name..'_head.hpp'..'"\n\n')
-print_slot_h('#include "'..module_name..'_head.hpp'..'"\n\n')
+
+print_enum(output_includes)
+print_slot_h(output_includes)
 print_slot_c('#include "'..module_name..'_slot.hpp'..'"\n\n')
+
 
 local classes = print_shell_classes(classes) -- does that
 local classes = print_virtual_overloads(classes, typesystem) -- does that
