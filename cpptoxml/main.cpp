@@ -143,6 +143,8 @@ QString XMLVisitor::visit(const TypeInfo& t, QStringList scope) {
 	QString tmp = arr.join(",");
 	if (!tmp.isEmpty()) ret += " array=\"" + tmp + "\"";
 
+	if (tt.isFunctionPointer()) ret += "function_pointer=\"1\"";
+
 	return ret;
 }
 
