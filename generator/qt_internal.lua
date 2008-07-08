@@ -14,6 +14,8 @@ for c in pairs(classes) do
 			or c.xarg.fullname=='QTextStreamManipulator'
 			or c.xarg.fullname=='QString::Data'
 			or c.xarg.fullname=='QUpdateLaterEvent'
+			or c.xarg.fullname=='QWindowsCEStyle'
+			or c.xarg.fullname=='QWindowsMobileStyle'
 			or c.xarg.fullname=='QWindowsXPStyle'
 			or c.xarg.fullname=='QWindowsVistaStyle'
 			or c.xarg.fullname=='QMacStyle'
