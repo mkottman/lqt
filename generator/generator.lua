@@ -78,7 +78,6 @@ local fprint = function(f)
 end
 
 local debug = fprint(io.stderr)
-local print_head = fprint(assert(io.open(module_name..'_src/'..module_name..'_head.hpp', 'w')))
 local print_enum = fprint(assert(io.open(module_name..'_src/'..module_name..'_enum.cpp', 'w')))
 local print_slot_h = fprint(assert(io.open(module_name..'_src/'..module_name..'_slot.hpp', 'w')))
 local print_slot_c = fprint(assert(io.open(module_name..'_src/'..module_name..'_slot.cpp', 'w')))
@@ -1003,15 +1002,6 @@ local slots = slots_for_signals(signals, typesystem)
 ------------- BEGIN OUTPUT
 
 
-print_head('#ifndef LQT_BIND_'..module_name)
-print_head('#define LQT_BIND_'..module_name)
-print_head()
-print_head()
-for _, i in ipairs(output_includes) do
-	print_head('#include '..i)
-end
-print_head()
-
 print_enum('#include "'..module_name..'_head.hpp'..'"\n\n')
 print_slot_h('#include "'..module_name..'_head.hpp'..'"\n\n')
 print_slot_c('#include "'..module_name..'_slot.hpp'..'"\n\n')
@@ -1028,4 +1018,3 @@ local slots = print_slots(slots)
 
 --print_openmodule(module_name) -- does that
 
-print_head('#endif // LQT_BIND_'..module_name)
