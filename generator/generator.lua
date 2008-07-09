@@ -119,7 +119,6 @@ local fix_arguments = function(all)
 			local dv, call = string.match(a.xarg.defaultvalue, '(.-)(%b())')
 			dv = dv or a.xarg.defaultvalue
 			call = call or ''
-			debug(a.xarg.defaultvalue, dv, call)
 			if not fullnames[dv] then
 				dv = a.xarg.context..'::'..dv..call
 			end
@@ -129,7 +128,6 @@ local fix_arguments = function(all)
 				a.xarg.default = nil
 				a.xarg.defaultvalue = nil
 			end
-			debug('===>', a.xarg.defaultvalue)
 		end
 	end
 	return all
