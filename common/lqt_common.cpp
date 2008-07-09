@@ -353,6 +353,9 @@ void lqtL_pushudata (lua_State *L, const void *p, const char *name) {
 
 void lqtL_passudata (lua_State *L, const void *p, const char *name) {
 	lqtL_pushudata(L, p, name);
+	// FIXME: these should be added, but it is not safe for now
+	//lua_getfield(L, -1, "delete");
+	//lua_setfield(L, -2, "__gc");
 	return;
 }
 
