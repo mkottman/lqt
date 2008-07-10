@@ -92,6 +92,7 @@ extern int lqtL_createenumlist (lua_State *, lqt_Enumlist[]);
 
 typedef struct {
 	const char *basename;
+	ptrdiff_t offset;
 } lqt_Base;
 
 typedef struct {
