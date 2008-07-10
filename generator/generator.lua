@@ -830,12 +830,15 @@ local print_class_list = function(classes)
 	for _, p in ipairs(big_picture) do
 		print_meta('extern "C" int '..p..' (lua_State *);')
 	end
+	print_meta('extern "C" int lqt_slot (lua_State *);')
 	print_meta('int lqt_create_enums_'..module_name..' (lua_State *);')
 	print_meta('extern "C" int luaopen_'..module_name..' (lua_State *L) {')
 	for _, p in ipairs(big_picture) do
 		print_meta('\t'..p..'(L);')
 	end
 	print_meta('\tlqt_create_enums_'..module_name..'(L);')
+	print_meta('\tlua_pushcfunction(L, lqt_slot);')
+	print_meta('\tlua_setglobal(L, "newslot");')
 	print_meta('\treturn 0;\n}')
 	if fmeta then fmeta:close() end
 	return classes
