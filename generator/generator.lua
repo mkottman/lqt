@@ -774,7 +774,7 @@ local print_metatable = function(c)
 	wrappers = wrappers .. metatable .. '\n'
 	local bases = ''
 	for b in string.gmatch(c.xarg.bases or '', '([^;]*);') do
-		bases = bases .. '{"' .. b .. '*", (char*)(void*)static_cast<'..b..'*>(static_cast<'..c.xarg.fullname..'*>(NULL))-(char*)NULL}, '
+		bases = bases .. '{"' .. b .. '*", (char*)(void*)static_cast<'..b..'*>(('..c.xarg.fullname..'*)1)-(char*)1},\n'
 	end
 	bases = 'static lqt_Base lqt_base'..c.xarg.id..'[] = { '..bases..'{NULL, NULL} };\n'
 	--print_meta(bases)

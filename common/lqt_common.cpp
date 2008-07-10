@@ -213,17 +213,27 @@ static int lqtL_pushindexfunc (lua_State *L, const char *name, lqt_Base *bases) 
 }
 
 int lqtL_createclass (lua_State *L, const char *name, luaL_Reg *mt, lqt_Base *bases) {
+	lqt_Base *bi = bases;
 	luaL_newmetatable(L, name); // (1)
 	luaL_register(L, NULL, mt); // (1)
+	// setup offsets
 	lua_pushstring(L, name); // (2) FIXME: remove
-	lua_pushboolean(L, 1); // (3) FIXME: remove
+	lua_pushinteger(L, 0); // (3) FIXME: remove
 	lua_settable(L, -3); // (1) FIXME: remove
+	while (bi->basename!=NULL) {
+		lua_pushstring(L, bi->basename); // (2) FIXME: remove
+		lua_pushinteger(L, bi->offset); // (3) FIXME: remove
+		lua_settable(L, -3); // (1) FIXME: remove
+		bi++;
+	}
+	// set metafunctions
 	lqtL_pushindexfunc(L, name, bases); // (2)
 	lua_setfield(L, -2, "__index"); // (1)
 	lua_pushcfunction(L, lqtL_newindexfunc); // (2)
 	lua_setfield(L, -2, "__newindex"); // (1)
 	lua_pushcfunction(L, lqtL_gcfunc); // (2)
 	lua_setfield(L, -2, "__gc"); // (1)
+	// set it as its own metatable
 	lua_pushvalue(L, -1); // (2)
 	lua_setmetatable(L, -2); // (1)
 	lua_pop(L, 1); // (0)
@@ -384,13 +394,16 @@ void *lqtL_toudata (lua_State *L, int index, const char *name) {
 	if (!lqtL_testudata(L, index, name)) return 0;
 	void **pp = static_cast<void**>(lua_touserdata(L, index));
 	ret = *pp;
+	lua_getfield(L, index, name);
+	ret = (void*)(lua_tointeger(L, -1) + (char*)ret);
+	lua_pop(L, 1);
 	return ret;
 }
 
 bool lqtL_testudata (lua_State *L, int index, const char *name) {
 	if (!lua_isuserdata(L, index) || lua_islightuserdata(L, index)) return false;
 	lua_getfield(L, index, name);
-	if (!lua_isboolean(L, -1) || !lua_toboolean(L, -1)) {
+	if (lua_isnil(L, -1)) {
 		lua_pop(L, 1);
 		return false;
 	}
