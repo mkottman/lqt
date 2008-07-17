@@ -42,6 +42,13 @@ extern "C" {
 #define LQT_REFS "Registry References"
 #define LQT_ENUMS "Registry Enumerations"
 
+// Qt-specific fields
+#define LQT_METACALLER "Registry MetaCaller"
+#define LQT_OBJMETASTRING "Lqt MetaStringData"
+#define LQT_OBJMETADATA "Lqt MetaData"
+#define LQT_OBJSLOTS "Lqt Slots"
+#define LQT_OBJSIGS "Lqt Signatures"
+
 extern void lqtL_register(lua_State *, const void *);
 extern void lqtL_unregister(lua_State *, const void *);
 
@@ -114,7 +121,7 @@ extern void lqtL_pusharguments (lua_State *, char **);
 extern int lqtL_getflags (lua_State *, int, const char *);
 extern void lqtL_pushflags (lua_State *, int, const char *);
 
-extern "C" int luaopen_qtbase (lua_State *);
+extern int lqtL_touintarray (lua_State *);
 
 
 #endif // __LQT_COMMON_HPP
