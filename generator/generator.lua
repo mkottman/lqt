@@ -183,10 +183,40 @@ local copy_classes = function(index)
 		if e.label=='Class'
 			and e.xarg.access~='private'
 			and not e.xarg.fullname:match'%b<>' then
+			--if e.xarg.fullname=='QMetaObject' then debug'been here' end
 			ret[e] = true
 		end
 	end
 	return ret
+end
+
+local get_qobjects = function(index)
+	local classes = {}
+	for c in pairs(index) do
+		classes[c.xarg.fullname] = c
+	end
+	local is_qobject
+	is_qobject = function(c)
+		if c==nil then return false end
+		if c.qobject then return true end
+		if c.xarg.fullname=='QObject' then
+			c.qobject = true
+			return true
+		end
+		for b in string.gmatch(c.xarg.bases or '', '([^;]+);') do
+			local base = classes[b]
+			if is_qobject(base) then
+				--debug(c.xarg.fullname, "is a QObject")
+				c.qobject = true
+				return true
+			end
+		end
+		return false
+	end
+	for c in pairs(index) do
+		local qobj = is_qobject(c)
+	end
+	return index
 end
 
 local fill_virtuals = function(index)
@@ -200,7 +230,7 @@ local fill_virtuals = function(index)
 		for _, f in ipairs(c) do
 			if f.label=='Function' and f.xarg.virtual=='1' then
 				local n = string.match(f.xarg.name, '~') or f.xarg.name
-				if n~='~' then ret[n] = f end
+				if n~='~' and n~='metaObject' then ret[n] = f end
 			end
 		end
 		for b in string.gmatch(c.xarg.bases or '', '([^;]+);') do
@@ -631,6 +661,11 @@ local fill_shell_class = function(c, types)
 		end
 	end
 	shell = shell .. '  ~'..shellname..'() { lqtL_unregister(L, this); }\n'
+	if c.shell and c.qobject then
+		shell = shell .. '  static QMetaObject staticMetaObject;\n'
+		shell = shell .. '  virtual const QMetaObject *metaObject() const;\n'
+		shell = shell .. '  virtual int qt_metacall(QMetaObject::Call, int, void **);\n'
+	end
 	shell = shell .. '};\n'
 	c.shell_class = shell
 	return c
@@ -675,6 +710,7 @@ local print_shell_classes = function(classes)
 		print_head('#include <'..string.match(c.xarg.fullname, '^[^:]+')..'>')
 		print_head''
 		if c.shell then
+			if c.xarg.fullname=='QAbstractFileEngineHandler' then debug"WTF!!!" end
 			if c then
 				print_head(c.shell_class)
 			else
@@ -776,7 +812,7 @@ local print_metatable = function(c)
 	for b in string.gmatch(c.xarg.bases or '', '([^;]*);') do
 		bases = bases .. '{"' .. b .. '*", (char*)(void*)static_cast<'..b..'*>(('..c.xarg.fullname..'*)1)-(char*)1},\n'
 	end
-	bases = 'static lqt_Base lqt_base'..c.xarg.id..'[] = { '..bases..'{NULL, NULL} };\n'
+	bases = 'static lqt_Base lqt_base'..c.xarg.id..'[] = { '..bases..'{NULL, 0} };\n'
 	--print_meta(bases)
 	wrappers = wrappers .. bases .. '\n'
 	c.wrappers = wrappers
@@ -810,6 +846,41 @@ local print_single_class = function(c)
 	print_meta'\treturn 0;'
 	print_meta'}'
 	print_meta''
+	if c.shell and c.qobject then
+		print_meta([[
+#include <QDebug>
+QMetaObject lqt_shell_]]..n..[[::staticMetaObject;
+
+const QMetaObject *lqt_shell_]]..n..[[::metaObject() const {
+        //int oldtop = lua_gettop(L);
+        lqtL_pushudata(L, this, "]]..c.xarg.fullname..[[*");
+        lua_getfield(L, -1, LQT_OBJMETASTRING);
+        if (lua_isnil(L, -1)) {
+                lua_pop(L, 2);
+                return &]]..c.xarg.fullname..[[::staticMetaObject;
+        }
+        lua_getfield(L, -2, LQT_OBJMETADATA);
+        lqtL_touintarray(L);
+        //qDebug() << "copying qmeta object for slots in ]]..c.xarg.fullname..[[";
+        lqt_shell_]]..n..[[::staticMetaObject.d.superdata = &]]..c.xarg.fullname..[[::staticMetaObject;
+        lqt_shell_]]..n..[[::staticMetaObject.d.stringdata = lua_tostring(L, -2);
+        lqt_shell_]]..n..[[::staticMetaObject.d.data = (uint*)lua_touserdata(L, -1);
+        lqt_shell_]]..n..[[::staticMetaObject.d.extradata = 0; // slot_metaobj->d.extradata;
+        lua_setfield(L, LUA_REGISTRYINDEX, LQT_OBJMETADATA);
+        lua_setfield(L, LUA_REGISTRYINDEX, LQT_OBJMETASTRING);
+        lua_pop(L, 1);
+        //qDebug() << (lua_gettop(L) - oldtop);
+        return &lqt_shell_]]..n..[[::staticMetaObject;
+}
+
+int lqt_shell_]]..n..[[::qt_metacall(QMetaObject::Call call, int index, void **args) {
+        //qDebug() << "fake calling!";
+        index = ]]..c.xarg.fullname..[[::qt_metacall(call, index, args);
+        if (index < 0) return index;
+	return lqtL_qt_metacall(L, this, call, "QWidget*", index, args);
+
+]])
+	end
 	fmeta:close()
 end
 
@@ -827,18 +898,20 @@ local print_class_list = function(classes)
 		fmeta:write'\n'
 	end
 	print_meta('#include "lqt_common.hpp"')
+	print_meta('#include "'..module_name..'_slot.hpp'..'"\n\n')
 	for _, p in ipairs(big_picture) do
 		print_meta('extern "C" int '..p..' (lua_State *);')
 	end
-	print_meta('extern "C" int lqt_slot (lua_State *);')
 	print_meta('int lqt_create_enums_'..module_name..' (lua_State *);')
 	print_meta('extern "C" int luaopen_'..module_name..' (lua_State *L) {')
 	for _, p in ipairs(big_picture) do
 		print_meta('\t'..p..'(L);')
 	end
 	print_meta('\tlqt_create_enums_'..module_name..'(L);')
-	print_meta('\tlua_pushcfunction(L, lqt_slot);')
-	print_meta('\tlua_setglobal(L, "newslot");')
+	print_meta('\t//lua_pushlightuserdata(L, (void*)&LqtSlotAcceptor::staticMetaObject);')
+	print_meta('\t//lua_setfield(L, LUA_REGISTRYINDEX, LQT_METAOBJECT);')
+	print_meta('\tlua_pushlightuserdata(L, (void*)new LqtSlotAcceptor(L));')
+	print_meta('\tlua_setfield(L, LUA_REGISTRYINDEX, LQT_METACALLER);')
 	print_meta('\treturn 0;\n}')
 	if fmeta then fmeta:close() end
 	return classes
@@ -911,25 +984,26 @@ local slots_for_signals = function(signals, types)
 		end
 		args = args .. ')'
 		local pushlines, stack = make_pushlines(sig.arguments, types)
-		if not ret['void slot '..args] and pushlines then
-			ret['void slot '..args] = 'void LqtSlotAcceptor::slot '..args..[[ {
-  int oldtop = lua_gettop(L);
-  lqtL_pushudata(L, this, "QObject*");
-  lua_getfield(L, -1, "slot]]..string.gsub(args, ' arg.', '')..[[");
-  if (lua_isnil(L, -1)) {
-    lua_pop(L, 1);
-    lua_getfield(L, -1, "slot");
-  }
-  if (!lua_isfunction(L, -1)) {
-    lua_settop(L, oldtop);
-    return;
-  }
-  lua_insert(L, -2);
+		if not ret['void __slot '..args] and pushlines then
+			ret['void __slot '..args] = 'void LqtSlotAcceptor::__slot '..args..[[ {
+  //int oldtop = lua_gettop(L);
+  //lua_getfield(L, -1, "__slot]]..string.gsub(args, ' arg.', '')..[[");
+  //if (lua_isnil(L, -1)) {
+    //lua_pop(L, 1);
+    //lua_getfield(L, -1, "__slot");
+  //}
+  //if (!lua_isfunction(L, -1)) {
+    //lua_settop(L, oldtop);
+    //return;
+  //}
+  lua_pushvalue(L, -2);
 ]] .. pushlines .. [[
   if (lua_pcall(L, ]]..stack..[[+1, 0, 0)) {
-	  lua_error(L);
+    //lua_error(L);
+    qDebug() << lua_tostring(L, -1);
+    lua_pop(L, 1);
   }
-  lua_settop(L, oldtop);
+  //lua_settop(L, oldtop);
 }
 ]]
 		end
@@ -952,14 +1026,6 @@ local print_slots = function(s)
 	for p, b in pairs(s) do
 		print_slot_c(b)
 	end
-	print_slot_c[[
-
-extern "C" int lqt_slot (lua_State *L) {
-	QObject *parent = static_cast<QObject*>(lqtL_toudata(L, 1, "QObject*"));
-	lqtL_passudata(L, new LqtSlotAcceptor(L, parent), "QObject*");
-	return 1;
-}
-]]
 end
 
 
@@ -997,6 +1063,7 @@ local classes = distinguish_methods(classes) -- does that
 local classes = fill_public_destr(classes) -- does that: checks if destructor is public
 local classes = fill_copy_constructor(classes) -- does that: checks if copy contructor is public or protected
 local classes = fix_methods_wrappers(classes)
+local classes = get_qobjects(classes)
 
 for _, f in ipairs(filterfiles) do
 	classes, enums = loadfile(f)(classes, enums)
