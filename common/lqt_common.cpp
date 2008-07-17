@@ -494,8 +494,21 @@ void lqtL_pushflags (lua_State *L, int index, const char *name) {
 	return;
 }
 
-extern "C" int luaopen_qtbase (lua_State *) {
-	return 0;
+int lqtL_touintarray (lua_State *L) {
+        uint *p = NULL;
+        size_t i = 0;
+        size_t n, nb;
+        n = lua_objlen(L, -1);
+        nb = (n + 1) * sizeof(uint);
+        p = (uint*)lua_newuserdata(L, nb);
+        for (i=1;i<=n;i++) {
+                lua_rawgeti(L, -2, i);
+                p[i-1] = lua_tointeger(L, -1);
+                lua_pop(L, 1);
+        }
+        lua_remove(L, -2);
+        p[n] = 0;
+        return 1;
 }
 
 
