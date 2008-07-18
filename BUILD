@@ -36,8 +36,8 @@ echo '#include <QtGui>' > ./src/qtgui.cpp
 
 ./cpptoxml/cpptoxml -C cpptoxml/parser/rpp/pp-qt-configuration ./src/qtgui.cpp > src/qtgui.xml
 
-Rememebr that you have to set the QTDIR env variable such that
-$QTDIR contains the QtCore, QtGui, etc... directories
+Rememebr that you have to set the QT_INCLUDE env variable such that
+$QT_INCLUDE contains the QtCore, QtGui, etc... directories
 
 The same command could be issued directly on the header file
 e.g.
@@ -49,6 +49,10 @@ instead of
 
 mkdir qtgui_src
 lua generator/generator.lua src/qtgui.xml -i '<QtGui>' -n qtgui -t generator/types.lua -t generator/qtypes.lua -f generator/qt_internal.lua
+
+on windows use the command:
+lua generator\generator.lua src\qtgui.xml -i '<QtGui>' -n qtgui -t generator\types.lua -t generator\qtypes.lua -f generator\qt_internal.lua
+
 
 The options tell the generator which is the name of the
 module (-n), which type definitions to use (-t), which files

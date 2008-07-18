@@ -376,7 +376,7 @@ int main (int argc, char **argv) {
 	int i;
 	if ((i=options.indexOf("-C"))!=-1) {
 		if (options.count() > i+1) {
-			configName = options.at(i+1);
+			configName = QDir::fromNativeSeparators(options.at(i+1));
 			options.removeAt(i+1);
 		}
 		options.removeAt(i);
@@ -390,16 +390,16 @@ int main (int argc, char **argv) {
 		options.removeAt(i);
 	}
 	if (options.count()>1) return 37;
-	sourceName = options.at(0);
+	sourceName = QDir::fromNativeSeparators(options.at(0));
 
 	QByteArray contents;
 
 	Preprocessor pp;
 	QStringList inclist;
 
-	QString qtdir = getenv ("QTDIR");
+	QString qtdir = QDir::fromNativeSeparators(getenv("QT_INCLUDE"));
 	if (qtdir.isEmpty()) {
-		fprintf(stderr, "Generator requires QTDIR to be set\n");
+		fprintf(stderr, "Generator requires QT_INCLUDE to be set\n");
 		return false;
 	}
 
