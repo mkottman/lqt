@@ -878,7 +878,7 @@ int lqt_shell_]]..n..[[::qt_metacall(QMetaObject::Call call, int index, void **a
         index = ]]..c.xarg.fullname..[[::qt_metacall(call, index, args);
         if (index < 0) return index;
 	return lqtL_qt_metacall(L, this, call, "QWidget*", index, args);
-
+}
 ]])
 	end
 	fmeta:close()
