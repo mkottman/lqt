@@ -48,7 +48,7 @@ instead of
 == Create destination directory and generate bindings ==
 
 mkdir qtgui_src
-lua generator/generator.lua src/qtgui.xml -i '<QtGui>' -n qtgui -t generator/types.lua -t generator/qtypes.lua -f generator/qt_internal.lua
+lua generator/generator.lua src/qtgui.xml -i '<QtGui>' -i '"lqt_qt.hpp"' -n qtgui -t generator/types.lua -t generator/qtypes.lua -f generator/qt_internal.lua
 
 on windows use the command:
 lua generator\generator.lua src\qtgui.xml -i '<QtGui>' -n qtgui -t generator\types.lua -t generator\qtypes.lua -f generator\qt_internal.lua
@@ -67,7 +67,7 @@ there are no leftover files from previous runs.
 
 == Copy static files and compile binding ==
 
-cp common/lqt_common.?pp qtgui_src/
+cp common/lqt_*.?pp qtgui_src/
 cd qtgui_src/
 qmake -project -template lib -o qtgui.pro
 qmake
