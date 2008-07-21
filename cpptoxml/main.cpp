@@ -359,15 +359,52 @@ QString XMLVisitor::visit(CodeModelItem i) {
 	return ret;
 }
 
+void printHelp()
+{
+	const char* help =
+	"Options:\n"
+	"<file> file to parse\n"
+	"-C     optional parser config file\n"
+	"-P     only preprocess\n"
+	"-R     don't resolve\n"
+	"-N     generate NO code\n"
+	"-v     verbose\n"
+	"-d     debug\n"
+	"-h     print this help\n"
+	"-qt    default qt config file: -C cpptoxml/parser/rpp/pp-qt-configuration\n";
+	fprintf(stderr, help);
+}
+
+
 int main (int argc, char **argv) {
 	bool onlyPreprocess = false;
 	bool dontResolve = false;
+	bool noCode = false;
+	bool verbose = false;
+	bool debug = false;
 	QString configName;
 	QString sourceName;
 
 	QStringList options;
-	for (int i=1;i<argc;i++) options << argv[i];
+	for (int i=1;i<argc;i++) 
+		options << argv[i];
+
+	if (options.count()==0) {
+		fprintf(stderr, "Error: no arguments!\n");
+		printHelp();
+		return 1;
+	}
+
 	int i;
+	if((i=options.indexOf("-qt"))!=-1) {
+		options.removeAt(i);
+#ifdef Q_OS_WIN
+		options << "-C" << "cpptoxml/parser/rpp/pp-qt-configuration-win";
+#else
+		options << "-C" << "cpptoxml/parser/rpp/pp-qt-configuration";
+#endif
+	}
+
 	if ((i=options.indexOf("-C"))!=-1) {
 		if (options.count() > i+1) {
 			configName = QDir::fromNativeSeparators(options.at(i+1));
@@ -383,7 +420,25 @@ int main (int argc, char **argv) {
 		dontResolve = true;
 		options.removeAt(i);
 	}
-	if (options.count()>1) return 37;
+	if ((i=options.indexOf("-N"))!=-1) {
+		noCode = true;
+		options.removeAt(i);
+	}
+	if ((i=options.indexOf("-v"))!=-1) {
+		verbose = true;
+		options.removeAt(i);
+	}
+	if ((i=options.indexOf("-d"))!=-1) {
+		debug = true;
+		options.removeAt(i);
+	}
+	if ((i=options.indexOf("-h"))!=-1) {
+		printHelp();
+		return 0;
+	}
+	if (options.count() != 1) 
+		return 37;
+
 	sourceName = QDir::fromNativeSeparators(options.at(0));
 
 	QByteArray contents;
@@ -394,8 +449,21 @@ int main (int argc, char **argv) {
 	QString qtdir = QDir::fromNativeSeparators(getenv("QT_INCLUDE"));
 	if (qtdir.isEmpty()) {
 		fprintf(stderr, "Generator requires QT_INCLUDE to be set\n");
-		return false;
+		return 1;
 	}
+
+	if (!QFileInfo(sourceName).exists()) {
+		QString qtincludefile = QDir::fromNativeSeparators(qtdir+"/"+sourceName+"/"+sourceName);
+		if (QFileInfo(qtincludefile).exists()) {
+			sourceName = qtincludefile;
+		} else {
+			QString msg = "Error: wether '" + sourceName + "' nor '" + qtincludefile + "' found";
+			fprintf(stderr, msg.toLatin1().constData());
+			return 1;
+		}
+	}
+
+	if(verbose) fprintf(stderr, QString("Used file: " + sourceName).toLatin1().constData());
 
 	QString currentDir = QDir::current().absolutePath();
 	QFileInfo sourceInfo(sourceName);
@@ -408,14 +476,14 @@ int main (int argc, char **argv) {
 	inclist << (QDir::convertSeparators(qtdir + "/QtCore"));
 	inclist << (QDir::convertSeparators(qtdir + "/QtGui"));
 	inclist << (QDir::convertSeparators(qtdir + "/QtOpenGL"));
-	//qDebug() << inclist;
+	if(debug) qDebug() << inclist;
 
 	pp.addIncludePaths(inclist);
 	pp.processFile(sourceName, configName);
-	//qDebug() << pp.macroNames();
+	if(debug) qDebug() << pp.macroNames();
 	contents = pp.result();
-	//qDebug() << contents;
-	//QTextStream(stdout) << contents;
+	if(debug) qDebug() << contents;
+	if(debug) QTextStream(stdout) << contents;
 
 	if (onlyPreprocess) {
 		QTextStream(stdout) << contents;
@@ -430,8 +498,10 @@ int main (int argc, char **argv) {
 		Binder binder(&model, p.location());
 		FileModelItem f_model = binder.run(ast);
 
-		XMLVisitor visitor((CodeModelItem)f_model, !dontResolve);
-		QTextStream(stdout) << visitor.visit(model_static_cast<CodeModelItem>(f_model));
+		if (!noCode) {
+			XMLVisitor visitor((CodeModelItem)f_model, !dontResolve);
+			QTextStream(stdout) << visitor.visit(model_static_cast<CodeModelItem>(f_model));
+		}
 	}
 
 	return 0;
