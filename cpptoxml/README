@@ -1,5 +1,5 @@
 
-cpptoxml is a tool that trasform C++ code into an XML file.
+cpptoxml is a tool that transform C++ code into an XML file.
 
 It is based on the C++ parser originally written by Roberto
 Raggi for KDevelop, as published by Trolltech in their
