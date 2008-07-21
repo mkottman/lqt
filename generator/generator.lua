@@ -27,14 +27,16 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 --]]
 
-local path = string.match(arg[0], '(.*/)[^%/]+') or ''
+local osseparator = package.config:sub(1,1)
+
+local path = string.match(arg[0], '(.*'..osseparator..')[^%'..osseparator..']+') or ''
 local filename = nil
 local dirname = nil
 local module_name = nil
 local typefiles = {}
 local filterfiles = {}
 local output_includes = {
-	'"lqt_common.hpp"',
+	'lqt_common.hpp',
 }
 
 do
@@ -62,7 +64,7 @@ end
 
 local my_includes = ''
 for _, i in ipairs(output_includes) do
-	my_includes = my_includes .. '#include '..i..'\n'
+	my_includes = my_includes .. '#include "'..i..'"\n'
 end
 output_includes = my_includes .. '\n'
 
@@ -83,10 +85,11 @@ local fprint = function(f)
 	end
 end
 
+local _src = '_src'..osseparator
 local debug = fprint(io.stderr)
-local print_enum = fprint(assert(io.open(module_name..'_src/'..module_name..'_enum.cpp', 'w')))
-local print_slot_h = fprint(assert(io.open(module_name..'_src/'..module_name..'_slot.hpp', 'w')))
-local print_slot_c = fprint(assert(io.open(module_name..'_src/'..module_name..'_slot.cpp', 'w')))
+local print_enum = fprint(assert(io.open(module_name.._src..module_name..'_enum.cpp', 'w')))
+local print_slot_h = fprint(assert(io.open(module_name.._src..module_name..'_slot.hpp', 'w')))
+local print_slot_c = fprint(assert(io.open(module_name.._src..module_name..'_slot.cpp', 'w')))
 
 local xmlstream, idindex = dofile(path..'xml.lua')(readfile(filename))
 
@@ -569,7 +572,7 @@ local fill_wrappers = function(functions, types)
 		if f then
 			f = assert(fill_test_code(f, types), f.xarg.fullname) -- MUST pass
 			ret[f] = true
-			--local out = 'extern "C" int lqt_bind'..f.xarg.id..' (lua_State *L) {\n'
+			--local out = 'extern "C" LQT_EXPORT  int lqt_bind'..f.xarg.id..' (lua_State *L) {\n'
 			--.. f.wrapper_code .. '}\n'
 			--print(out)
 		end
@@ -634,7 +637,7 @@ end
 
 local fill_shell_class = function(c, types)
 	local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
-	local shell = 'class ' .. shellname .. ' : public ' .. c.xarg.fullname .. ' {\npublic:\n'
+	local shell = 'class LQT_EXPORT ' .. shellname .. ' : public ' .. c.xarg.fullname .. ' {\npublic:\n'
 	shell = shell .. '  lua_State *L;\n'
 	for _, constr in ipairs(c.constructors) do
 		if constr.xarg.access~='private' then
@@ -699,7 +702,7 @@ local print_shell_classes = function(classes)
 	for c in pairs(classes) do
 		if fhead then fhead:close() end
 		local n = string.gsub(c.xarg.fullname, '::', '_LQT_')
-		fhead = assert(io.open(module_name..'_src/'..module_name..'_head_'..n..'.hpp', 'w'))
+		fhead = assert(io.open(module_name.._src..module_name..'_head_'..n..'.hpp', 'w'))
 		local print_head = function(...)
 			fhead:write(...)
 			fhead:write'\n'
@@ -828,7 +831,7 @@ end
 
 local print_single_class = function(c)
 	local n = string.gsub(c.xarg.fullname, '::', '_LQT_')
-	local fmeta = assert(io.open(module_name..'_src/'..module_name..'_meta_'..n..'.cpp', 'w'))
+	local fmeta = assert(io.open(module_name.._src..module_name..'_meta_'..n..'.cpp', 'w'))
 	local print_meta = function(...)
 		fmeta:write(...)
 		fmeta:write'\n'
@@ -838,7 +841,7 @@ local print_single_class = function(c)
 	if c.virtual_overloads then
 		print_meta(c.virtual_overloads)
 	end
-	print_meta('extern "C" int luaopen_'..n..' (lua_State *L) {')
+	print_meta('extern "C" LQT_EXPORT int luaopen_'..n..' (lua_State *L) {')
 	print_meta('\tlqtL_createclass(L, "'
 		..n..'*", lqt_metatable'
 		..c.xarg.id..', lqt_base'
@@ -892,7 +895,7 @@ local print_class_list = function(classes)
 		table.insert(big_picture, 'luaopen_'..n)
 	end
 	if fmeta then fmeta:close() end
-	fmeta = assert(io.open(module_name..'_src/'..module_name..'_meta.cpp', 'w'))
+	fmeta = assert(io.open(module_name.._src..module_name..'_meta.cpp', 'w'))
 	local print_meta = function(...)
 		fmeta:write(...)
 		fmeta:write'\n'
@@ -900,10 +903,10 @@ local print_class_list = function(classes)
 	print_meta('#include "lqt_common.hpp"')
 	print_meta('#include "'..module_name..'_slot.hpp'..'"\n\n')
 	for _, p in ipairs(big_picture) do
-		print_meta('extern "C" int '..p..' (lua_State *);')
+		print_meta('extern "C" LQT_EXPORT int '..p..' (lua_State *);')
 	end
 	print_meta('int lqt_create_enums_'..module_name..' (lua_State *);')
-	print_meta('extern "C" int luaopen_'..module_name..' (lua_State *L) {')
+	print_meta('extern "C" LQT_EXPORT int luaopen_'..module_name..' (lua_State *L) {')
 	for _, p in ipairs(big_picture) do
 		print_meta('\t'..p..'(L);')
 	end
