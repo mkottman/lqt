@@ -29,6 +29,7 @@ for c in pairs(classes) do
 			or c.xarg.fullname=='QtConcurrent::ResultStoreBase'
 			or c.xarg.fullname=='QtConcurrent::ThreadEngineBase'
 			or c.xarg.fullname=='QtConcurrent::ThreadEngineSemaphore'
+			or c.xarg.fullname=='QObjectData'
 			or c.xarg.fullname=='QThreadStorageData') then
 		ret1[c] = true
 	end

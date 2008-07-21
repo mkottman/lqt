@@ -29,6 +29,7 @@
 
 #ifdef _WIN32
 #define LQT_EXPORT  __declspec(dllexport)
+#define _CRT_SECURE_NO_WARNINGS
 #else
 #define LQT_EXPORT
 #endif

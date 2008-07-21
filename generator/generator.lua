@@ -36,7 +36,7 @@ local module_name = nil
 local typefiles = {}
 local filterfiles = {}
 local output_includes = {
-	'lqt_common.hpp',
+	'lqt_qt.hpp',
 }
 
 do
@@ -829,9 +829,13 @@ local print_metatables = function(classes)
 	return classes
 end
 
+local cpp_files = {}
+
 local print_single_class = function(c)
 	local n = string.gsub(c.xarg.fullname, '::', '_LQT_')
-	local fmeta = assert(io.open(module_name.._src..module_name..'_meta_'..n..'.cpp', 'w'))
+	local cppname = module_name..'_meta_'..n..'.cpp'
+	table.insert(cpp_files, cppname);
+	local fmeta = assert(io.open(module_name.._src..cppname, 'w'))
 	local print_meta = function(...)
 		fmeta:write(...)
 		fmeta:write'\n'
@@ -852,6 +856,7 @@ local print_single_class = function(c)
 	if c.shell and c.qobject then
 		print_meta([[
 #include <QDebug>
+
 QMetaObject lqt_shell_]]..n..[[::staticMetaObject;
 
 const QMetaObject *lqt_shell_]]..n..[[::metaObject() const {
@@ -887,6 +892,31 @@ int lqt_shell_]]..n..[[::qt_metacall(QMetaObject::Call call, int index, void **a
 	fmeta:close()
 end
 
+local print_merged_build = function()
+	local path = module_name.._src
+	local mergename = module_name..'_merged_build'
+	local merged = assert(io.open(path..mergename..'.cpp', 'w'))
+	for _, p in ipairs(cpp_files) do
+		merged:write('#include "'..p..'"\n')
+	end
+	local pro_file = assert(io.open(path..mergename..'.pro', 'w'))
+	
+	local print_pro= function(...)
+		pro_file:write(...)
+		pro_file:write'\n'
+	end
+	print_pro('TEMPLATE = lib')
+	print_pro('TARGET = '..module_name)
+	print_pro('INCLUDEPATH += .')
+	print_pro('HEADERS += '..module_name..'_slot.hpp')
+	print_pro('SOURCES += ../common/lqt_common.cpp \\')
+	print_pro('          ../common/lqt_qt.cpp \\')
+	print_pro('          '..module_name..'_enum.cpp \\')
+	print_pro('          '..module_name..'_meta.cpp \\')
+	print_pro('          '..module_name..'_slot.cpp \\')
+	print_pro('          '..mergename..'.cpp')
+end
+
 local print_class_list = function(classes)
 	local big_picture = {}
 	for c in pairs(classes) do
@@ -894,18 +924,20 @@ local print_class_list = function(classes)
 		print_single_class(c)
 		table.insert(big_picture, 'luaopen_'..n)
 	end
+	print_merged_build()
 	if fmeta then fmeta:close() end
 	fmeta = assert(io.open(module_name.._src..module_name..'_meta.cpp', 'w'))
 	local print_meta = function(...)
 		fmeta:write(...)
 		fmeta:write'\n'
 	end
-	print_meta('#include "lqt_common.hpp"')
+	print_meta()
+	print_meta('#include "lqt_qt.hpp"')
 	print_meta('#include "'..module_name..'_slot.hpp'..'"\n\n')
 	for _, p in ipairs(big_picture) do
 		print_meta('extern "C" LQT_EXPORT int '..p..' (lua_State *);')
 	end
-	print_meta('int lqt_create_enums_'..module_name..' (lua_State *);')
+	print_meta('void lqt_create_enums_'..module_name..' (lua_State *);')
 	print_meta('extern "C" LQT_EXPORT int luaopen_'..module_name..' (lua_State *L) {')
 	for _, p in ipairs(big_picture) do
 		print_meta('\t'..p..'(L);')
