@@ -27,6 +27,10 @@ qmake
 make
 cd ..
 
+On Windows you could call build.bat. Lua must be in PATH and QT_INCLUDE set.
+
+Or step by step:
+
 == Create a cpp file including the module ==
 
 mkdir ./src
@@ -48,10 +52,11 @@ instead of
 == Create destination directory and generate bindings ==
 
 mkdir qtgui_src
-lua generator/generator.lua src/qtgui.xml -i '<QtGui>' -i '"lqt_qt.hpp"' -n qtgui -t generator/types.lua -t generator/qtypes.lua -f generator/qt_internal.lua
+lua generator/generator.lua src/qtgui.xml -i QtGui -i lqt_qt.hpp -n qtgui -t generator/types.lua -t generator/qtypes.lua -f generator/qt_internal.lua
 
-on windows use the command:
-lua generator\generator.lua src\qtgui.xml -i '<QtGui>' -n qtgui -t generator\types.lua -t generator\qtypes.lua -f generator\qt_internal.lua
+On windows use the command:
+lua generator\generator.lua src\qtgui.xml -i QtGui -i lqt_qt.hpp -n qtgui -t generator\types.lua -t generator\qtypes.lua -f generator\qt_internal.lua
+
 
 
 The options tell the generator which is the name of the

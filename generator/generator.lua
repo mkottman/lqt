@@ -3,6 +3,7 @@
 --[[
 
 Copyright (c) 2007-2008 Mauro Iazzi
+Copyright (c)      2008 Peter Kümmel 
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
@@ -36,7 +37,7 @@ local module_name = nil
 local typefiles = {}
 local filterfiles = {}
 local output_includes = {
-	'lqt_qt.hpp',
+	'lqt_common.hpp',
 }
 
 do
@@ -932,7 +933,7 @@ local print_class_list = function(classes)
 		fmeta:write'\n'
 	end
 	print_meta()
-	print_meta('#include "lqt_qt.hpp"')
+	print_meta('#include "lqt_common.hpp"')
 	print_meta('#include "'..module_name..'_slot.hpp'..'"\n\n')
 	for _, p in ipairs(big_picture) do
 		print_meta('extern "C" LQT_EXPORT int '..p..' (lua_State *);')
