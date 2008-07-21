@@ -27,6 +27,12 @@
 #ifndef __LQT_COMMON_HPP
 #define __LQT_COMMON_HPP
 
+#ifdef _WIN32
+#define LQT_EXPORT  __declspec(dllexport)
+#else
+#define LQT_EXPORT
+#endif
+
 extern "C" {
 #include <lua.h>
 #include <lualib.h>
@@ -49,41 +55,41 @@ extern "C" {
 #define LQT_OBJSLOTS "Lqt Slots"
 #define LQT_OBJSIGS "Lqt Signatures"
 
-extern void lqtL_register(lua_State *, const void *);
-extern void lqtL_unregister(lua_State *, const void *);
+void lqtL_register(lua_State *, const void *);
+void lqtL_unregister(lua_State *, const void *);
 
-//extern int& lqtL_tointref (lua_State *, int);
+//int& lqtL_tointref (lua_State *, int);
 
-//extern void lqtL_pusharguments (lua_State *, char**);
-//extern char** lqtL_toarguments (lua_State *, int);
-//extern bool lqtL_testarguments (lua_State *, int);
+//void lqtL_pusharguments (lua_State *, char**);
+//char** lqtL_toarguments (lua_State *, int);
+//bool lqtL_testarguments (lua_State *, int);
 
-//extern void lqtL_manageudata (lua_State *, int);
-//extern void lqtL_unmanageudata (lua_State *, int);
-extern void lqtL_pushudata (lua_State *, const void *, const char *);
-extern void lqtL_passudata (lua_State *, const void *, const char *);
-extern void lqtL_copyudata (lua_State *, const void *, const char *);
-extern void * lqtL_toudata (lua_State *, int, const char *);
-extern bool lqtL_testudata (lua_State *, int, const char *);
+//void lqtL_manageudata (lua_State *, int);
+//void lqtL_unmanageudata (lua_State *, int);
+void lqtL_pushudata (lua_State *, const void *, const char *);
+void lqtL_passudata (lua_State *, const void *, const char *);
+void lqtL_copyudata (lua_State *, const void *, const char *);
+void * lqtL_toudata (lua_State *, int, const char *);
+bool lqtL_testudata (lua_State *, int, const char *);
 //#define lqtL_checkudata(a...) luaL_checkudata(a)
-extern void * lqtL_checkudata (lua_State *, int, const char *);
+void * lqtL_checkudata (lua_State *, int, const char *);
 #define lqtL_isudata lqtL_testudata
 
-extern void lqtL_pushenum (lua_State *, int, const char *);
-extern bool lqtL_isenum (lua_State *, int, const char *);
-extern int lqtL_toenum (lua_State *, int, const char *);
+void lqtL_pushenum (lua_State *, int, const char *);
+bool lqtL_isenum (lua_State *, int, const char *);
+int lqtL_toenum (lua_State *, int, const char *);
 
-extern bool lqtL_isinteger (lua_State *, int);
-extern bool lqtL_isnumber (lua_State *, int);
-extern bool lqtL_isstring (lua_State *, int);
-extern bool lqtL_isboolean (lua_State *, int);
+bool lqtL_isinteger (lua_State *, int);
+bool lqtL_isnumber (lua_State *, int);
+bool lqtL_isstring (lua_State *, int);
+bool lqtL_isboolean (lua_State *, int);
 
-extern bool lqtL_missarg (lua_State *, int, int);
-//extern int lqtL_baseindex (lua_State *, int, int);
+bool lqtL_missarg (lua_State *, int, int);
+//int lqtL_baseindex (lua_State *, int, int);
 
-//extern int lqtL_gc (lua_State *);
-//extern int lqtL_index (lua_State *);
-//extern int lqtL_newindex (lua_State *);
+//int lqtL_gc (lua_State *);
+//int lqtL_index (lua_State *);
+//int lqtL_newindex (lua_State *);
 
 typedef struct {
 	const char *name;
@@ -95,7 +101,7 @@ typedef struct {
 	const char *name;
 } lqt_Enumlist;
 
-extern int lqtL_createenumlist (lua_State *, lqt_Enumlist[]);
+int lqtL_createenumlist (lua_State *, lqt_Enumlist[]);
 
 typedef struct {
 	const char *basename;
@@ -108,20 +114,20 @@ typedef struct {
 	const char * name;
 } lqt_Class;
 
-extern int lqtL_createclasses (lua_State *, lqt_Class *);
-extern int lqtL_createclass (lua_State *, const char *, luaL_Reg *, lqt_Base *);
+int lqtL_createclasses (lua_State *, lqt_Class *);
+int lqtL_createclass (lua_State *, const char *, luaL_Reg *, lqt_Base *);
 
 /* functions to get/push special types */
 
-extern void * lqtL_getref (lua_State *, size_t);
-extern int * lqtL_tointref (lua_State *, int);
-extern char ** lqtL_toarguments (lua_State *, int);
-extern void lqtL_pusharguments (lua_State *, char **);
+void * lqtL_getref (lua_State *, size_t);
+int * lqtL_tointref (lua_State *, int);
+char ** lqtL_toarguments (lua_State *, int);
+void lqtL_pusharguments (lua_State *, char **);
 
-extern int lqtL_getflags (lua_State *, int, const char *);
-extern void lqtL_pushflags (lua_State *, int, const char *);
+int lqtL_getflags (lua_State *, int, const char *);
+void lqtL_pushflags (lua_State *, int, const char *);
 
-extern int lqtL_touintarray (lua_State *);
+int lqtL_touintarray (lua_State *);
 
 
 #endif // __LQT_COMMON_HPP
