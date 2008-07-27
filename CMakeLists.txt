@@ -42,7 +42,7 @@ include(${QT_USE_FILE})
 if(MSVC)
 	set(CMAKE_SUPPRESS_REGENERATION TRUE) 
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-	set(CMAKE_DEBUG_POSTFIX d)
+	set(CMAKE_DEBUG_POSTFIX)
 endif()
 
 if(MINGW)
@@ -84,13 +84,15 @@ set(GROUP_CODE "Source Files")
 add_subdirectory(cpptoxml)
 
 
-macro(build_qt_lib_binding BIND)
+macro(build_qt_lib_binding BINDING_HEADER)
+
+	string(TOLOWER ${BINDING_HEADER} BINDING_NAME)
 
 	# hardcoded in generator.lua
-	set (LQT_GEN_DIR ${BIND}_src)
-	file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/${LQT_GEN_DIR})
+	set (LQT_GEN_DIR ${CMAKE_BINARY_DIR}/${BINDING_NAME}_src)
+	file(MAKE_DIRECTORY ${LQT_GEN_DIR})
 
-	set (BINDING_SRC ${LQT_GEN_DIR}/${BIND}_merged_build.cpp)
+	set (BINDING_SRC ${LQT_GEN_DIR}/${BINDING_NAME}_merged_build.cpp)
 	set_source_files_properties(${BINDING_SRC} PROPERTIES  GENERATED TRUE)
 
 	if (UNIX)
@@ -99,44 +101,54 @@ macro(build_qt_lib_binding BIND)
 		set (PP_CONFIG ${CMAKE_SOURCE_DIR}/cpptoxml/parser/rpp/pp-qt-configuration-win)
 	endif()
 
-	set (GEN_XML ${LQT_GEN_DIR}/${BIND}.xml)
-	add_custom_target(generate_xml_${BIND} 	COMMAND cpptoxml 
-							${BIND} 
+	set (GEN_XML ${LQT_GEN_DIR}/${BINDING_NAME}.xml)
+	add_custom_target(generate_xml_${BINDING_NAME} 	COMMAND cpptoxml 
+							${BINDING_NAME} 
 							-C ${PP_CONFIG}
 							-I ${QT_INCLUDE_DIR} 
 							-o ${GEN_XML}
-						COMMENT "Generating XML: running cpptoxml on ${BIND} "
+						COMMENT "Generating XML: running cpptoxml on ${BINDING_NAME} "
 						VERBATIM)
 
 
-	add_custom_target(generate_cpp_${BIND}  COMMAND cmake -E copy_directory ${CMAKE_SOURCE_DIR}/common ${LQT_GEN_DIR}
+	add_custom_target(generate_cpp_${BINDING_NAME}  COMMAND cmake -E copy_directory ${CMAKE_SOURCE_DIR}/common ${LQT_GEN_DIR}
 						COMMAND lua 
 							"${CMAKE_SOURCE_DIR}/generator/generator.lua" 
 							${GEN_XML} 
-							-i ${BIND} -i lqt_qt.hpp 
-							-n ${BIND} 
+							-i ${BINDING_HEADER} -i lqt_qt.hpp 
+							-n ${BINDING_NAME} 
 							-t ${CMAKE_SOURCE_DIR}/generator/types.lua 
 							-t ${CMAKE_SOURCE_DIR}/generator/qtypes.lua 
 							-f ${CMAKE_SOURCE_DIR}/generator/qt_internal.lua
 						COMMENT "Generating binding code with Lua"
 						VERBATIM)
 
-
-	file(GLOB COMMON_src ${CMAKE_SOURCE_DIR}/common/*.cpp) 
-	file(GLOB COMMON_h ${CMAKE_SOURCE_DIR}/common/*.hpp) 
+	set(COMMON COMMON_${BINDING_NAME})
+	file(GLOB ${COMMON}_SRC ${CMAKE_SOURCE_DIR}/common/*.cpp) 
+	file(GLOB ${COMMON}_HPP ${CMAKE_SOURCE_DIR}/common/*.hpp) 
+	set(${COMMON}_SRC ${${COMMON}_SRC}	${LQT_GEN_DIR}/${BINDING_NAME}_enum.cpp
+									${LQT_GEN_DIR}/${BINDING_NAME}_meta.cpp
+									${LQT_GEN_DIR}/${BINDING_NAME}_slot.cpp)
+	qt4_wrap_cpp(${COMMON}_MOC ${LQT_GEN_DIR}/${BINDING_NAME}_slot.hpp)
+	
 	include_directories(${CMAKE_SOURCE_DIR}/common ${LUA_INCLUDE_DIR} ${QT_INCLUDES})
 
-	add_library(lqt_${BIND} SHARED ${BINDING_SRC} ${COMMON_src} ${COMMON_h})
-	target_link_libraries(lqt_${BIND} ${QT_LIBRARIES} ${LUA_LIBRARY})		
+	add_library(${BINDING_NAME} SHARED  ${BINDING_SRC}
+											${${COMMON}_SRC}
+											${${COMMON}_HPP} 
+											${${COMMON}_MOC})
+											
+	target_link_libraries(${BINDING_NAME} ${QT_LIBRARIES} ${LUA_LIBRARY})		
 
-	add_dependencies(generate_xml_${BIND}  cpptoxml)		
-	add_dependencies(generate_cpp_${BIND}  generate_xml_${BIND} )
-	add_dependencies(lqt_${BIND} generate_cpp_${BIND} )
+	add_dependencies(generate_xml_${BINDING_NAME}  cpptoxml)		
+	add_dependencies(generate_cpp_${BINDING_NAME}  generate_xml_${BINDING_NAME} )
+	add_dependencies(${BINDING_NAME} generate_cpp_${BINDING_NAME} )
 endmacro()
 
 
 build_qt_lib_binding(QtCore)
 build_qt_lib_binding(QtGui)
-build_qt_lib_binding(QtNetwork)
 build_qt_lib_binding(QtWebKit)
+
+
 
