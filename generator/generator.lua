@@ -674,6 +674,8 @@ local fill_shell_class = function(c, types)
 		shell = shell .. '  static QMetaObject staticMetaObject;\n'
 		shell = shell .. '  virtual const QMetaObject *metaObject() const;\n'
 		shell = shell .. '  virtual int qt_metacall(QMetaObject::Call, int, void **);\n'
+		shell = shell .. 'private:\n'
+		shell = shell .. '      Q_DISABLE_COPY('..shellname..');\n'
 	end
 	shell = shell .. '};\n'
 	c.shell_class = shell
