@@ -10,10 +10,10 @@ app.__gc = app.delete -- take ownership of object
 local address = tostring(arg[1])
 
 if address == 'nil' then
-	address = 'http://www.lua.org'
+	address = 'www.lua.org'
 end
 
-url = QUrl.new(QString.new(address))
+url = QUrl.new(QString.new('http://'..address))
 
 print('Loading site  '..address..' ...')
 
