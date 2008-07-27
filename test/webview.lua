@@ -7,10 +7,10 @@ require'qtwebkit'
 app = QApplication.new(1 + select('#', ...), {arg[0], ...})
 app.__gc = app.delete -- take ownership of object
 
-local address = tostring(arg[01])
+local address = tostring(arg[1])
 
-if address == '' then
-	address = QUrl.new(QString.new('http://www.lua.org'))
+if address == 'nil' then
+	address = 'http://www.lua.org'
 end
 
 url = QUrl.new(QString.new(address))
