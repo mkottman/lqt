@@ -372,7 +372,10 @@ void printHelp()
 	"-v     verbose\n"
 	"-d     debug\n"
 	"-h     print this help\n"
-	"-qt    default qt config file: -C cpptoxml/parser/rpp/pp-qt-configuration\n";
+	"-qt    default qt config file: -C cpptoxml/parser/rpp/pp-qt-configuration\n"
+	"-I     Qt include dir"
+	"-o     output file"
+	;
 	fprintf(stderr, help);
 }
 
@@ -437,8 +440,6 @@ int main (int argc, char **argv) {
 		printHelp();
 		return 0;
 	}
-	if (options.count() != 1) 
-		return 37;
 
 	sourceName = QDir::fromNativeSeparators(options.at(0));
 
@@ -447,10 +448,33 @@ int main (int argc, char **argv) {
 	Preprocessor pp;
 	QStringList inclist;
 
-	QString qtdir = QDir::fromNativeSeparators(getenv("QT_INCLUDE"));
+	QString outputFile;
+	if ((i=options.indexOf("-o"))!=-1) {
+		if (options.count() > i+1) {
+			outputFile = QDir::fromNativeSeparators(options.at(i+1));
+			options.removeAt(i+1);
+		}
+		options.removeAt(i);
+	}
+
+	QString qtdir;
+	if ((i=options.indexOf("-I"))!=-1) {
+		if (options.count() > i+1) {
+			qtdir = QDir::fromNativeSeparators(options.at(i+1));
+			options.removeAt(i+1);
+		}
+		options.removeAt(i);
+	} else {
+		qtdir = QDir::fromNativeSeparators(getenv("QT_INCLUDE"));
+	}
 	if (qtdir.isEmpty()) {
-		fprintf(stderr, "Generator requires QT_INCLUDE to be set\n");
+		fprintf(stderr, "Generator requires Qt include dir as option -I or QT_INCLUDE to be set\n");
 		return 1;
+	}
+
+	if (options.count() != 1) {
+		fprintf(stderr, "Too many arguments\n");
+		return 37;
 	}
 
 	if (!QFileInfo(sourceName).exists()) {
@@ -501,11 +525,23 @@ int main (int argc, char **argv) {
 
 		if (!noCode) {
 			XMLVisitor visitor((CodeModelItem)f_model, !dontResolve);
-			QTextStream(stdout) << visitor.visit(model_static_cast<CodeModelItem>(f_model));
+			QString xml = visitor.visit(model_static_cast<CodeModelItem>(f_model));
+			if (outputFile.isEmpty()) {
+				QTextStream(stdout) << xml;
+			} else {
+				QFile file(outputFile);
+				if (file.open(QFile::WriteOnly | QFile::Text)) {
+					file.write(xml.toLatin1());
+				}
+			}
 		}
 	}
 
 	return 0;
 }
+
+
+
+
 
 

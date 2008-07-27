@@ -31,6 +31,11 @@ OTHER DEALINGS IN THE SOFTWARE.
 local osseparator = package.config:sub(1,1)
 
 local path = string.match(arg[0], '(.*'..osseparator..')[^%'..osseparator..']+') or ''
+if path == "" then
+	--- remove script name
+	path = string.sub(arg[0], 1, #arg[0] - #'generator.lua')
+end
+
 local filename = nil
 local dirname = nil
 local module_name = nil
