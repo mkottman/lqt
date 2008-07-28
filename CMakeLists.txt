@@ -102,16 +102,16 @@ macro(build_qt_lib_binding BINDING_HEADER)
 	endif()
 
 	set (GEN_XML ${LQT_GEN_DIR}/${BINDING_NAME}.xml)
-	add_custom_target(generate_xml_${BINDING_NAME} 	COMMAND cpptoxml 
-							${BINDING_NAME} 
+	add_custom_target(generate_${BINDING_NAME}_xml 	COMMAND cpptoxml 
+							${BINDING_HEADER} 
 							-C ${PP_CONFIG}
-							-I ${QT_INCLUDE_DIR} 
+							-Q ${QT_INCLUDE_DIR} 
 							-o ${GEN_XML}
 						COMMENT "Generating XML: running cpptoxml on ${BINDING_NAME} "
 						VERBATIM)
 
 
-	add_custom_target(generate_cpp_${BINDING_NAME}  COMMAND cmake -E copy_directory ${CMAKE_SOURCE_DIR}/common ${LQT_GEN_DIR}
+	add_custom_target(generate_${BINDING_NAME}_cpp  COMMAND cmake -E copy_directory ${CMAKE_SOURCE_DIR}/common ${LQT_GEN_DIR}
 						COMMAND lua 
 							"${CMAKE_SOURCE_DIR}/generator/generator.lua" 
 							${GEN_XML} 
@@ -140,9 +140,9 @@ macro(build_qt_lib_binding BINDING_HEADER)
 											
 	target_link_libraries(${BINDING_NAME} ${QT_LIBRARIES} ${LUA_LIBRARY})		
 
-	add_dependencies(generate_xml_${BINDING_NAME}  cpptoxml)		
-	add_dependencies(generate_cpp_${BINDING_NAME}  generate_xml_${BINDING_NAME} )
-	add_dependencies(${BINDING_NAME} generate_cpp_${BINDING_NAME} )
+	add_dependencies(generate_${BINDING_NAME}_xml  cpptoxml)		
+	add_dependencies(generate_${BINDING_NAME}_cpp  generate_${BINDING_NAME}_xml)
+	add_dependencies(${BINDING_NAME} generate_${BINDING_NAME}_cpp)
 endmacro()
 
 
