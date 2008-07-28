@@ -1,6 +1,6 @@
 /*
  * Copyright 2008 Mauro Iazzi <mauro.iazzi@gmail.com>
-  * Copyright 2008 Peter Kümmel <syntheticpp@gmx.net>
+ * Copyright 2008 Peter Kümmel <syntheticpp@gmx.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,9 +38,13 @@
 
 #include <QDebug>
 
+
 #define ID_STR(i) (QString("_").append(QString::number(i->creationId())))
 #define ATTR_STR(n, v) ( QString(" ") + n + QString("=\"") + v + QString("\"") )
 #define ATTR_NUM(n, v) ( (QString::number(v)).prepend(" " n "=\"").append("\"") )
+#define ID_STR(i) (QString('_').append(QString::number(i->creationId())))
+#define ATTR_STR(n, v) ( QString(' ') + n + QString("=\"") + v + QString('\"') )
+#define ATTR_NUM(n, v) ( (QString::number(v)).prepend(" " n "=\"").append('\"') )
 #define ATTR_TRUE(n) ( ATTR_NUM(n, 1) )
 
 using namespace std;
@@ -126,9 +130,9 @@ QString XMLVisitor::visit(const TypeInfo& t, QStringList scope) {
 	//if (oldt!=tt.toString()) qDebug() << oldt << " -> " << tt.toString();
 
 	QString ret(" type_name=\"");
-	ret += tt.toString().append("\"");
+	ret += tt.toString().append('\"');
 	ret += " type_base=\"";
-	ret += tt.qualifiedName().join("::").append("\"");
+	ret += tt.qualifiedName().join("::").append('\"');
 	if (tt.isConstant()) ret += ATTR_TRUE("type_constant");
 	if (tt.isVolatile()) ret += ATTR_TRUE("type_volatile");
 	if (tt.isReference()) ret += ATTR_TRUE("type_reference");
@@ -136,7 +140,7 @@ QString XMLVisitor::visit(const TypeInfo& t, QStringList scope) {
 
 	QStringList arr = tt.arrayElements();
 	QString tmp = arr.join(",");
-	if (!tmp.isEmpty()) ret += " array=\"" + tmp + "\"";
+	if (!tmp.isEmpty()) ret += " array=\"" + tmp + '\"';
 
 	if (tt.isFunctionPointer()) ret += " function_pointer=\"1\"";
 
@@ -161,19 +165,19 @@ QString XMLVisitor::XMLTag(CodeModelItem i) {
 		TAG_CASE(TypeAlias);
 		TAG_CASE(Variable);
 	}
-	return "";
+	return QString();
 }
 
 QString templateParametersToString (TemplateParameterList list) {
 	QString ret;
 	foreach(TemplateParameterModelItem p,list) {
-		ret = ret + p->name() + ";";
+		ret = ret + p->name() + ';';
 	}
 	return ret;
 }
 
 QString XMLVisitor::visit(CodeModelItem i) {
-	QString ret("");
+	QString ret;
 	ret += XMLTag(i);
 
 	current_id = ID_STR(i) + " => " + XMLTag(i) + " => " + i->qualifiedName().join("::"); // FIXME: this is debug code
@@ -196,22 +200,22 @@ QString XMLVisitor::visit(CodeModelItem i) {
 	}
 	if (NamespaceModelItem n = model_dynamic_cast<NamespaceModelItem>(i)) {
 		foreach(NamespaceModelItem m, n->namespaces())
-			ret += ID_STR(m).append(" ");
+			ret += ID_STR(m).append(' ');
 	}
 	if (ScopeModelItem s = model_dynamic_cast<ScopeModelItem>(i)) {
 		foreach(ClassModelItem n, s->classes())
-			ret += ID_STR(n).append(" ");
+			ret += ID_STR(n).append(' ');
 		foreach(EnumModelItem n, s->enums())
-			ret += ID_STR(n).append(" ");
+			ret += ID_STR(n).append(' ');
 		foreach(FunctionModelItem n, s->functions())
-			ret += ID_STR(n).append(" ");
+			ret += ID_STR(n).append(' ');
 		foreach(TypeAliasModelItem n, s->typeAliases())
-			ret += ID_STR(n).append(" ");
+			ret += ID_STR(n).append(' ');
 		foreach(VariableModelItem n, s->variables())
-			ret += ID_STR(n).append(" ");
+			ret += ID_STR(n).append(' ');
 	}
 	if (ScopeModelItem s = model_dynamic_cast<ScopeModelItem>(i)) {
-		ret += "\"";
+		ret += '\"';
 	}
 	if (MemberModelItem m = model_dynamic_cast<MemberModelItem>(i)) {
 		if (m->isConstant()) ret += ATTR_TRUE("constant");
@@ -303,66 +307,76 @@ QString XMLVisitor::visit(CodeModelItem i) {
 		};
 	}
 	if (EnumeratorModelItem e = model_dynamic_cast<EnumeratorModelItem>(i)) {
-		ret += e->value().prepend(" value=\"").append("\"");
+		ret += e->value().prepend(" value=\"").append('\"');
 	}
 	if (TypeAliasModelItem t = model_dynamic_cast<TypeAliasModelItem>(i)) {
 		ret += visit(t->type(), t->scope());
 	}
-
-	ret.replace('&', "&amp;");
-	ret.replace('>', "&gt;");
-	ret.replace('<', "&lt;");
-	ret = "<" + ret + " >\n";
-
+	
 	//
 	// content of the entry:
 	//  - Arguments of functions
 	//  - members of scopes
 	//  - enumeration values
 	//
+	QString children;
 	if (NamespaceModelItem n = model_dynamic_cast<NamespaceModelItem>(i)) {
 		foreach(NamespaceModelItem m, n->namespaces())
-			ret += visit(model_static_cast<CodeModelItem>(m));
+			children += visit(model_static_cast<CodeModelItem>(m));
 	}
 	if (i->kind() & _CodeModelItem::Kind_Scope) {
 		//qDebug() << ID_STR(i) << i->name() << current_context;
 		//CodeModelItem os = current_scope; // save old outer scope
 		if (!i->name().isEmpty()) { current_context << i->name(); current_scope << i; }
 		foreach(ClassModelItem n, model_dynamic_cast<ScopeModelItem>(i)->classes())
-			ret += visit(model_static_cast<CodeModelItem>(n));
+			children += visit(model_static_cast<CodeModelItem>(n));
 		foreach(EnumModelItem n, model_dynamic_cast<ScopeModelItem>(i)->enums())
-			ret += visit(model_static_cast<CodeModelItem>(n));
+			children += visit(model_static_cast<CodeModelItem>(n));
 		foreach(FunctionModelItem n, model_dynamic_cast<ScopeModelItem>(i)->functions())
-			ret += visit(model_static_cast<CodeModelItem>(n));
+			children += visit(model_static_cast<CodeModelItem>(n));
 		foreach(TypeAliasModelItem n, model_dynamic_cast<ScopeModelItem>(i)->typeAliases())
-			ret += visit(model_static_cast<CodeModelItem>(n));
+			children += visit(model_static_cast<CodeModelItem>(n));
 		foreach(VariableModelItem n, model_dynamic_cast<ScopeModelItem>(i)->variables())
-			ret += visit(model_static_cast<CodeModelItem>(n));
+			children += visit(model_static_cast<CodeModelItem>(n));
 		if (!i->name().isEmpty()) { current_context.removeLast(); current_scope.pop_back(); }
 	}
 	if (FunctionModelItem f = model_dynamic_cast<FunctionModelItem>(i)) {
 		foreach(ArgumentModelItem a, f->arguments())
-			ret += visit(model_static_cast<CodeModelItem>(a));
+			children += visit(model_static_cast<CodeModelItem>(a));
 	}
 	if (EnumModelItem e = model_dynamic_cast<EnumModelItem>(i)) {
-		QString last = "0";
+		QString last = QChar('0');
 		foreach(EnumeratorModelItem n, model_dynamic_cast<EnumModelItem>(i)->enumerators()) {
-			if (n->value() == QString()) n->setValue(last.append("+1"));
-			ret += visit(model_static_cast<CodeModelItem>(n));
+			if (n->value() == QString())
+				n->setValue(last.append("+1")); //FIXME: Is there a reason for not putting the value itself? :S
+			children += visit(model_static_cast<CodeModelItem>(n));
 			last = n->value();
 		}
 	}
-
-
-	ret += "</";
-	ret += XMLTag(i);
-	ret += ">\n";
+	ret.replace('&', "&amp;");
+	ret.replace('>', "&gt;");
+	ret.replace('<', "&lt;");
+	
+	// TODO fix lua binding generator
+	if(false && children.isEmpty())
+	{
+		ret = "<" + ret + " />\n";
+	}
+	else
+	{
+		ret = "<" + ret + " >\n";
+		ret += children;
+		ret += "</";
+		ret += XMLTag(i);
+		ret += ">\n";
+	}
 	return ret;
 }
 
 void printHelp()
 {
 	const char* help =
+	"Usage: cpptoxml <flags> <file>\n\n"
 	"Options:\n"
 	"<file> file to parse\n"
 	"-C     optional parser config file\n"
@@ -373,10 +387,11 @@ void printHelp()
 	"-d     debug\n"
 	"-h     print this help\n"
 	"-qt    default qt config file: -C cpptoxml/parser/rpp/pp-qt-configuration\n"
-	"-I     Qt include dir"
-	"-o     output file"
+	"-I     Add another include directory\n"
+	"-Q     Qt include dir\n"
+	"-o     output file\n"
 	;
-	fprintf(stderr, help);
+	fprintf(stderr, "%s", help);
 }
 
 
@@ -388,97 +403,80 @@ int main (int argc, char **argv) {
 	bool debug = false;
 	QString configName;
 	QString sourceName;
-
-	QStringList options;
-	for (int i=1;i<argc;i++) 
-		options << argv[i];
-
-	if (options.count()==0) {
-		fprintf(stderr, "Error: no arguments!\n");
-		printHelp();
-		return 1;
-	}
-
-	int i;
-	if((i=options.indexOf("-qt"))!=-1) {
-		options.removeAt(i);
-#ifdef Q_OS_WIN
-		options << "-C" << "cpptoxml/parser/rpp/pp-qt-configuration-win";
-#else
-		options << "-C" << "cpptoxml/parser/rpp/pp-qt-configuration";
-#endif
-	}
-
-	if ((i=options.indexOf("-C"))!=-1) {
-		if (options.count() > i+1) {
-			configName = QDir::fromNativeSeparators(options.at(i+1));
-			options.removeAt(i+1);
-		}
-		options.removeAt(i);
-	}
-	if ((i=options.indexOf("-P"))!=-1) {
-		onlyPreprocess = true;
-		options.removeAt(i);
-	}
-	if ((i=options.indexOf("-R"))!=-1) {
-		dontResolve = true;
-		options.removeAt(i);
-	}
-	if ((i=options.indexOf("-N"))!=-1) {
-		noCode = true;
-		options.removeAt(i);
-	}
-	if ((i=options.indexOf("-v"))!=-1) {
-		verbose = true;
-		options.removeAt(i);
-	}
-	if ((i=options.indexOf("-d"))!=-1) {
-		debug = true;
-		options.removeAt(i);
-	}
-	if ((i=options.indexOf("-h"))!=-1) {
-		printHelp();
-		return 0;
-	}
-
-	sourceName = QDir::fromNativeSeparators(options.at(0));
-
-	QByteArray contents;
-
-	Preprocessor pp;
 	QStringList inclist;
-
 	QString outputFile;
-	if ((i=options.indexOf("-o"))!=-1) {
-		if (options.count() > i+1) {
-			outputFile = QDir::fromNativeSeparators(options.at(i+1));
-			options.removeAt(i+1);
-		}
-		options.removeAt(i);
-	}
-
 	QString qtdir;
-	if ((i=options.indexOf("-I"))!=-1) {
-		if (options.count() > i+1) {
-			qtdir = QDir::fromNativeSeparators(options.at(i+1));
-			options.removeAt(i+1);
-		}
-		options.removeAt(i);
-	} else {
-		qtdir = QDir::fromNativeSeparators(getenv("QT_INCLUDE"));
+	
+	for(int i=1; i<argc; i++) {
+		if(argv[i][0]=='-' && argv[i][1]!=0) {
+			QString argValue;
+			if (argv[i][2]=='\0' && argc > i+1)
+				argValue = QDir::fromNativeSeparators(QString::fromLatin1(argv[i+1]).right(strlen(argv[i+1])));
+			else
+				argValue = QDir::fromNativeSeparators(QString::fromLatin1(argv[i]).right(strlen(argv[i])-2));
+			
+			switch(argv[i][1]) {
+				case 'C':
+					i++;
+					configName = argValue;			
+					break;
+				case 'P':
+					onlyPreprocess = true;
+					break;
+				case 'R':
+					dontResolve = true;
+					break;
+				case 'N':
+					noCode = true;
+					break;
+				case 'v':
+					verbose = true;
+					break;
+				case 'd':
+					debug = true;
+					break;
+				case 'h':
+					printHelp();
+					return 0;
+				case 'I':
+					i++;
+					inclist.append(QDir::fromNativeSeparators(argValue));
+					break;
+				case 'Q':
+					i++;
+					qtdir = QDir::fromNativeSeparators(argValue);
+					break;
+				case 'q':{
+					if(QString(argv[i]).startsWith("-qt")) {
+						configName = configName = QDir::fromNativeSeparators("cpptoxml/parser/rpp/pp-qt-configuration");
+#ifdef Q_OS_WIN
+						configName += QString("-win");					
+#endif
+					} else
+						fprintf(stderr, "found unknown parameter: -%s",argv[i]);
+					} break;
+				case 'o':
+					i++;
+					outputFile = QDir::fromNativeSeparators(argValue);
+					break;
+
+				default:
+					fprintf(stderr, "found unknown parameter: %s", argv[i]);
+					return 1;
+			}
+		} else
+			sourceName = QString::fromLatin1(argv[i]);
 	}
+	
+	if (qtdir.isEmpty())
+		qtdir = QDir::fromNativeSeparators(getenv("QT_INCLUDE"));
 	if (qtdir.isEmpty()) {
-		fprintf(stderr, "Generator requires Qt include dir as option -I or QT_INCLUDE to be set\n");
+		fprintf(stderr, "Generator requires Qt include dir as option -Q or QT_INCLUDE to be set\n");
 		return 1;
 	}
-
-	if (options.count() != 1) {
-		fprintf(stderr, "Too many arguments\n");
-		return 37;
-	}
-
+	
 	if (!QFileInfo(sourceName).exists()) {
-		QString qtincludefile = QDir::fromNativeSeparators(qtdir+"/"+sourceName+"/"+sourceName);
+		QString qtincludefile = QDir::fromNativeSeparators(qtdir+'/'+sourceName+'/'+sourceName);
 		if (QFileInfo(qtincludefile).exists()) {
 			sourceName = qtincludefile;
 		} else {
@@ -487,13 +485,13 @@ int main (int argc, char **argv) {
 			return 1;
 		}
 	}
-
-	if(verbose) fprintf(stderr, QString("Used file: " + sourceName).toLatin1().constData());
-
+	
+	if(verbose) fprintf(stderr, "Used file: %s", qPrintable(sourceName));
+	
 	QString currentDir = QDir::current().absolutePath();
 	QFileInfo sourceInfo(sourceName);
 	//QDir::setCurrent(sourceInfo.absolutePath());
-
+	
 	inclist << (sourceInfo.absolutePath());
 	inclist << (QDir::convertSeparators(qtdir));
 	inclist << (QDir::convertSeparators(qtdir + "/QtXml"));
@@ -502,27 +500,29 @@ int main (int argc, char **argv) {
 	inclist << (QDir::convertSeparators(qtdir + "/QtGui"));
 	inclist << (QDir::convertSeparators(qtdir + "/QtOpenGL"));
 	if(debug) qDebug() << inclist;
-
+	
+	Preprocessor pp;
 	pp.addIncludePaths(inclist);
 	pp.processFile(sourceName, configName);
+	QByteArray contents = pp.result();
+	
 	if(debug) qDebug() << pp.macroNames();
-	contents = pp.result();
 	if(debug) qDebug() << contents;
 	if(debug) QTextStream(stdout) << contents;
-
+	
 	if (onlyPreprocess) {
 		QTextStream(stdout) << contents;
 	} else {
 		Control control;
 		Parser p(&control);
 		pool __pool;
-
+		
 		TranslationUnitAST *ast = p.parse(contents, contents.size(), &__pool);
-
+		
 		CodeModel model;
 		Binder binder(&model, p.location());
 		FileModelItem f_model = binder.run(ast);
-
+		
 		if (!noCode) {
 			XMLVisitor visitor((CodeModelItem)f_model, !dontResolve);
 			QString xml = visitor.visit(model_static_cast<CodeModelItem>(f_model));
@@ -536,7 +536,7 @@ int main (int argc, char **argv) {
 			}
 		}
 	}
-
+	
 	return 0;
 }
 
