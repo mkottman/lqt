@@ -25,13 +25,10 @@ cmake_minimum_required(VERSION 2.6)
 project(cpptoxml)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/bin) 
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/lib) 
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/lib) 
 
 find_package(Qt4 REQUIRED)
 set(QT_USE_QTCORE 1) 
 include(${QT_USE_FILE})
-
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/. 
 					${CMAKE_CURRENT_SOURCE_DIR}/parser
