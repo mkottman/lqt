@@ -20,8 +20,18 @@
 #  WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 #  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 #  OTHER DEALINGS IN THE SOFTWARE.
+cmake_minimum_required(VERSION 2.6)
 
 project(cpptoxml)
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/bin) 
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/lib) 
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/lib) 
+
+find_package(Qt4 REQUIRED)
+set(QT_USE_QTCORE 1) 
+include(${QT_USE_FILE})
+
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/. 
 					${CMAKE_CURRENT_SOURCE_DIR}/parser
@@ -29,14 +39,13 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/.
 					
 add_definitions(-DRXX_ALLOCATOR_INIT_0)
 
-lqt_files(parser parser)
+file(GLOB parser_src ${CMAKE_CURRENT_SOURCE_DIR}/parser/*.cpp) 
 
-add_executable(cpptoxml main.cpp 
-						${parser_h} 
-						${parser_src}
+add_executable(cpptoxml ${parser_src}
+						${CMAKE_CURRENT_SOURCE_DIR}/main.cpp 
 						${CMAKE_CURRENT_SOURCE_DIR}/parser/rpp/preprocessor.cpp)
 
-target_link_libraries(cpptoxml ${QT_LIBRARIES} ${QT_QTMAIN_LIBRARY} ${WIN32_LIBS})
+target_link_libraries(cpptoxml ${QT_LIBRARIES} ${QT_QTMAIN_LIBRARY})
 
 
 

@@ -39,13 +39,11 @@
 #include <QDebug>
 
 
-#define ID_STR(i) (QString("_").append(QString::number(i->creationId())))
-#define ATTR_STR(n, v) ( QString(" ") + n + QString("=\"") + v + QString("\"") )
-#define ATTR_NUM(n, v) ( (QString::number(v)).prepend(" " n "=\"").append("\"") )
 #define ID_STR(i) (QString('_').append(QString::number(i->creationId())))
 #define ATTR_STR(n, v) ( QString(' ') + n + QString("=\"") + v + QString('\"') )
 #define ATTR_NUM(n, v) ( (QString::number(v)).prepend(" " n "=\"").append('\"') )
 #define ATTR_TRUE(n) ( ATTR_NUM(n, 1) )
+
 
 using namespace std;
 
