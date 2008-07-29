@@ -80,8 +80,12 @@ macro(project_source_group mode sources headers)
 endmacro()
 set(GROUP_CODE "Source Files")
 
-
-add_subdirectory(cpptoxml)
+set(LQT_BUILDIN_CPPTOXML 1)
+if(LQT_BUILDIN_CPPTOXML)
+	add_subdirectory(cpptoxml)
+else()
+#TODO find cpptpxml
+endif()
 
 
 macro(build_qt_lib_binding BINDING_HEADER)
@@ -140,7 +144,9 @@ macro(build_qt_lib_binding BINDING_HEADER)
 											
 	target_link_libraries(${BINDING_NAME} ${QT_LIBRARIES} ${LUA_LIBRARY})		
 
-	add_dependencies(generate_${BINDING_NAME}_xml  cpptoxml)		
+	if(LQT_BUILDIN_CPPTOXML)
+		add_dependencies(generate_${BINDING_NAME}_xml  cpptoxml)
+    endif()	
 	add_dependencies(generate_${BINDING_NAME}_cpp  generate_${BINDING_NAME}_xml)
 	add_dependencies(${BINDING_NAME} generate_${BINDING_NAME}_cpp)
 endmacro()

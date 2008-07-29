@@ -20,6 +20,26 @@ The generator has been tested only with
 tar xzf lqt*.tar.gz
 cd lqt
 
+Checkouts from KDE svn needs to build cpptoxml seperately
+svn.kde.org/home/kde/trunk/kdesupport/cpptoxml
+
+
+
+====================
+ CMake
+====================
+
+With qmake in and lua in PATH:
+
+cmake ..\lqt
+make
+
+
+
+====================
+qmake, step by step
+====================
+
 == Build the C++ parser ==
 
 cd cpptoxml
@@ -27,9 +47,6 @@ qmake
 make
 cd ..
 
-On Windows you could call build.bat. Lua must be in PATH and QT_INCLUDE set.
-
-Or step by step:
 
 == Create a cpp file including the module ==
 
