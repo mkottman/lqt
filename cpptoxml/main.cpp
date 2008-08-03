@@ -128,9 +128,9 @@ QString XMLVisitor::visit(const TypeInfo& t, QStringList scope) {
 	//if (oldt!=tt.toString()) qDebug() << oldt << " -> " << tt.toString();
 
 	QString ret(" type_name=\"");
-	ret += tt.toString().append('\"');
+	ret += tt.toString().replace(">>", "> >").append('\"');
 	ret += " type_base=\"";
-	ret += tt.qualifiedName().join("::").append('\"');
+	ret += tt.qualifiedName().join("::").replace(">>", "> >").append('\"');
 	if (tt.isConstant()) ret += ATTR_TRUE("type_constant");
 	if (tt.isVolatile()) ret += ATTR_TRUE("type_volatile");
 	if (tt.isReference()) ret += ATTR_TRUE("type_reference");
