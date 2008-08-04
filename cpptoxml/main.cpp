@@ -408,14 +408,14 @@ int main (int argc, char **argv) {
 	for(int i=1; i<argc; i++) {
 		if(argv[i][0]=='-' && argv[i][1]!=0) {
 			QString argValue;
-			if (argv[i][2]=='\0' && argc > i+1)
+			bool separed_args = (argv[i][2]=='\0' && argc > i+1);
+			if (separed_args)
 				argValue = QDir::fromNativeSeparators(QString::fromLatin1(argv[i+1]).right(strlen(argv[i+1])));
 			else
 				argValue = QDir::fromNativeSeparators(QString::fromLatin1(argv[i]).right(strlen(argv[i])-2));
 			
 			switch(argv[i][1]) {
 				case 'C':
-					i++;
 					configName = argValue;			
 					break;
 				case 'P':
@@ -437,16 +437,14 @@ int main (int argc, char **argv) {
 					printHelp();
 					return 0;
 				case 'I':
-					i++;
 					inclist.append(QDir::fromNativeSeparators(argValue));
 					break;
 				case 'Q':
-					i++;
 					qtdir = QDir::fromNativeSeparators(argValue);
 					break;
 				case 'q':{
 					if(QString(argv[i]).startsWith("-qt")) {
-						configName = configName = QDir::fromNativeSeparators("cpptoxml/parser/rpp/pp-qt-configuration");
+						configName = QDir::fromNativeSeparators("cpptoxml/parser/rpp/pp-qt-configuration");
 #ifdef Q_OS_WIN
 						configName += QString("-win");					
 #endif
@@ -454,7 +452,6 @@ int main (int argc, char **argv) {
 						fprintf(stderr, "found unknown parameter: -%s",argv[i]);
 					} break;
 				case 'o':
-					i++;
 					outputFile = QDir::fromNativeSeparators(argValue);
 					break;
 
@@ -462,8 +459,12 @@ int main (int argc, char **argv) {
 					fprintf(stderr, "found unknown parameter: %s", argv[i]);
 					return 1;
 			}
-		} else
+			if (separed_args) {
+				i++;
+			}
+		} else {
 			sourceName = QString::fromLatin1(argv[i]);
+		}
 	}
 	
 	if (qtdir.isEmpty())
