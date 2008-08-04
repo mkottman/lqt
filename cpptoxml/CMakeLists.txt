@@ -37,8 +37,9 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/.
 add_definitions(-DRXX_ALLOCATOR_INIT_0)
 
 file(GLOB parser_src ${CMAKE_CURRENT_SOURCE_DIR}/parser/*.cpp) 
+file(GLOB parser_h ${CMAKE_CURRENT_SOURCE_DIR}/parser/*.h) 
 
-add_executable(cpptoxml ${parser_src}
+add_executable(cpptoxml ${parser_src} ${parser_h}
 						${CMAKE_CURRENT_SOURCE_DIR}/main.cpp 
 						${CMAKE_CURRENT_SOURCE_DIR}/parser/rpp/preprocessor.cpp)
 
