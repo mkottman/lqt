@@ -1,44 +1,44 @@
+======================
+  Build Instructions
+======================
 
-=== Build Instructions ===
 
-The lqt bindings have currently no simple build method.
-They could be used to bind many different libraries and
-toolkits, but you will have to modify the following commands
-according to your needs.
+Qt 4.4 or 4.3
 
-Here there is a simple and quick method for obtaining the
-bindings to the QtGui module of (auspicably) any Qt release
-of the Qt4 series.
-
-The generator has been tested only with
- * gcc 4.3.1
- * lua 5.1.3
- * qt 4.3.3-5 and 4.4.0
-
-== Unpack the tarball and enter the directory ==
-
-tar xzf lqt*.tar.gz
-cd lqt
-
-Checkouts from KDE svn needs to build cpptoxml seperately
-svn.kde.org/home/kde/trunk/kdesupport/cpptoxml
+Compilers:
+GCC 4.2, 4.3
+MSVC 8,9
 
 
 
-====================
- CMake
-====================
-
-With qmake in and lua in PATH:
-
-cmake ..\lqt
-make
+1. CMake
 
 
+Create an out-of-source directory, 
+for instance relative to the lqt sources the directory ../build, 
+then with qmake in your PATH variable call in ../build
 
-====================
-qmake, step by step
-====================
+build> cmake ..\lqt
+build> make
+
+Thats all. 
+
+Example lua files are in lqt/test
+(under Linux LUA_CPATH is needed):
+
+build> export LUA_CPATH=$PWD/lib/lib?.so
+build> ./bin/lua ../lqt/test/webview.lua
+
+
+Without any option it also builds Lua which could
+be suppressed by -DSYSTEM_LUA
+(TODO is FindLua broken?)
+
+
+
+
+2. qmake, step by step ==
+
 
 == Build the C++ parser ==
 
@@ -46,6 +46,9 @@ cd cpptoxml
 qmake
 make
 cd ..
+
+Checkouts from KDE svn needs to build cpptoxml seperately
+svn.kde.org/home/kde/trunk/kdesupport/cpptoxml
 
 
 == Create a cpp file including the module ==
