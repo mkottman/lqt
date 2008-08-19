@@ -33,13 +33,20 @@ add_prefix(LUA_LIB_SRCS ${LUA_SRC_DIR}/)
 
 # create the library
 if(WIN32)
-	set(LIBRARY_TYPE SHARED)
 	add_definitions(-DLUA_BUILD_AS_DLL)
 	if(MSVC)
 		add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
 	endif()
+else()
+	add_definitions(-DLUA_USE_LINUX)
 endif()
+set(LIBRARY_TYPE SHARED)
+
 add_library (lua ${LIBRARY_TYPE} ${LUA_LIB_SRCS} ${LUA_CORE_SRCS})
+
+if(UNIX)
+	target_link_libraries (lua m dl readline history ncurses)
+endif()
 
 # create the lue executable and link it to the lib
 add_executable (luaexec ${LUA_SRC_DIR}/lua.c)
