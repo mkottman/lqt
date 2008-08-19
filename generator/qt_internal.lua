@@ -29,6 +29,13 @@ for c in pairs(classes) do
 			or c.xarg.fullname=='QtConcurrent::ResultStoreBase'
 			or c.xarg.fullname=='QtConcurrent::ThreadEngineBase'
 			or c.xarg.fullname=='QtConcurrent::ThreadEngineSemaphore'
+			or c.xarg.fullname=='QtConcurrent::Exception'          -- generator bug
+			or c.xarg.fullname=='QtConcurrent::UnhandledException' -- generator bug
+			or c.xarg.fullname=='QtConcurrent::ExceptionHolder'    -- generator bug
+			or c.xarg.fullname=='QtConcurrent::internal::ExceptionHolder' -- generator bug
+			or c.xarg.fullname=='QtConcurrent::Future'          -- cpptoxml template bug
+			or c.xarg.fullname=='QtConcurrent::FutureWatcher'   -- cpptoxml template bug
+			or c.xarg.fullname=='QtConcurrent::FutureInterface' -- cpptoxml template bug
 			or c.xarg.fullname=='QObjectData'
 			or c.xarg.fullname=='QThreadStorageData') then
 		ret1[c] = true

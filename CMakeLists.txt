@@ -30,7 +30,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/lib) 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/lib) 
 
-find_package(Lua51 REQUIRED)
 
 find_package(Qt4 REQUIRED)
 set(QT_USE_QTCORE 1) 
@@ -39,9 +38,19 @@ set(QT_USE_QTNETWORK 1)
 set(QT_USE_QTWEBKIT 1)   
 include(${QT_USE_FILE})
 
+if(SYSTEM_LUA)
+	find_package(Lua51 REQUIRED)
+	set(LUA_CMD lua)
+else()
+	add_subdirectory(lua)
+	set(LUA_CMD luaexec)
+	set(LUA_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/lua/lua/src)
+	set(LUA_LIBRARIES lua)
+endif()
+
 if(MSVC)
 	set(CMAKE_SUPPRESS_REGENERATION TRUE) 
-	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+	add_definitions(-D_CRT_SECURE_NO_WARNINGS -DLUA_BUILD_AS_DLL)
 	set(CMAKE_DEBUG_POSTFIX)
 endif()
 
@@ -116,7 +125,7 @@ macro(build_qt_lib_binding BINDING_HEADER)
 
 
 	add_custom_target(generate_${BINDING_NAME}_cpp  COMMAND cmake -E copy_directory ${CMAKE_SOURCE_DIR}/common ${LQT_GEN_DIR}
-						COMMAND lua 
+						COMMAND ${LUA_CMD}
 							"${CMAKE_SOURCE_DIR}/generator/generator.lua" 
 							${GEN_XML} 
 							-i ${BINDING_HEADER} -i lqt_qt.hpp 
@@ -130,27 +139,37 @@ macro(build_qt_lib_binding BINDING_HEADER)
 	set(COMMON COMMON_${BINDING_NAME})
 	file(GLOB ${COMMON}_SRC ${CMAKE_SOURCE_DIR}/common/*.cpp) 
 	file(GLOB ${COMMON}_HPP ${CMAKE_SOURCE_DIR}/common/*.hpp) 
-	set(${COMMON}_SRC ${${COMMON}_SRC}	${LQT_GEN_DIR}/${BINDING_NAME}_enum.cpp
+	
+	set(${BINDING_NAME}_GENERATED ${LQT_GEN_DIR}/${BINDING_NAME}_enum.cpp
 									${LQT_GEN_DIR}/${BINDING_NAME}_meta.cpp
 									${LQT_GEN_DIR}/${BINDING_NAME}_slot.cpp)
+	set_source_files_properties(${${BINDING_NAME}_GENERATED} PROPERTIES GENERATED TRUE)
+									
+	set(${COMMON}_SRC ${${COMMON}_SRC}	${${BINDING_NAME}_GENERATED})
 	qt4_wrap_cpp(${COMMON}_MOC ${LQT_GEN_DIR}/${BINDING_NAME}_slot.hpp)
 	
-	include_directories(${CMAKE_SOURCE_DIR}/common ${LUA_INCLUDE_DIR} ${QT_INCLUDES})
+	include_directories(${CMAKE_SOURCE_DIR}/common ${LUA_INCLUDE_DIRS} ${QT_INCLUDES})
 
 	add_library(${BINDING_NAME} SHARED  ${BINDING_SRC}
 											${${COMMON}_SRC}
 											${${COMMON}_HPP} 
 											${${COMMON}_MOC})
 											
-	target_link_libraries(${BINDING_NAME} ${QT_LIBRARIES} ${LUA_LIBRARY})		
+	target_link_libraries(${BINDING_NAME} ${QT_LIBRARIES} ${LUA_LIBRARIES})		
 
 	if(LQT_BUILDIN_CPPTOXML)
 		add_dependencies(generate_${BINDING_NAME}_xml  cpptoxml)
     endif()	
 	add_dependencies(generate_${BINDING_NAME}_cpp  generate_${BINDING_NAME}_xml)
 	add_dependencies(${BINDING_NAME} generate_${BINDING_NAME}_cpp)
+	if(NOT SYSTEM_LUA)
+		add_dependencies(generate_${BINDING_NAME}_cpp luaexec)
+	endif()
 endmacro()
 
+if(MSVC)
+		add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
+endif()
 
 build_qt_lib_binding(QtCore)
 build_qt_lib_binding(QtGui)
