@@ -2,15 +2,12 @@
 local classes, enums = ...
 local ret1, ret2 = {}, {}
 
+-- don't bind this Qt internals/unsupported classes
 for c in pairs(classes) do
 	local n = c.xarg.name
 	if n~=string.lower(n) and not (string.match(n, '_')
-			or c.xarg.fullname=='QAtomic'
-			or c.xarg.fullname=='QAtomicInt'
-			or c.xarg.fullname=='QBasicAtomic'
-			or c.xarg.fullname=='QBasicAtomicInt'
 			or c.xarg.fullname=='QDebug::Stream'
-			or c.xarg.fullname=='QForeachContainerBase'
+			--or c.xarg.fullname=='QForeachContainerBase'
 			or c.xarg.fullname=='QByteArray::Data'
 			or c.xarg.fullname=='QVariant::Private::Data'
 			or c.xarg.fullname=='QRegion::QRegionData'
@@ -23,21 +20,13 @@ for c in pairs(classes) do
 			or c.xarg.fullname=='QWindowsVistaStyle'
 			or c.xarg.fullname=='QMacStyle'
 			or c.xarg.fullname=='QtConcurrent::internal::ExceptionStore'
-			or c.xarg.fullname=='QtConcurrent::BlockSizeManager'
-			or c.xarg.fullname=='QtConcurrent::ResultItem'
-			or c.xarg.fullname=='QtConcurrent::ResultIteratorBase'
-			or c.xarg.fullname=='QtConcurrent::ResultStoreBase'
-			or c.xarg.fullname=='QtConcurrent::ThreadEngineBase'
 			or c.xarg.fullname=='QtConcurrent::ThreadEngineSemaphore'
-			or c.xarg.fullname=='QtConcurrent::Exception'          -- generator bug
-			or c.xarg.fullname=='QtConcurrent::UnhandledException' -- generator bug
-			or c.xarg.fullname=='QtConcurrent::ExceptionHolder'    -- generator bug
 			or c.xarg.fullname=='QtConcurrent::internal::ExceptionHolder' -- generator bug
-			or c.xarg.fullname=='QtConcurrent::Future'          -- cpptoxml template bug
-			or c.xarg.fullname=='QtConcurrent::FutureWatcher'   -- cpptoxml template bug
-			or c.xarg.fullname=='QtConcurrent::FutureInterface' -- cpptoxml template bug
 			or c.xarg.fullname=='QObjectData'
-			or c.xarg.fullname=='QThreadStorageData') then
+			or c.xarg.fullname=='QThreadStorageData'
+			or c.xarg.fullname=='QXmlAttributes::Attribute'
+			or c.xarg.fullname=='QGLColormap::QGLColormapData'
+			) then
 		ret1[c] = true
 	end
 end

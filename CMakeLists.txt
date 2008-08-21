@@ -32,10 +32,16 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/lib)
 
 
 find_package(Qt4 REQUIRED)
-set(QT_USE_QTCORE 1) 
+set(QT_USE_QTCORE 1)
 set(QT_USE_QTGUI 1)
 set(QT_USE_QTNETWORK 1)
-set(QT_USE_QTWEBKIT 1)   
+set(QT_USE_QTWEBKIT 1)
+set(QT_USE_QTOPENGL 1)
+set(QT_USE_QTSCRIPT 1)
+set(QT_USE_QTSQL 1)
+set(QT_USE_QTSVG 1)
+set(QT_USE_QTXML 1)
+set(QT_USE_QTXMLPATTERNS 1)
 include(${QT_USE_FILE})
 
 if(SYSTEM_LUA)
@@ -171,9 +177,21 @@ if(MSVC)
 		add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
 endif()
 
+
 build_qt_lib_binding(QtCore)
 build_qt_lib_binding(QtGui)
+build_qt_lib_binding(QtNetwork)
+build_qt_lib_binding(QtOpenGL)
+build_qt_lib_binding(QtScript)
+build_qt_lib_binding(QtSvg)
 build_qt_lib_binding(QtWebKit)
+build_qt_lib_binding(QtXml)
+
+# needs testing
+#build_qt_lib_binding(QtSql)
+#build_qt_lib_binding(QtXmlPatterns)
+#build_qt_lib_binding(Phonon)
+
 
 
 

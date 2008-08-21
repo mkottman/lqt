@@ -10,25 +10,25 @@ set (LUA_LIBRARIES lua)
 
 
 macro(add_prefix _list _prefix)
-   set(_tmp)
-   foreach(_current ${${_list}})
-      set(_tmp ${_tmp} ${_prefix}/${_current})
-      #message( ${_prefix}/${_current})
-   endforeach()  	 
-   set(${_list} ${_tmp})  
+	set(_tmp)
+	foreach(_current ${${_list}})
+		set(_tmp ${_tmp} ${_prefix}/${_current})
+		#message( ${_prefix}/${_current})
+	endforeach()
+	set(${_list} ${_tmp})
 endmacro()
 
 
 # define the lua core source files
 set (LUA_CORE_SRCS lapi.c lcode.c ldebug.c ldo.c ldump.c 
-     lfunc.c lgc.c llex.c lmem.c lobject.c lopcodes.c
-     lparser.c lstate.c lstring.c ltable.c ltm.c  lundump.c
-     lvm.c lzio.c)
+	 lfunc.c lgc.c llex.c lmem.c lobject.c lopcodes.c
+	 lparser.c lstate.c lstring.c ltable.c ltm.c  lundump.c
+	 lvm.c lzio.c)
 add_prefix(LUA_CORE_SRCS ${LUA_SRC_DIR}/)
 
 # define the lua lib source files
 set (LUA_LIB_SRCS lauxlib.c lbaselib.c ldblib.c liolib.c
-     lmathlib.c loslib.c ltablib.c lstrlib.c loadlib.c linit.c)
+	lmathlib.c loslib.c ltablib.c lstrlib.c loadlib.c linit.c)
 add_prefix(LUA_LIB_SRCS ${LUA_SRC_DIR}/)
 
 # create the library

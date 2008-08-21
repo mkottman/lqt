@@ -416,8 +416,11 @@ void Binder::visitFunctionDefinition(FunctionDefinitionAST *node)
 void Binder::visitTemplateDeclaration(TemplateDeclarationAST *node)
 {
     const ListNode<TemplateParameterAST*> *it = node->template_parameters;
-    if (it == 0)
+    if (it == 0) {
+        // needed for template specialisation (template<> class K<void>)
+        visit(node->declaration);
         return;
+    }
 
     TemplateParameterList savedTemplateParameters = changeTemplateParameters(TemplateParameterList());
 
@@ -608,6 +611,11 @@ void Binder::visitClassSpecifier(ClassSpecifierAST *node)
 {
   ClassCompiler class_cc(this);
   class_cc.run(node);
+
+  if (class_cc.name().endsWith('>') && !class_cc.name().contains('<')) {
+	  // TODO parser bug in case of template<> Class<8>
+	  return;
+  }
 
   if (class_cc.name().isEmpty())
     {
