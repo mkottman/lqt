@@ -1558,7 +1558,7 @@ bool Parser::parseFunctionSpecifier(const ListNode<std::size_t> *&node)
   int tk;
   while (0 != (tk = token_stream.lookAhead())
          && (tk == Token_inline || tk == Token_virtual
-             || tk == Token_explicit))
+             || tk == Token_explicit || tk == Token_Q_INVOKABLE))
     {
       node = snoc(node, token_stream.cursor(), _M_pool);
       token_stream.nextToken();

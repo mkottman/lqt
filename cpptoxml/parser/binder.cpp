@@ -417,7 +417,8 @@ void Binder::visitTemplateDeclaration(TemplateDeclarationAST *node)
 {
     const ListNode<TemplateParameterAST*> *it = node->template_parameters;
     if (it == 0) {
-        // needed for template specialisation (template<> class K<void>)
+        // QtScript: we want to visit the declaration still, so that
+        // e.g. QMetaTypeId<Foo> is added to the code model
         visit(node->declaration);
         return;
     }
@@ -611,11 +612,6 @@ void Binder::visitClassSpecifier(ClassSpecifierAST *node)
 {
   ClassCompiler class_cc(this);
   class_cc.run(node);
-
-  if (class_cc.name().endsWith('>') && !class_cc.name().contains('<')) {
-	  // TODO parser bug in case of template<> Class<8>
-	  return;
-  }
 
   if (class_cc.name().isEmpty())
     {
@@ -839,6 +835,10 @@ void Binder::applyFunctionSpecifiers(const ListNode<std::size_t> *it, FunctionMo
 
           case Token_explicit:
             item->setExplicit(true);
+            break;
+
+          case Token_Q_INVOKABLE:
+            item->setInvokable(true);
             break;
         }
       it = it->next;

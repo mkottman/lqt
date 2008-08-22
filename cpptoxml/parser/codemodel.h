@@ -533,6 +533,9 @@ public:
   bool isExplicit() const;
   void setExplicit(bool isExplicit);
 
+  bool isInvokable() const; // Qt
+  void setInvokable(bool isInvokable); // Qt
+
   bool isAbstract() const;
   void setAbstract(bool isAbstract);
 
@@ -560,6 +563,7 @@ private:
       uint _M_isAbstract: 1;
       uint _M_isExplicit: 1;
       uint _M_isVariadics: 1;
+      uint _M_isInvokable : 1; // Qt
     };
     uint _M_flags;
   };

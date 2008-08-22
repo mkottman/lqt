@@ -58,22 +58,10 @@ Preprocessor::~Preprocessor()
     delete d;
 }
 
-void Preprocessor::processFile(const QString &fileName, const QString& configName)
+void Preprocessor::processFile(const QString &fileName)
 {
     pp proc(d->env);
     d->initPP(proc);
-
-		QFile configFile(configName);
-		if (configFile.exists()) {
-				if (!configFile.open(QFile::ReadOnly)) {
-								// ERROR!
-								return;
-				}
-				QByteArray ba = configFile.readAll();
-				configFile.close();
-				proc.operator() (ba.constData(), ba.constData() + ba.size(), rpp::pp_null_output_iterator());
-		} else {
-		}
 
     d->result.reserve(d->result.size() + 20 * 1024);
 

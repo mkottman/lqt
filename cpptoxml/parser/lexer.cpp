@@ -1718,6 +1718,23 @@ void Lexer::scanKeyword11()
 {
   switch (*cursor)
     {
+    case 'Q':
+      if (*(cursor + 1) == '_' &&
+	  *(cursor + 2) == 'I' &&
+	  *(cursor + 3) == 'N' &&
+	  *(cursor + 4) == 'V' &&
+	  *(cursor + 5) == 'O' &&
+	  *(cursor + 6) == 'K' &&
+	  *(cursor + 7) == 'A' &&
+	  *(cursor + 8) == 'B' &&
+	  *(cursor + 9) == 'L' &&
+	  *(cursor + 10) == 'E')
+	{
+	  token_stream[(int) index++].kind = Token_Q_INVOKABLE;
+	  return;
+	}
+      break;
+
     case 's':
       if (*(cursor + 1) == 't' &&
 	  *(cursor + 2) == 'a' &&

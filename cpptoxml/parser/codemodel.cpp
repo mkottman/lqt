@@ -198,9 +198,7 @@ QString TypeInfo::toString() const
 
 bool TypeInfo::operator==(const TypeInfo &other)
 {
-  if (arrayElements() != other.arrayElements())
-    return false;
-  if (arguments() != other.arguments())
+  if (arrayElements().count() != other.arguments().count())
     return false;
 
 #if defined (RXX_CHECK_ARRAY_ELEMENTS) // ### it'll break
@@ -693,6 +691,17 @@ bool _FunctionModelItem::isAbstract() const
 void _FunctionModelItem::setAbstract(bool isAbstract)
 {
   _M_isAbstract = isAbstract;
+}
+
+// Qt
+bool _FunctionModelItem::isInvokable() const
+{
+    return _M_isInvokable;
+}
+
+void _FunctionModelItem::setInvokable(bool isInvokable)
+{
+    _M_isInvokable = isInvokable;
 }
 
 // ---------------------------------------------------------------------------

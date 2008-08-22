@@ -502,7 +502,8 @@ int main (int argc, char **argv) {
 	
 	Preprocessor pp;
 	pp.addIncludePaths(inclist);
-	pp.processFile(sourceName, configName);
+	pp.processFile(configName);
+	pp.processFile(sourceName);
 	QByteArray contents = pp.result();
 	
 	if(debug) qDebug() << pp.macroNames();
