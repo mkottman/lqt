@@ -5,7 +5,7 @@ require'qtgui'
 app = QApplication.new(1 + select('#', ...), {arg[0], ...})
 app.__gc = app.delete -- take ownership of object
 
-window = QWidget.new()
+window = QWidget()
 window:resize(200, 120)
 
 quit = QPushButton.new(QString.new("Quit"), window)

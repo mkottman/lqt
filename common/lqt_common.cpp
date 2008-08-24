@@ -212,6 +212,13 @@ static int lqtL_pushindexfunc (lua_State *L, const char *name, lqt_Base *bases) 
 	return 1;
 }
 
+static int lqtL_ctor_helper(lua_State*L) {
+	lua_getfield(L, 1, "new");
+	lua_replace(L, 1);
+	lua_call(L, lua_gettop(L)-1, LUA_MULTRET);
+	return lua_gettop(L)-1; // FIXME: cleanup stacks, is -1 correct?
+}
+
 int lqtL_createclass (lua_State *L, const char *name, luaL_Reg *mt, lqt_Base *bases) {
 	lqt_Base *bi = bases;
 	luaL_newmetatable(L, name); // (1)
@@ -233,13 +240,19 @@ int lqtL_createclass (lua_State *L, const char *name, luaL_Reg *mt, lqt_Base *ba
 	lua_setfield(L, -2, "__newindex"); // (1)
 	lua_pushcfunction(L, lqtL_gcfunc); // (2)
 	lua_setfield(L, -2, "__gc"); // (1)
+	lua_pushcfunction(L, lqtL_ctor_helper); // (2)
+	lua_setfield(L, -2, "__call"); // (1)
+
 	// set it as its own metatable
 	lua_pushvalue(L, -1); // (2)
 	lua_setmetatable(L, -2); // (1)
 	lua_pop(L, 1); // (0)
 	lua_pushlstring(L, name, strlen(name)-1); // (1)
 	lua_newtable(L); // (2)
-	luaL_register(L, NULL, mt); // (2)
+	luaL_newmetatable(L, name); // (3)
+	lua_setmetatable(L, -2); // (2)
+	// don't register again but use metatable
+	//luaL_register(L, NULL, mt); // (2)
 	lua_settable(L, LUA_GLOBALSINDEX); // (0)
 	return 0;
 }
