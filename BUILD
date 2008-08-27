@@ -3,31 +3,39 @@
 ======================
 
 
-Qt 4.4 or 4.3
+Qt 4.4
 
 Compilers:
-GCC 4.2, 4.3
-MSVC 8,9
-
+GCC 4.2
+MSVC 2008, 2008
 
 
 1. CMake
 
 
-Create an out-of-source directory, 
-for instance relative to the lqt sources the directory ../build, 
-then with qmake in your PATH variable call in ../build
+Create an out-of-source directory, for instance relative to the lqt 
+sources the directory ../build, then with qmake in your PATH 
+variable call in ../build
 
-build> cmake ..\lqt
+Linux:
+build> cmake ../lqt
 build> make
 
-Thats all. 
+ 
+Windows to build with the Visual Studio:
+build> cmake ..\lqt
+build> lqt.sln
 
-Example lua files are in lqt/test
-(under Linux LUA_CPATH is needed):
 
+Example lua files are in lqt/test, LUA_CPATH is needed:
+
+Linux:
 build> export LUA_CPATH=$PWD/lib/lib?.so
 build> ./bin/lua ../lqt/test/webview.lua
+
+Windows (debug build):
+build> set LUA_CPATH=%CD%\bin\Debug\?.dll
+build> bin\Debug\lua.exe ..\lqt\test\t7.lua
 
 
 Without any option it also builds Lua which could

@@ -17,7 +17,7 @@ url = QUrl.new(QString.new('http://'..address))
 
 print('Loading site  '..address..' ...')
 
-webView = QWebView.new(window)
+webView = QWebView.new()
 webView:setUrl(url)
 webView:show()
 
