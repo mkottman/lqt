@@ -216,7 +216,7 @@ static int lqtL_ctor_helper(lua_State*L) {
 	lua_getfield(L, 1, "new");
 	lua_replace(L, 1);
 	lua_call(L, lua_gettop(L)-1, LUA_MULTRET);
-	return lua_gettop(L)-1; // FIXME: cleanup stacks, is -1 correct?
+	return lua_gettop(L);
 }
 
 int lqtL_createclass (lua_State *L, const char *name, luaL_Reg *mt, lqt_Base *bases) {
