@@ -469,9 +469,9 @@ local fill_typesystem_with_classes = function(classes, types)
 			types[c.xarg.fullname..' const*'] =  pointer_const_t(c.xarg.fullname)
 			types[c.xarg.fullname..'&'] = ref_t(c.xarg.fullname)
 			if c.public_constr and c.shell then
-				local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
-				types[c.xarg.fullname] = instance_t(c.xarg.fullname, shellname)
-				types[c.xarg.fullname..' const&'] = const_ref_t(c.xarg.fullname, shellname)
+				--local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
+				types[c.xarg.fullname] = instance_t(c.xarg.fullname) -- , shellname)
+				types[c.xarg.fullname..' const&'] = const_ref_t(c.xarg.fullname) -- , shellname)
 			end
 		end
 	end
