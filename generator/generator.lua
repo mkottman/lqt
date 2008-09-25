@@ -385,7 +385,7 @@ local fill_typesystem_with_enums = function(enums, types)
 	return ret
 end
 
-local fill_typesystem_with_classes = function(classes, types)
+local put_class_in_filesystem = function(cname, types, cancopy)
 	local pointer_t = function(fn)
 		return {
 			-- the argument is a pointer to class
@@ -461,19 +461,24 @@ local fill_typesystem_with_classes = function(classes, types)
 			end,
 		}
 	end
+	if types[cname]==nil then
+		types[cname..'*'] = pointer_t(cname)
+		types[cname..' const*'] =  pointer_const_t(cname)
+		types[cname..'&'] = ref_t(cname)
+		if cancopy then
+			types[cname] = instance_t(cname)
+			types[cname..' const&'] = const_ref_t(cname)
+		end
+		return true
+	else
+		return false
+	end
+end
+
+local fill_typesystem_with_classes = function(classes, types)
 	local ret = {}
 	for c in pairs(classes) do
-		if types[c.xarg.fullname]==nil then
-			ret[c] = true
-			types[c.xarg.fullname..'*'] = pointer_t(c.xarg.fullname)
-			types[c.xarg.fullname..' const*'] =  pointer_const_t(c.xarg.fullname)
-			types[c.xarg.fullname..'&'] = ref_t(c.xarg.fullname)
-			if c.public_constr and c.shell then
-				--local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
-				types[c.xarg.fullname] = instance_t(c.xarg.fullname) -- , shellname)
-				types[c.xarg.fullname..' const&'] = const_ref_t(c.xarg.fullname) -- , shellname)
-			end
-		end
+		ret[c] = put_class_in_filesystem(c.xarg.fullname, types, c.public_constr and c.shell)
 	end
 	return ret
 end
