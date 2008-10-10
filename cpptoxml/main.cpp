@@ -498,6 +498,7 @@ int main (int argc, char **argv) {
 	inclist << (QDir::convertSeparators(qtdir + "/QtCore"));
 	inclist << (QDir::convertSeparators(qtdir + "/QtGui"));
 	inclist << (QDir::convertSeparators(qtdir + "/QtOpenGL"));
+	inclist << (QDir::convertSeparators(qtdir + "/QtWebKit"));
 	if(debug) qDebug() << inclist;
 	
 	Preprocessor pp;
