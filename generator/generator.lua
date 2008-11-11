@@ -392,7 +392,7 @@ local put_class_in_filesystem = lqt.classes.insert
 local fill_typesystem_with_classes = function(classes, types)
 	local ret = {}
 	for c in pairs(classes) do
-		ret[c] = put_class_in_filesystem(c.xarg.fullname, types, true)
+		ret[c] = put_class_in_filesystem(c.xarg.fullname, types) --, true)
 	end
 	return ret
 end
