@@ -388,7 +388,6 @@ local fill_typesystem_with_enums = function(enums, types)
 end
 
 local put_class_in_filesystem = lqt.classes.insert
-
 local fill_typesystem_with_classes = function(classes, types)
 	local ret = {}
 	for c in pairs(classes) do
@@ -998,7 +997,7 @@ end
 
 --------------------------------------------------------------------------------------
 
-local typesystem = {}
+local typesystem = dofile(path..'types.lua')
 do
 	local ts = {}
 	for i, ft in ipairs(typefiles) do

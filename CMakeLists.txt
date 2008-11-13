@@ -136,7 +136,6 @@ macro(build_qt_lib_binding BINDING_HEADER)
 							${GEN_XML} 
 							-i ${BINDING_HEADER} -i lqt_qt.hpp 
 							-n ${BINDING_NAME} 
-							-t ${CMAKE_SOURCE_DIR}/generator/types.lua 
 							-t ${CMAKE_SOURCE_DIR}/generator/qtypes.lua 
 							-f ${CMAKE_SOURCE_DIR}/generator/qt_internal.lua
 						COMMENT "Generating binding code with Lua"
