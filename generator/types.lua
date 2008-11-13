@@ -29,17 +29,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 local base_types = (...) or {}
 
-local BaseType = function(s)
-	s = tostring(s)
-	return {
-		get = function(j)
-			return 'lua_to'..s..'(L, '..tostring(j)..')', 1
-		end,
-		push = function(j) -- must handle arguments (e.g. in virtual callbacks) and return values
-			return 'lua_push'..s..'(L, '..tostring(j)..')', 1
-		end,
-	}
-end
 local integer_type = {
 	get = function(j)
 		return 'lua_tointeger(L, '..tostring(j)..')', 1
