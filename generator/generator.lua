@@ -845,11 +845,26 @@ end
 
 local print_class_list = function(classes)
 	local big_picture = {}
+	local type_list_t = {}
 	for c in pairs(classes) do
 		local n = string.gsub(c.xarg.fullname, '::', '_LQT_')
 		print_single_class(c)
 		table.insert(big_picture, 'luaopen_'..n)
+		table.insert(type_list_t, 'add_class(\''..c.xarg.fullname..'\', types)\n')
 	end
+
+	local type_list_f = assert(io.open(module_name.._src..module_name..'_types.lua', 'w'))
+	type_list_f:write([[
+#!/usr/bin/lua
+local types = (...) or {}
+local add_class = lqt.classes.insert or error('module lqt.classes not loaded')
+]])
+	for k, v in ipairs(type_list_t) do
+		type_list_f:write(v)
+	end
+	type_list_f:write('return types\n')
+	type_list_f:close()
+
 	print_merged_build()
 	if fmeta then fmeta:close() end
 	fmeta = assert(io.open(module_name.._src..module_name..'_meta.cpp', 'w'))
