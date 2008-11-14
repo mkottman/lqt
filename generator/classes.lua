@@ -91,7 +91,7 @@ lqt.classes.insert = function(cname, types) --, cancopy)
 		--end
 		return true
 	else
-		return false
+		return nil
 	end
 end
 
