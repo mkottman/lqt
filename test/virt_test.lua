@@ -1,5 +1,7 @@
 #!/usr/bin/lua
 
+require'qtcore'
+
 qa = QCoreApplication.new(1, {'virt_test'})
 
 qo = QObject.new()

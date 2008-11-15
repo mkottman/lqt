@@ -1,5 +1,6 @@
 #!/usr/bin/lua
 
+require'qtcore'
 require'qtgui'
 
 local LCD_Range = function(...)

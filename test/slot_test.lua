@@ -1,5 +1,7 @@
 #!/usr/bin/lua
 
+require'qtcore'
+
 slot = newslot()
 
 slot.slot = function() print'called slot' end

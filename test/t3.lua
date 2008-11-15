@@ -1,5 +1,6 @@
 #!/usr/bin/lua
 
+require'qtcore'
 require'qtgui'
 
 app = QApplication.new(1 + select('#', ...), {arg[0], ...})

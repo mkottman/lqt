@@ -1,5 +1,6 @@
 #!/usr/bin/lua
 
+require'qtcore'
 require'qtgui'
 
 local add_method = function(qobj, qname, signature, func)

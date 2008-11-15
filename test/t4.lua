@@ -1,5 +1,6 @@
 #!/usr/bin/lua
 
+require'qtcore'
 require'qtgui'
 
 local new_MyWidget = function(...)

@@ -1,3 +1,4 @@
+require'qtcore'
 
 local s = tostring{}
 
