@@ -1,4 +1,5 @@
 #  Copyright (c) 2008 Peter Kuemmel 
+#  Copyright (c) 2008 Mauro Iazzi
 #  
 #  Permission is hereby granted, free of charge, to any person
 #  obtaining a copy of this software and associated documentation
@@ -103,7 +104,7 @@ else()
 endif()
 
 
-macro(build_qt_lib_binding BINDING_HEADER)
+function(build_qt_lib_binding BINDING_HEADER)
 
 	string(TOLOWER ${BINDING_HEADER} BINDING_NAME)
 
@@ -130,13 +131,21 @@ macro(build_qt_lib_binding BINDING_HEADER)
 						VERBATIM)
 
 
+	math(EXPR MAX ${ARGC}-1)
+	if(MAX)
+	foreach(I RANGE 1 ${MAX})
+		string(TOLOWER ${ARGV${I}} DEPNAME)
+		set(${BINDING_NAME}_TYPES ${${BINDING_NAME}_TYPES} -t ${DEPNAME}_src/${DEPNAME}_types.lua)
+	endforeach()
+	endif(MAX)
 	add_custom_target(generate_${BINDING_NAME}_cpp  COMMAND cmake -E copy_directory ${CMAKE_SOURCE_DIR}/common ${LQT_GEN_DIR}
 						COMMAND ${LUA_CMD}
 							"${CMAKE_SOURCE_DIR}/generator/generator.lua" 
 							${GEN_XML} 
 							-i ${BINDING_HEADER} -i lqt_qt.hpp 
 							-n ${BINDING_NAME} 
-							-t ${CMAKE_SOURCE_DIR}/generator/qtypes.lua 
+							-t ${CMAKE_SOURCE_DIR}/generator/qtypes.lua
+							${${BINDING_NAME}_TYPES}
 							-f ${CMAKE_SOURCE_DIR}/generator/qt_internal.lua
 						COMMENT "Generating binding code with Lua"
 						VERBATIM)
@@ -170,7 +179,7 @@ macro(build_qt_lib_binding BINDING_HEADER)
 	if(NOT SYSTEM_LUA)
 		add_dependencies(generate_${BINDING_NAME}_cpp luaexec)
 	endif()
-endmacro()
+endfunction()
 
 if(MSVC)
 		add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
@@ -178,13 +187,13 @@ endif()
 
 
 build_qt_lib_binding(QtCore)
-build_qt_lib_binding(QtGui)
-build_qt_lib_binding(QtNetwork)
-build_qt_lib_binding(QtOpenGL)
-build_qt_lib_binding(QtScript)
-build_qt_lib_binding(QtSvg)
-build_qt_lib_binding(QtWebKit)
-build_qt_lib_binding(QtXml)
+build_qt_lib_binding(QtNetwork QtCore)
+build_qt_lib_binding(QtGui QtNetwork QtCore)
+build_qt_lib_binding(QtOpenGL QtGui QtNetwork QtCore)
+build_qt_lib_binding(QtScript QtOpenGL QtGui QtNetwork QtCore)
+build_qt_lib_binding(QtSvg QtScript QtOpenGL QtGui QtNetwork QtCore)
+build_qt_lib_binding(QtWebKit QtSvg QtScript QtOpenGL QtGui QtNetwork QtCore)
+build_qt_lib_binding(QtXml QtWebKit QtSvg QtScript QtOpenGL QtGui QtNetwork QtCore)
 
 # needs testing
 #build_qt_lib_binding(QtSql)
