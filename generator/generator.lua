@@ -1016,7 +1016,7 @@ local typesystem = dofile(path..'types.lua')
 do
 	local ts = {}
 	for i, ft in ipairs(typefiles) do
-		ts = loadfile(ft)(ts)
+		ts = assert(loadfile(ft))(ts)
 	end
 	setmetatable(typesystem, {
 		__newindex = function(t, k, v)
