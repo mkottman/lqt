@@ -23,6 +23,7 @@ for c in pairs(classes) do
 			or c.xarg.fullname=='QtConcurrent::internal::ExceptionStore'
 			or c.xarg.fullname=='QtConcurrent::internal::ExceptionHolder'
 			or c.xarg.fullname=='QtConcurrent::ResultIteratorBase'
+			or c.xarg.fullname=='QtSharedPointer'
 
 			-- platform specific, TODO
 			or c.xarg.fullname=='QWindowsCEStyle'
