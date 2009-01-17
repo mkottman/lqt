@@ -40,6 +40,15 @@ for c in pairs(classes) do
 			or c.xarg.fullname=='QtConcurrent::Exception'                 -- GCC throw() in destructor base declaration
 			or c.xarg.fullname=='QtConcurrent::UnhandledException'        -- GCC throw() in destructor base declaration
 
+			-- TODO: - Mac support needs more work 
+			--              - doesn't work on Mac, copy ctor is private
+			--or c.xarg.fullname=='QTextDecoder'
+			--or c.xarg.fullname=='QTextEncoder'
+			--or c.xarg.fullname=='QGraphicsSvgItem'
+			--or c.xarg.fullname=='QSvgGenerator'
+
+
+
 			) then
 		ret1[c] = true
 	end

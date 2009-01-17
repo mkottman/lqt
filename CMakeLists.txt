@@ -31,6 +31,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/lib) 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/lib) 
 
+#set(CMAKE_VERBOSE_MAKEFILE TRUE)
+
 
 find_package(Qt4 REQUIRED)
 set(QT_USE_QTCORE 1)
@@ -190,11 +192,16 @@ endif()
 build_qt_lib_binding(QtCore)
 build_qt_lib_binding(QtNetwork QtCore)
 build_qt_lib_binding(QtGui QtNetwork QtCore)
-build_qt_lib_binding(QtOpenGL QtGui QtNetwork QtCore)
-build_qt_lib_binding(QtScript QtOpenGL QtGui QtNetwork QtCore)
-build_qt_lib_binding(QtSvg QtScript QtOpenGL QtGui QtNetwork QtCore)
-build_qt_lib_binding(QtWebKit QtSvg QtScript QtOpenGL QtGui QtNetwork QtCore)
-build_qt_lib_binding(QtXml QtWebKit QtSvg QtScript QtOpenGL QtGui QtNetwork QtCore)
+build_qt_lib_binding(QtScript QtGui QtNetwork QtCore)
+build_qt_lib_binding(QtSvg QtScript QtGui QtNetwork QtCore)
+build_qt_lib_binding(QtXml QtSvg QtScript QtGui QtNetwork QtCore)
+
+if(NOT APPLE)
+	build_qt_lib_binding(QtOpenGL QtGui QtNetwork QtCore)
+	# proplems with disabled copy ctor
+	build_qt_lib_binding(QtWebKit QtSvg QtScript QtOpenGL QtGui QtNetwork QtCore)
+endif()
+
 
 # needs testing
 #build_qt_lib_binding(QtSql)

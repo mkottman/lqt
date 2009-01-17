@@ -42,10 +42,14 @@ else()
 endif()
 set(LIBRARY_TYPE SHARED)
 
+
 add_library (lua ${LIBRARY_TYPE} ${LUA_LIB_SRCS} ${LUA_CORE_SRCS})
 
 if(UNIX)
-	target_link_libraries (lua m dl readline history ncurses)
+	target_link_libraries (lua readline)
+	if(NOT APPLE)
+		target_link_libraries (dl m history ncurses)
+	endif()
 endif()
 
 # create the lue executable and link it to the lib

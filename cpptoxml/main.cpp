@@ -477,7 +477,7 @@ int main (int argc, char **argv) {
 	QString frameworkDir = "/Library/Frameworks";
 	if (!QFileInfo(sourceName).exists()) {
 		QString qtincludefile = QDir::fromNativeSeparators(qtdir+'/'+sourceName+'/'+sourceName);
-		QString macincludefile = QString("%1/%2.framework/Headers").arg(frameworkDir).arg(sourceName);
+		QString macincludefile = QString("%1/%2.framework/Headers/%2").arg(frameworkDir).arg(sourceName);
 		if (QFileInfo(qtincludefile).exists()) {
 			sourceName = qtincludefile;
 		} else if (QFileInfo(macincludefile).exists()) {
@@ -500,6 +500,7 @@ int main (int argc, char **argv) {
 	//QDir::setCurrent(sourceInfo.absolutePath());
 
 	inclist << (sourceInfo.absolutePath());
+	inclist << (QDir::convertSeparators(qtdir));
 
 	QStringList qts;
 	qts << "QtXml" << "QtNetwork" << "QtCore" << "QtGui"
@@ -507,6 +508,7 @@ int main (int argc, char **argv) {
 
 	Q_FOREACH(const QString& lib, qts) {
 		if (sourceName.contains(frameworkDir)) {
+			// TODO does not work with framework because there are no QtCore, QtGui, ... folders
 			inclist << QString("%1/%2.framework/Headers").arg(frameworkDir).arg(lib);
 		} else {
 			inclist << QDir::convertSeparators(qtdir + "/" + lib);

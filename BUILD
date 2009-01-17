@@ -37,6 +37,10 @@ Windows (debug build):
 build> set LUA_CPATH=%CD%\bin\Debug\?.dll
 build> bin\Debug\lua.exe ..\lqt\test\t7.lua
 
+Mac
+build>export LUA_CPATH=$PWD/lib/lib?.dylib
+build> ./bin/lua ../lqt/test/webview.lua
+
 
 Without any option it also builds Lua which could
 be suppressed by -DSYSTEM_LUA
