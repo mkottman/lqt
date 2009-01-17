@@ -193,14 +193,11 @@ build_qt_lib_binding(QtCore)
 build_qt_lib_binding(QtNetwork QtCore)
 build_qt_lib_binding(QtGui QtNetwork QtCore)
 build_qt_lib_binding(QtScript QtGui QtNetwork QtCore)
+build_qt_lib_binding(QtOpenGL QtGui QtNetwork QtCore)
 build_qt_lib_binding(QtSvg QtScript QtGui QtNetwork QtCore)
 build_qt_lib_binding(QtXml QtSvg QtScript QtGui QtNetwork QtCore)
+build_qt_lib_binding(QtWebKit QtSvg QtScript QtOpenGL QtGui QtNetwork QtCore)
 
-if(NOT APPLE)
-	build_qt_lib_binding(QtOpenGL QtGui QtNetwork QtCore)
-	# proplems with disabled copy ctor
-	build_qt_lib_binding(QtWebKit QtSvg QtScript QtOpenGL QtGui QtNetwork QtCore)
-endif()
 
 
 # needs testing

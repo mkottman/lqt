@@ -515,7 +515,7 @@ int main (int argc, char **argv) {
 		}
 	}
 
-	if(debug) qDebug() << inclist;
+	if(debug) qDebug() << "atdir: " << qtdir << "sourceName: " << sourceName << inclist;
 	
 
 	Preprocessor pp;

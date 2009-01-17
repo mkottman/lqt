@@ -24,6 +24,8 @@ for c in pairs(classes) do
 			or c.xarg.fullname=='QtConcurrent::internal::ExceptionHolder'
 			or c.xarg.fullname=='QtConcurrent::ResultIteratorBase'
 			or c.xarg.fullname=='QtSharedPointer'
+			or c.xarg.fullname=='QtSharedPointer::InternalRefCountData'
+			or c.xarg.fullname=='QtSharedPointer::ExternalRefCountData'
 
 			-- platform specific, TODO
 			or c.xarg.fullname=='QWindowsCEStyle'
@@ -39,13 +41,6 @@ for c in pairs(classes) do
 			or c.xarg.fullname=='QtConcurrent::ThreadEngineSemaphore'
 			or c.xarg.fullname=='QtConcurrent::Exception'                 -- GCC throw() in destructor base declaration
 			or c.xarg.fullname=='QtConcurrent::UnhandledException'        -- GCC throw() in destructor base declaration
-
-			-- TODO: - Mac support needs more work 
-			--              - doesn't work on Mac, copy ctor is private
-			--or c.xarg.fullname=='QTextDecoder'
-			--or c.xarg.fullname=='QTextEncoder'
-			--or c.xarg.fullname=='QGraphicsSvgItem'
-			--or c.xarg.fullname=='QSvgGenerator'
 
 
 
