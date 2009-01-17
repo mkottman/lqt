@@ -446,7 +446,7 @@ int main (int argc, char **argv) {
 					if(QString(argv[i]).startsWith("-qt")) {
 						configName = QDir::fromNativeSeparators("cpptoxml/parser/rpp/pp-qt-configuration");
 #ifdef Q_OS_WIN
-						configName += QString("-win");					
+						configName += QString("-win");
 #endif
 					} else
 						fprintf(stderr, "found unknown parameter: -%s",argv[i]);
@@ -474,12 +474,20 @@ int main (int argc, char **argv) {
 		return 1;
 	}
 	
+	QString frameworkDir = "/Library/Frameworks";
 	if (!QFileInfo(sourceName).exists()) {
 		QString qtincludefile = QDir::fromNativeSeparators(qtdir+'/'+sourceName+'/'+sourceName);
+		QString macincludefile = QString("%1/%2.framework/Headers").arg(frameworkDir).arg(sourceName);
 		if (QFileInfo(qtincludefile).exists()) {
 			sourceName = qtincludefile;
+		} else if (QFileInfo(macincludefile).exists()) {
+			sourceName = macincludefile;
 		} else {
-			QString msg = "Error: wether '" + sourceName + "' nor '" + qtincludefile + "' found";
+			QString msg = "Error: wether '" + sourceName + "' nor '" + qtincludefile;
+#if defined(Q_OS_MAC)
+			msg += "' or '" + macincludefile;
+#endif
+			msg += "' found";
 			fprintf(stderr, msg.toLatin1().constData());
 			return 1;
 		}
@@ -490,17 +498,24 @@ int main (int argc, char **argv) {
 	QString currentDir = QDir::current().absolutePath();
 	QFileInfo sourceInfo(sourceName);
 	//QDir::setCurrent(sourceInfo.absolutePath());
-	
+
 	inclist << (sourceInfo.absolutePath());
-	inclist << (QDir::convertSeparators(qtdir));
-	inclist << (QDir::convertSeparators(qtdir + "/QtXml"));
-	inclist << (QDir::convertSeparators(qtdir + "/QtNetwork"));
-	inclist << (QDir::convertSeparators(qtdir + "/QtCore"));
-	inclist << (QDir::convertSeparators(qtdir + "/QtGui"));
-	inclist << (QDir::convertSeparators(qtdir + "/QtOpenGL"));
-	inclist << (QDir::convertSeparators(qtdir + "/QtWebKit"));
+
+	QStringList qts;
+	qts << "QtXml" << "QtNetwork" << "QtCore" << "QtGui"
+		<<"QtOpenGL" << "QtWebKit"<< "QtScript" << "QtSvg";
+
+	Q_FOREACH(const QString& lib, qts) {
+		if (sourceName.contains(frameworkDir)) {
+			inclist << QString("%1/%2.framework/Headers").arg(frameworkDir).arg(lib);
+		} else {
+			inclist << QDir::convertSeparators(qtdir + "/" + lib);
+		}
+	}
+
 	if(debug) qDebug() << inclist;
 	
+
 	Preprocessor pp;
 	pp.addIncludePaths(inclist);
 	pp.processFile(configName);
