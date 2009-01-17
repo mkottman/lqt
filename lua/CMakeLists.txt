@@ -48,7 +48,7 @@ add_library (lua ${LIBRARY_TYPE} ${LUA_LIB_SRCS} ${LUA_CORE_SRCS})
 if(UNIX)
 	target_link_libraries (lua readline)
 	if(NOT APPLE)
-		target_link_libraries (dl m history ncurses)
+		target_link_libraries (lua dl m history ncurses)
 	endif()
 endif()
 
