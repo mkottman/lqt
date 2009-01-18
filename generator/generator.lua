@@ -645,7 +645,6 @@ local print_shell_classes = function(classes)
 		print_head('#include <'..string.match(c.xarg.fullname, '^[^:]+')..'>')
 		print_head''
 		if c.shell then
-			if c.xarg.fullname=='QAbstractFileEngineHandler' then debug"WTF!!!" end
 			if c then
 				print_head(c.shell_class)
 			else
