@@ -156,13 +156,25 @@ function(build_qt_lib_binding BINDING_HEADER)
 	set(COMMON COMMON_${BINDING_NAME})
 	file(GLOB ${COMMON}_SRC ${CMAKE_SOURCE_DIR}/common/*.cpp) 
 	file(GLOB ${COMMON}_HPP ${CMAKE_SOURCE_DIR}/common/*.hpp) 
-	
+
 	set(${BINDING_NAME}_GENERATED ${LQT_GEN_DIR}/${BINDING_NAME}_enum.cpp
 									${LQT_GEN_DIR}/${BINDING_NAME}_meta.cpp
 									${LQT_GEN_DIR}/${BINDING_NAME}_slot.cpp)
 	set_source_files_properties(${${BINDING_NAME}_GENERATED} PROPERTIES GENERATED TRUE)
-									
-	set(${COMMON}_SRC ${${COMMON}_SRC}	${${BINDING_NAME}_GENERATED})
+
+	if(nomerge)
+		#TODO fix this build process:
+		#	1. cmake ../lqt -Dnomerge=1
+		#	2. make -> will generate cpp files but they are not part of the Makefile (GLOB was at 1.)
+		# 	3. cmake ../lqt -Dnomerge=1 -> GLOB now finds the generated cpp files
+		#	4. make
+		file(GLOB BINDING_SRC ${LQT_GEN_DIR}/*.cpp) 
+		set(${COMMON}_SRC)
+		list(REMOVE_ITEM BINDING_SRC ${LQT_GEN_DIR}/${BINDING_NAME}_merged_build.cpp)
+	else()				
+		set(${COMMON}_SRC ${${COMMON}_SRC}	${${BINDING_NAME}_GENERATED})
+	endif()
+
 	qt4_wrap_cpp(${COMMON}_MOC ${LQT_GEN_DIR}/${BINDING_NAME}_slot.hpp)
 	
 	include_directories(${CMAKE_SOURCE_DIR}/common ${LUA_INCLUDE_DIRS} ${QT_INCLUDES})
@@ -176,7 +188,8 @@ function(build_qt_lib_binding BINDING_HEADER)
 
 	if(LQT_BUILDIN_CPPTOXML)
 		add_dependencies(generate_${BINDING_NAME}_xml  cpptoxml)
-    endif()	
+	endif()
+
 	add_dependencies(generate_${BINDING_NAME}_cpp  generate_${BINDING_NAME}_xml ${${BINDING_NAME}_DEPENDS})
 	add_dependencies(${BINDING_NAME} generate_${BINDING_NAME}_cpp)
 	if(NOT SYSTEM_LUA)
