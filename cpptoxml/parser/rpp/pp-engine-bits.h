@@ -307,7 +307,9 @@ inline FILE *pp::find_include_file(std::string const &__input_filename, std::str
       }
 #endif // Q_OS_MAC
     }
-  std::cerr << "pp::find_include_file:  could not find '" << __input_filename << "'\n";
+  if (__input_filename.find('/') != std::string::npos)
+    std::cerr << "pp::find_include_file:  could not find '" << __input_filename << "'\n";
+	
   return 0;
 }
 
