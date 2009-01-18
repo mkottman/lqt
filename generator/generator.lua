@@ -890,7 +890,6 @@ local add_class = lqt.classes.insert or error('module lqt.classes not loaded')
 		print_meta('\t'..p..'(L);')
 	end
 	print_meta('\tlqt_create_enums_'..module_name..'(L);')
-	print_meta('\tlqt_create_enums_'..module_name..'(L);')
 	print_meta('\tlua_getfield(L, LUA_REGISTRYINDEX, "QObject*");')
 	print_meta('\tlua_pushstring(L, "__addmethod");')
 	print_meta('\tlqtL_pushaddmethod(L);')
