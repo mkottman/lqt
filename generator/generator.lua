@@ -70,7 +70,13 @@ end
 
 local my_includes = ''
 for _, i in ipairs(output_includes) do
-	my_includes = my_includes .. '#include "'..i..'"\n'
+	if string.match(i, '^<.+>$') then
+		my_includes = my_includes .. '#include '..i..'\n'
+	elseif string.match(i, '^".+"$') then
+		my_includes = my_includes .. '#include '..i..'\n'
+	else
+		my_includes = my_includes .. '#include "'..i..'"\n'
+	end
 end
 output_includes = my_includes .. '\n'
 
