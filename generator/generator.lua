@@ -850,10 +850,12 @@ local print_merged_build = function()
 end
 
 local print_class_list = function(classes)
+	local qobject_present = false
 	local big_picture = {}
 	local type_list_t = {}
 	for c in pairs(classes) do
 		local n = string.gsub(c.xarg.fullname, '::', '_LQT_')
+		if n=='QObject' then qobject_present = true end
 		print_single_class(c)
 		table.insert(big_picture, 'luaopen_'..n)
 		table.insert(type_list_t, 'add_class(\''..c.xarg.fullname..'\', types)\n')
@@ -890,10 +892,12 @@ local add_class = lqt.classes.insert or error('module lqt.classes not loaded')
 		print_meta('\t'..p..'(L);')
 	end
 	print_meta('\tlqt_create_enums_'..module_name..'(L);')
-	print_meta('\tlua_getfield(L, LUA_REGISTRYINDEX, "QObject*");')
-	print_meta('\tlua_pushstring(L, "__addmethod");')
-	print_meta('\tlqtL_pushaddmethod(L);')
-	print_meta('\tlua_rawset(L, -3);')
+	if qobject_present then
+		print_meta('\tlua_getfield(L, LUA_REGISTRYINDEX, "QObject*");')
+		print_meta('\tlua_pushstring(L, "__addmethod");')
+		print_meta('\tlqtL_pushaddmethod(L);')
+		print_meta('\tlua_rawset(L, -3);')
+	end
 	print_meta('\t//lua_pushlightuserdata(L, (void*)&LqtSlotAcceptor::staticMetaObject);')
 	print_meta('\t//lua_setfield(L, LUA_REGISTRYINDEX, LQT_METAOBJECT);')
 	print_meta('\tlua_pushlightuserdata(L, (void*)new LqtSlotAcceptor(L));')
