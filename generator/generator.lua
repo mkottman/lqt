@@ -764,6 +764,7 @@ local cpp_files = {}
 
 local print_single_class = function(c)
 	local n = string.gsub(c.xarg.fullname, '::', '_LQT_')
+	local lua_name = string.gsub(c.xarg.fullname, '::', '.')
 	local cppname = module_name..'_meta_'..n..'.cpp'
 	table.insert(cpp_files, cppname);
 	local fmeta = assert(io.open(module_name.._src..cppname, 'w'))
@@ -778,7 +779,7 @@ local print_single_class = function(c)
 	end
 	print_meta('extern "C" LQT_EXPORT int luaopen_'..n..' (lua_State *L) {')
 	print_meta('\tlqtL_createclass(L, "'
-		..n..'*", lqt_metatable'
+		..lua_name..'*", lqt_metatable'
 		..c.xarg.id..', lqt_base'
 		..c.xarg.id..');')
 	print_meta'\treturn 0;'

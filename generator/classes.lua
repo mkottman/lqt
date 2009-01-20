@@ -5,77 +5,82 @@ lqt.classes = lqt.classes or {}
 
 
 local pointer_t = function(fn)
+	local cn = string.gsub(fn, '::', '.')
 	return {
 		-- the argument is a pointer to class
 		push = function(n)
-			return 'lqtL_passudata(L, '..n..', "'..fn..'*")', 1
+			return 'lqtL_passudata(L, '..n..', "'..cn..'*")', 1
 		end,
 		get = function(n)
 			return 'static_cast<'..fn..'*>'
-			..'(lqtL_toudata(L, '..n..', "'..fn..'*"))', 1
+			..'(lqtL_toudata(L, '..n..', "'..cn..'*"))', 1
 		end,
 		test = function(n)
-			return 'lqtL_isudata(L, '..n..', "'..fn..'*")', 1
+			return 'lqtL_isudata(L, '..n..', "'..cn..'*")', 1
 		end,
 	}
 end
 local pointer_const_t = function(fn)
+	local cn = string.gsub(fn, '::', '.')
 	return {
 		-- the argument is a pointer to constant class instance
 		push = function(n)
-			return 'lqtL_passudata(L, '..n..', "'..fn..'*")', 1
+			return 'lqtL_passudata(L, '..n..', "'..cn..'*")', 1
 		end,
 		get = function(n)
 			return 'static_cast<'..fn..'*>'
-			..'(lqtL_toudata(L, '..n..', "'..fn..'*"))', 1
+			..'(lqtL_toudata(L, '..n..', "'..cn..'*"))', 1
 		end,
 		test = function(n)
-			return 'lqtL_isudata(L, '..n..', "'..fn..'*")', 1
+			return 'lqtL_isudata(L, '..n..', "'..cn..'*")', 1
 		end,
 	}
 end
 local ref_t = function(fn)
+	local cn = string.gsub(fn, '::', '.')
 	return {
 		-- the argument is a reference to class
 		push = function(n)
-			return 'lqtL_passudata(L, &'..n..', "'..fn..'*")', 1
+			return 'lqtL_passudata(L, &'..n..', "'..cn..'*")', 1
 		end,
 		get = function(n)
 			return '*static_cast<'..fn..'*>'
-			..'(lqtL_toudata(L, '..n..', "'..fn..'*"))', 1
+			..'(lqtL_toudata(L, '..n..', "'..cn..'*"))', 1
 		end,
 		test = function(n)
-			return 'lqtL_isudata(L, '..n..', "'..fn..'*")', 1
+			return 'lqtL_isudata(L, '..n..', "'..cn..'*")', 1
 		end,
 	}
 end
 local instance_t = function(fn)
+	local cn = string.gsub(fn, '::', '.')
 	return {
 		-- the argument is the class itself
 		push = function(n)
-			return 'lqtL_copyudata(L, &'..n..', "'..fn..'*")', 1
+			return 'lqtL_copyudata(L, &'..n..', "'..cn..'*")', 1
 		end,
 		get = function(n)
 			return '*static_cast<'..fn..'*>'
-			..'(lqtL_toudata(L, '..n..', "'..fn..'*"))', 1
+			..'(lqtL_toudata(L, '..n..', "'..cn..'*"))', 1
 		end,
 		test = function(n)
-			return 'lqtL_isudata(L, '..n..', "'..fn..'*")', 1
+			return 'lqtL_isudata(L, '..n..', "'..cn..'*")', 1
 		end,
 	}
 end
 local const_ref_t = function(fn)
+	local cn = string.gsub(fn, '::', '.')
 	return {
 		-- the argument is a pointer to class
 		push = function(n)
-			return 'lqtL_copyudata(L, &'..n..', "'..fn..'*")', 1, string.gsub(fn, ' const&$', '')
+			return 'lqtL_copyudata(L, &'..n..', "'..cn..'*")', 1, string.gsub(fn, ' const&$', '')
 		end,
 		get = function(n)
 			return '*static_cast<'..fn..'*>'
-			..'(lqtL_toudata(L, '..n..', "'..fn..'*"))', 1
+			..'(lqtL_toudata(L, '..n..', "'..cn..'*"))', 1
 		end,
 		test = function(n)
-			return 'lqtL_isudata(L, '..n..', "'..fn..'*")', 1
+			return 'lqtL_isudata(L, '..n..', "'..cn..'*")', 1
 		end,
 	}
 end
