@@ -47,6 +47,11 @@ set(QT_USE_QTXML 1)
 #set(QT_USE_QTXMLPATTERNS 1)
 include(${QT_USE_FILE})
 
+if(noqt)
+	set(QT_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/test)
+	#set(nomerge TRUE)
+endif()
+
 if(SYSTEM_LUA)
 	find_package(Lua51 REQUIRED)
 	set(LUA_CMD lua)
@@ -201,7 +206,10 @@ if(MSVC)
 		add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
 endif()
 
-
+if(noqt)
+	include_directories(${CMAKE_CURRENT_SOURCE_DIR}/test/noqt)
+	build_qt_lib_binding(noqt)
+else()
 build_qt_lib_binding(QtCore)
 build_qt_lib_binding(QtNetwork QtCore)
 build_qt_lib_binding(QtGui QtNetwork QtCore)
@@ -210,7 +218,7 @@ build_qt_lib_binding(QtOpenGL QtGui QtNetwork QtCore)
 build_qt_lib_binding(QtSvg QtScript QtGui QtNetwork QtCore)
 build_qt_lib_binding(QtXml QtSvg QtScript QtGui QtNetwork QtCore)
 build_qt_lib_binding(QtWebKit QtSvg QtScript QtOpenGL QtGui QtNetwork QtCore)
-
+endif()
 
 
 # needs testing
