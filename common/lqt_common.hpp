@@ -73,6 +73,7 @@ void * lqtL_toudata (lua_State *, int, const char *);
 bool lqtL_testudata (lua_State *, int, const char *);
 //#define lqtL_checkudata(a...) luaL_checkudata(a)
 void * lqtL_checkudata (lua_State *, int, const char *);
+void lqtL_eraseudata (lua_State *, int, const char *);
 #define lqtL_isudata lqtL_testudata
 
 void lqtL_pushenum (lua_State *, int, const char *);

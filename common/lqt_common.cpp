@@ -427,6 +427,14 @@ void *lqtL_toudata (lua_State *L, int index, const char *name) {
 	return ret;
 }
 
+void lqtL_eraseudata (lua_State *L, int index, const char *name) {
+	void *ret = 0;
+	if (!lqtL_testudata(L, index, name)) return;
+	void **pp = static_cast<void**>(lua_touserdata(L, index));
+	*pp = 0;
+	return;
+}
+
 bool lqtL_testudata (lua_State *L, int index, const char *name) {
 	if (!lua_isuserdata(L, index) || lua_islightuserdata(L, index)) return false;
 	lua_getfield(L, index, name);
