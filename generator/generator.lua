@@ -407,7 +407,7 @@ local argument_name = function(tn, an)
 	if string.match(tn, '%(%*%)') then
 		ret = string.gsub(tn, '%(%*%)', '(*'..an..')', 1)
 	elseif string.match(tn, '%[.*%]') then
-		ret = string.gsub(tn, '(%[.*%])', an..'%1')
+		ret = string.gsub(tn, '%s*(%[.*%])', ' '..an..'%1')
 	else
 		ret = tn .. ' ' .. an
 	end
