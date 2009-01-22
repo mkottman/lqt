@@ -242,8 +242,6 @@ int lqtL_createclass (lua_State *L, const char *name, luaL_Reg *mt, lqt_Base *ba
 	lua_setfield(L, -2, "__newindex"); // (1)
 	lua_pushcfunction(L, lqtL_gcfunc); // (2)
 	lua_setfield(L, -2, "__gc"); // (1)
-	lua_pushcfunction(L, lqtL_ctor_helper); // (2)
-	lua_setfield(L, -2, "__call"); // (1)
 
 	// set it as its own metatable
 	lua_pushvalue(L, -1); // (2)
@@ -256,7 +254,9 @@ int lqtL_createclass (lua_State *L, const char *name, luaL_Reg *mt, lqt_Base *ba
 	luaL_register(L, new_name, mt); // (1)
 	free(new_name);
 	new_name = NULL;
-	luaL_newmetatable(L, name); // (2)
+	lua_newtable(L); // (2)
+	lua_pushcfunction(L, lqtL_ctor_helper); // (3)
+	lua_setfield(L, -2, "__call"); // (2)
 	lua_setmetatable(L, -2); // (1)
 	lua_pop(L, 1); // (0)
 	/*
