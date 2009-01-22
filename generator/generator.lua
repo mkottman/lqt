@@ -642,7 +642,7 @@ local print_shell_classes = function(classes)
 		print_head('#ifndef LQT_HEAD_'..n)
 		print_head('#define LQT_HEAD_'..n)
 		print_head(output_includes)
-		print_head('#include <'..string.match(c.xarg.fullname, '^[^:]+')..'>')
+		--print_head('#include <'..string.match(c.xarg.fullname, '^[^:]+')..'>')
 		print_head''
 		if c.shell then
 			if c then
