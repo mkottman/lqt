@@ -705,7 +705,8 @@ local print_wrappers = function(index)
 			local out = 'static int lqt_delete'..c.xarg.id..' (lua_State *L) {\n'
 			out = out ..'  '..c.xarg.fullname..' *p = static_cast<'
 				..c.xarg.fullname..'*>(lqtL_toudata(L, 1, "'..lua_name..'*"));\n'
-			out = out .. '  if (p) delete p;\n  return 0;\n}\n'
+			out = out .. '  if (p) delete p;\n'
+			out = out .. '  lqtL_eraseudata(L, 1, "'..lua_name..'*");\n  return 0;\n}\n'
 			--print_meta(out)
 			wrappers = wrappers .. out .. '\n'
 		end
