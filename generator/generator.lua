@@ -549,7 +549,7 @@ local virtual_overload = function(v, types)
 	.. v.xarg.fullname .. '(' .. fallback .. ');\n}\n'
 	ret = proto .. [[ {
   int oldtop = lua_gettop(L);
-  lqtL_pushudata(L, this, "]]..v.xarg.member_of_class..[[*");
+  lqtL_pushudata(L, this, "]]..string.gsub(v.xarg.member_of_class, '::', '.')..[[*");
   lua_getfield(L, -1, "]]..v.xarg.name..[[");
   if (lua_isfunction(L, -1)) {
     lua_insert(L, -2);
