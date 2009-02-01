@@ -274,7 +274,13 @@ QString XMLVisitor::visit(CodeModelItem i) {
 	}
 	if (ClassModelItem c = model_dynamic_cast<ClassModelItem>(i)) {
 		if (c->baseClasses().size()>0) {
+			QStringList fullBases;
 			ret += ATTR_STR("bases", c->baseClasses().join(";").append(";"));
+			Q_ASSERT (c->baseClasses().size() == c->baseModifiers().size());
+			for (int j=0;j<c->baseClasses().size();j++) {
+				fullBases.append(c->baseModifiers().at(j) + " " + c->baseClasses().at(j));
+			}
+			ret += ATTR_STR("bases_with_attributes", fullBases.join(";").append(";"));
 		}
 		switch(c->classType()) {
 			case CodeModel::Class:
