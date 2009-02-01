@@ -56,7 +56,7 @@ private:
   TokenStream *_M_token_stream;
   QString _M_name;
   QStringList _M_base_classes;
-  QStringList _M_base_classes_spec;
+  QStringList _M_base_classes_mod;
   NameCompiler name_cc;
   TypeCompiler type_cc;
 };

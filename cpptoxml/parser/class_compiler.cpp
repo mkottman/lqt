@@ -58,27 +58,28 @@ void ClassCompiler::visitBaseSpecifier(BaseSpecifierAST *node)
 {
   name_cc.run(node->name);
   QString name = name_cc.name();
-  QString spec_name = name;
+  QString modifier = "";
 
   if (! name.isEmpty()) {
     _M_base_classes.append(name);
     switch (_M_token_stream->kind(node->access_specifier)) {
 	    case Token_public:
-		    spec_name = spec_name.prepend("public ");
+		    modifier = modifier.prepend("public");
 		    break;
 	    case Token_private:
-		    spec_name = spec_name.prepend("private ");
+		    modifier = modifier.prepend("private");
 		    break;
 	    case Token_protected:
-		    spec_name = spec_name.prepend("protected ");
+		    modifier = modifier.prepend("protected");
 		    break;
 	    default:
+		    modifier = modifier.prepend("private");
 		    break;
     }
     if (_M_token_stream->kind(node->virt)==Token_virtual) {
-      spec_name = spec_name.prepend("virtual ");
+      modifier = modifier.prepend("virtual ");
     }
-    _M_base_classes_spec.append(spec_name);
+    _M_base_classes_mod.append(modifier);
   }
 }
 
