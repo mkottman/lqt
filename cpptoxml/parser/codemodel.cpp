@@ -326,6 +326,13 @@ QStringList _ClassModelItem::baseClasses() const
 void _ClassModelItem::setBaseClasses(const QStringList &baseClasses)
 {
   _M_baseClasses = baseClasses;
+  _M_baseModifiers = QStringList();
+  while (_M_baseModifiers.size()>_M_baseClasses.size()) {
+	  _M_baseModifiers.pop_back();
+  }
+  while (_M_baseModifiers.size()<_M_baseClasses.size()) {
+	  _M_baseModifiers.push_back(QString());
+  }
 }
 
 QStringList _ClassModelItem::baseModifiers() const
@@ -336,6 +343,12 @@ QStringList _ClassModelItem::baseModifiers() const
 void _ClassModelItem::setBaseModifiers(const QStringList &baseModifiers)
 {
   _M_baseModifiers = baseModifiers;
+  while (_M_baseModifiers.size()>_M_baseClasses.size()) {
+	  _M_baseModifiers.pop_back();
+  }
+  while (_M_baseModifiers.size()<_M_baseClasses.size()) {
+	  _M_baseModifiers.push_back(QString());
+  }
 }
 
 TemplateParameterList _ClassModelItem::templateParameters() const
@@ -356,7 +369,9 @@ void _ClassModelItem::addBaseClass(const QString &baseClass, const QString &base
 
 void _ClassModelItem::removeBaseClass(const QString &baseClass)
 {
-  _M_baseClasses.removeAt(_M_baseClasses.indexOf(baseClass));
+  int index = _M_baseClasses.indexOf(baseClass);
+  _M_baseClasses.removeAt(index);
+  _M_baseModifiers.removeAt(index);
 }
 
 bool _ClassModelItem::extendsClass(const QString &name) const
