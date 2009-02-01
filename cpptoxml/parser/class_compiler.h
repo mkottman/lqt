@@ -44,6 +44,7 @@ public:
 
   inline QString name() const { return _M_name; }
   inline QStringList baseClasses() const { return _M_base_classes; }
+  inline QStringList baseModifiers() const { return _M_base_classes_mod; }
 
   void run(ClassSpecifierAST *node);
 
