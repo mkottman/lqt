@@ -219,6 +219,17 @@ static int lqtL_ctor_helper(lua_State*L) {
 	return lua_gettop(L);
 }
 
+static int lqtL_local_ctor(lua_State*L) {
+	lua_pushvalue(L, lua_upvalueindex(1)); // (+1)
+	lua_getfield(L, -1, "new"); // (+2)
+	lua_insert(L, 1); // (+2)
+	lua_pop(L, 1); // (+1)
+	lua_call(L, lua_gettop(L)-1, LUA_MULTRET); // (X)
+	lua_getfield(L, 1, "delete"); // (X+1)
+	lua_setfield(L, 1, "__gc"); // (X)
+	return lua_gettop(L);
+}
+
 int lqtL_createclass (lua_State *L, const char *name, luaL_Reg *mt, lqt_Base *bases) {
 	int len = 0;
 	char *new_name = NULL;
@@ -258,6 +269,9 @@ int lqtL_createclass (lua_State *L, const char *name, luaL_Reg *mt, lqt_Base *ba
 	lua_pushcfunction(L, lqtL_ctor_helper); // (3)
 	lua_setfield(L, -2, "__call"); // (2)
 	lua_setmetatable(L, -2); // (1)
+	lua_pushvalue(L, -1); // (2)
+	lua_pushcclosure(L, lqtL_local_ctor, 1); // (2)
+	lua_setfield(L, -2, "new_local");
 	lua_pop(L, 1); // (0)
 	/*
 	lua_pushlstring(L, name, strlen(name)-1); // (1)
