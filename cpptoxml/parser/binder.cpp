@@ -633,7 +633,9 @@ void Binder::visitClassSpecifier(ClassSpecifierAST *node)
   updateItemPosition (_M_current_class->toItem(), node);
   _M_current_class->setName(class_cc.name());
 
-  QStringList baseClasses = class_cc.baseClasses(); TypeInfo info;
+  TypeInfo info;
+  QStringList baseClasses = class_cc.baseClasses();
+  QStringList baseModifiers = class_cc.baseModifiers();
   for (int i=0; i<baseClasses.size(); ++i)
     {
         info.setQualifiedName(baseClasses.at(i).split("::"));
@@ -641,6 +643,7 @@ void Binder::visitClassSpecifier(ClassSpecifierAST *node)
     }
 
   _M_current_class->setBaseClasses(baseClasses);
+  _M_current_class->setBaseModifiers(baseModifiers);
   _M_current_class->setClassType(decode_class_type(node->class_key));
   _M_current_class->setTemplateParameters(_M_current_template_parameters);
 
