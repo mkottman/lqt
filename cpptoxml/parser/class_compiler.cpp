@@ -26,6 +26,7 @@
 #include "class_compiler.h"
 #include "lexer.h"
 #include "binder.h"
+#include "tokens.h"
 
 ClassCompiler::ClassCompiler(Binder *binder)
   : _M_binder (binder),
@@ -57,9 +58,28 @@ void ClassCompiler::visitBaseSpecifier(BaseSpecifierAST *node)
 {
   name_cc.run(node->name);
   QString name = name_cc.name();
+  QString spec_name = name;
 
-  if (! name.isEmpty())
+  if (! name.isEmpty()) {
     _M_base_classes.append(name);
+    switch (_M_token_stream->kind(node->access_specifier)) {
+	    case Token_public:
+		    spec_name = spec_name.prepend("public ");
+		    break;
+	    case Token_private:
+		    spec_name = spec_name.prepend("private ");
+		    break;
+	    case Token_protected:
+		    spec_name = spec_name.prepend("protected ");
+		    break;
+	    default:
+		    break;
+    }
+    if (_M_token_stream->kind(node->virt)==Token_virtual) {
+      spec_name = spec_name.prepend("virtual ");
+    }
+    _M_base_classes_spec.append(spec_name);
+  }
 }
 
 
