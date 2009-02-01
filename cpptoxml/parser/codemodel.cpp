@@ -328,6 +328,16 @@ void _ClassModelItem::setBaseClasses(const QStringList &baseClasses)
   _M_baseClasses = baseClasses;
 }
 
+QStringList _ClassModelItem::baseModifiers() const
+{
+  return _M_baseModifiers;
+}
+
+void _ClassModelItem::setBaseModifiers(const QStringList &baseModifiers)
+{
+  _M_baseModifiers = baseModifiers;
+}
+
 TemplateParameterList _ClassModelItem::templateParameters() const
 {
   return _M_templateParameters;
@@ -338,9 +348,10 @@ void _ClassModelItem::setTemplateParameters(const TemplateParameterList &templat
   _M_templateParameters = templateParameters;
 }
 
-void _ClassModelItem::addBaseClass(const QString &baseClass)
+void _ClassModelItem::addBaseClass(const QString &baseClass, const QString &baseModifier)
 {
   _M_baseClasses.append(baseClass);
+  _M_baseModifiers.append(baseModifier);
 }
 
 void _ClassModelItem::removeBaseClass(const QString &baseClass)

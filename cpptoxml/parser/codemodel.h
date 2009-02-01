@@ -330,10 +330,13 @@ public:
 
 public:
   QStringList baseClasses() const;
+  QStringList baseModifiers() const;
 
   void setBaseClasses(const QStringList &baseClasses);
-  void addBaseClass(const QString &baseClass);
+  void addBaseClass(const QString &baseClass, const QString &baseModifier = QString());
   void removeBaseClass(const QString &baseClass);
+
+  void setBaseModifiers(const QStringList &baseModifiers);
 
   TemplateParameterList templateParameters() const;
   void setTemplateParameters(const TemplateParameterList &templateParameters);
@@ -352,6 +355,7 @@ protected:
 
 private:
   QStringList _M_baseClasses;
+  QStringList _M_baseModifiers;
   TemplateParameterList _M_templateParameters;
   CodeModel::ClassType _M_classType;
 
