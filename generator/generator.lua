@@ -729,7 +729,7 @@ local print_metatable = function(c)
 			disp = disp..'  if ('..f.test_code..') return lqt_bind'..f.xarg.id..'(L);\n'
 		end
 		disp = disp .. '  lua_settop(L, 0);\n'
-		disp = disp .. '  lua_pushstring(L, "incorrect or extra arguments");\n'
+		disp = disp .. '  lua_pushstring(L, "'..c.xarg.fullname..'::'..n..': incorrect or extra arguments");\n'
 		disp = disp .. '  return lua_error(L);\n}\n' 
 		--print_meta(disp)
 		wrappers = wrappers .. disp .. '\n'
