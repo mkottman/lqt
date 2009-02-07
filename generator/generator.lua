@@ -2,7 +2,7 @@
 
 --[[
 
-Copyright (c) 2007-2008 Mauro Iazzi
+Copyright (c) 2007-2009 Mauro Iazzi
 Copyright (c)      2008 Peter Kümmel 
 
 Permission is hereby granted, free of charge, to any person
@@ -130,6 +130,7 @@ local fix_arguments = function(all)
 		if a.label=='Argument'
 			and a.xarg.default=='1'
 			and (not string.match(a.xarg.defaultvalue, '^[-+]?%d+%.?%d*$'))
+			and (not string.match(a.xarg.defaultvalue, '^".*"$'))
 			and a.xarg.defaultvalue~='true'
 			and a.xarg.defaultvalue~='false'
 			and (not string.match(a.xarg.defaultvalue, '^0[xX]%d+$')) then
