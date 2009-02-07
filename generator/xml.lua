@@ -31,6 +31,9 @@ OTHER DEALINGS IN THE SOFTWARE.
 local parseargs, collect
 
 local escapes = {
+	amp = '&',
+	quot = '"',
+	apos = '\'',
 	gt = '>',
 	lt = '<',
 }
