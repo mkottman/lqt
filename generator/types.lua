@@ -2,7 +2,7 @@
 
 --[[
 
-Copyright (c) 2007-2008 Mauro Iazzi
+Copyright (c) 2007-2009 Mauro Iazzi
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
@@ -131,6 +131,17 @@ base_types['char**'] = {
 	end,
 }
 --]]
+base_types['std::string const&'] = {
+	get = function(i)
+		return 'std::string(lua_tostring(L, '..i..'), lua_objlen(L, '..i..'))', 1
+	end,
+	push = function(i)
+		return 'lua_pushlstring(L, '..i..'.c_str(), '..i..'.size())', 1
+	end,
+	test = function(i)
+		return 'lua_isstring(L, '..i..')', 1
+	end,
+}
 
 
 return base_types
