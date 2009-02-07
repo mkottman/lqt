@@ -1,5 +1,5 @@
 /*
- * Copyright 2008 Mauro Iazzi <mauro.iazzi@gmail.com>
+ * Copyright 2009 Mauro Iazzi <mauro.iazzi@gmail.com>
  * Copyright 2008 Peter Kümmel <syntheticpp@gmx.net>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -40,12 +40,22 @@
 
 
 #define ID_STR(i) (QString('_').append(QString::number(i->creationId())))
-#define ATTR_STR(n, v) ( QString(' ') + n + QString("=\"") + v + QString('\"') )
+#define ATTR_STR(n, v) ( QString(' ') + escape_chars(n) + QString("=\"") + escape_chars(v) + QString('\"') )
 #define ATTR_NUM(n, v) ( (QString::number(v)).prepend(" " n "=\"").append('\"') )
 #define ATTR_TRUE(n) ( ATTR_NUM(n, 1) )
 
 
 using namespace std;
+
+QString escape_chars (QString s) {
+    QString ret = s;
+    ret.replace('&', "&amp;");
+    ret.replace('"', "&quot;");
+    ret.replace('\'', "&apos;");
+    ret.replace('>', "&gt;");
+    ret.replace('<', "&lt;");
+    return ret;
+}
 
 class XMLVisitor {
 	private:
@@ -357,9 +367,9 @@ QString XMLVisitor::visit(CodeModelItem i) {
 			last = n->value();
 		}
 	}
-	ret.replace('&', "&amp;");
-	ret.replace('>', "&gt;");
-	ret.replace('<', "&lt;");
+	//ret.replace('&', "&amp;");
+	//ret.replace('>', "&gt;");
+	//ret.replace('<', "&lt;");
 	
 	// TODO fix lua binding generator
 	if(false && children.isEmpty())
