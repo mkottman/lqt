@@ -137,10 +137,9 @@ QString XMLVisitor::visit(const TypeInfo& t, QStringList scope) {
 	}
 	//if (oldt!=tt.toString()) qDebug() << oldt << " -> " << tt.toString();
 
-	QString ret(" type_name=\"");
-	ret += tt.toString().replace(">>", "> >").append('\"');
-	ret += " type_base=\"";
-	ret += tt.qualifiedName().join("::").replace(">>", "> >").append('\"');
+	QString ret;
+        ret += ATTR_STR("type_name", tt.toString().replace(">>", "> >"));
+        ret += ATTR_STR("type_base", tt.qualifiedName().join("::").replace(">>", "> >"));
 	if (tt.isConstant()) ret += ATTR_TRUE("type_constant");
 	if (tt.isVolatile()) ret += ATTR_TRUE("type_volatile");
 	if (tt.isReference()) ret += ATTR_TRUE("type_reference");
@@ -150,7 +149,7 @@ QString XMLVisitor::visit(const TypeInfo& t, QStringList scope) {
 	QString tmp = arr.join(",");
 	if (!tmp.isEmpty()) ret += " array=\"" + tmp + '\"';
 
-	if (tt.isFunctionPointer()) ret += " function_pointer=\"1\"";
+	if (tt.isFunctionPointer()) ret += ATTR_TRUE("function_pointer");
 
 	return ret;
 }
