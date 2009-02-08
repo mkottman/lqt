@@ -142,6 +142,7 @@ base_types['std::string const&'] = {
 		return 'lua_isstring(L, '..i..')', 1
 	end,
 }
+base_types['std::string'] = base_types['std::string const&']
 
 
 return base_types
