@@ -134,13 +134,16 @@ local fix_arguments = function(all)
 			and a.xarg.defaultvalue~='true'
 			and a.xarg.defaultvalue~='false'
 			and (not string.match(a.xarg.defaultvalue, '^0[xX]%d+$')) then
-			local dv, call = string.match(a.xarg.defaultvalue, '(.-)(%b())')
+			local dv, call = string.match(a.xarg.defaultvalue, '(.-)(%(%))')
 			dv = dv or a.xarg.defaultvalue
 			call = call or ''
-			if not fullnames[dv] then
-				dv = a.xarg.context..'::'..dv..call
+			local context = a.xarg.context
+			while not fullnames[context..'::'..dv] and context~='' do
+				context = string.match(context, '^(.*)::') or ''
 			end
-			if fullnames[dv] then
+			if fullnames[context..'::'..dv] then
+				a.xarg.defaultvalue = context..'::'..dv..call
+			elseif fullnames[dv] then
 				a.xarg.defaultvalue = dv..call
 			else
 				a.xarg.default = nil
