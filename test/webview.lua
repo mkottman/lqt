@@ -4,8 +4,7 @@ require'qtcore'
 require'qtgui'
 require'qtwebkit'
 
-app = QApplication.new(1 + select('#', ...), {arg[0], ...})
-app.__gc = app.delete -- take ownership of object
+app = QApplication.new_local(1 + select('#', ...), {arg[0], ...})
 
 local address = tostring(arg[1])
 
