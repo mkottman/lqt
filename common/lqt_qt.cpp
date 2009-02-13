@@ -87,10 +87,10 @@ const char add_method_func[] =
 "		sigs:insert(false)\n"
 "	end\n"
 "	data[5] = data[5] + 1\n"
-"	qobj['Lqt MetaStringData'] = stringdata\n"
-"	qobj['Lqt MetaData'] = data\n"
-"	qobj['Lqt Slots'] = slots\n"
-"	qobj['Lqt Signatures'] = sigs\n"
+"	qobj['"LQT_OBJMETASTRING"'] = stringdata\n"
+"	qobj['"LQT_OBJMETADATA"'] = data\n"
+"	qobj['"LQT_OBJSLOTS"'] = slots\n"
+"	qobj['"LQT_OBJSIGS"'] = sigs\n"
 "end\n";
 
 void lqtL_pushaddmethod (lua_State *L) {
