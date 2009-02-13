@@ -1,0 +1,45 @@
+#ifndef AA
+#define AA
+
+#include <iostream>
+#include <vector>
+#include <cstdio>
+
+
+typedef std::vector<void*> ASomething;
+
+class C {
+private:
+~C() {}
+};
+
+namespace test {
+class A
+{
+ public:
+ A() { std::cerr << "A::A" << std::endl; }
+ ~A() { std::cerr << "A::~A" << std::endl; }
+ 
+
+ const std::string & get_string(const std::string& a="") {return a;}
+ void doFunc() { std::cout << "A::doFunc()" << std::endl; func(); }
+ virtual void func() { std::cout << "A::func()" << std::endl;  }
+
+ class B
+ {
+   public:
+
+   B() { std::cout << "B::B" << std::endl; }
+  ~B() { std::cout << "B::~B" << std::endl; }
+
+   void do_something() { std::cout << "B::do_something()" << std::endl; }
+ 
+ };
+
+ void useB(B* b) { b->do_something();
+  } 
+};
+}
+
+#endif
+
