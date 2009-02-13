@@ -692,7 +692,7 @@ local print_wrappers = function(index)
 				end
 			end
 		end
-		if c.shell then
+		if not c.abstract then
 			for _, f in ipairs(c.constructors) do
 				if f.wrapper_code then
 					local out = 'static int lqt_bind'..f.xarg.id
@@ -704,16 +704,18 @@ local print_wrappers = function(index)
 					end
 				end
 			end
-			--local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
-			local lua_name = string.gsub(c.xarg.fullname, '::', '.')
-			local out = 'static int lqt_delete'..c.xarg.id..' (lua_State *L) {\n'
-			out = out ..'  '..c.xarg.fullname..' *p = static_cast<'
-				..c.xarg.fullname..'*>(lqtL_toudata(L, 1, "'..lua_name..'*"));\n'
-			out = out .. '  if (p) delete p;\n'
-			out = out .. '  lqtL_eraseudata(L, 1, "'..lua_name..'*");\n  return 0;\n}\n'
-			--print_meta(out)
-			wrappers = wrappers .. out .. '\n'
 		end
+		--local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
+		local lua_name = string.gsub(c.xarg.fullname, '::', '.')
+		local out = 'static int lqt_delete'..c.xarg.id..' (lua_State *L) {\n'
+		out = out ..'  '..c.xarg.fullname..' *p = static_cast<'
+			..c.xarg.fullname..'*>(lqtL_toudata(L, 1, "'..lua_name..'*"));\n'
+		if c.public_destr then
+			out = out .. '  if (p) delete p;\n'
+		end
+		out = out .. '  lqtL_eraseudata(L, 1, "'..lua_name..'*");\n  return 0;\n}\n'
+		--print_meta(out)
+		wrappers = wrappers .. out .. '\n'
 		c.meta = meta
 		c.wrappers = wrappers
 	end
@@ -742,9 +744,7 @@ local print_metatable = function(c)
 	for n, l in pairs(methods) do
 		metatable = metatable .. '  { "'..n..'", lqt_dispatcher_'..n..c.xarg.id..' },\n'
 	end
-	if c.shell then
-		metatable = metatable .. '  { "delete", lqt_delete'..c.xarg.id..' },\n'
-	end
+	metatable = metatable .. '  { "delete", lqt_delete'..c.xarg.id..' },\n'
 	metatable = metatable .. '  { 0, 0 },\n};\n'
 	--print_meta(metatable)
 	wrappers = wrappers .. metatable .. '\n'
@@ -920,10 +920,16 @@ local fix_methods_wrappers = function(classes)
 	for c in pairs(classes) do
 		c.shell = (not c.abstract) and c.public_destr
 		for _, constr in ipairs(c.constructors) do
-			local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
-			constr.calling_line = '*new '..shellname..'(L'
+			if c.shell then
+				local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
+				constr.calling_line = '*new '..shellname..'(L'
+				if #(constr.arguments)>0 then constr.calling_line = constr.calling_line .. ', ' end
+			else
+				local shellname = c.xarg.fullname
+				constr.calling_line = '*new '..shellname..'('
+			end
 			for i=1,#(constr.arguments) do
-				constr.calling_line = constr.calling_line .. ', arg' .. i
+				constr.calling_line = constr.calling_line .. (i==1 and '' or ', ') .. 'arg' .. i
 			end
 			constr.calling_line = constr.calling_line .. ')'
 			constr.xarg.static = '1'
