@@ -128,6 +128,7 @@ function(build_qt_lib_binding BINDING_HEADER)
 		set (PP_CONFIG ${CMAKE_SOURCE_DIR}/cpptoxml/parser/rpp/pp-qt-configuration-win)
 	endif()
 
+	if(NOT REUSE_FILES)
 	set (GEN_XML ${LQT_GEN_DIR}/${BINDING_NAME}.xml)
 	add_custom_target(generate_${BINDING_NAME}_xml 	COMMAND cpptoxml 
 							${BINDING_HEADER} 
@@ -157,10 +158,20 @@ function(build_qt_lib_binding BINDING_HEADER)
 							-f ${CMAKE_SOURCE_DIR}/generator/qt_internal.lua
 						COMMENT "Generating binding code with Lua"
 						VERBATIM)
+	else(NOT REUSE_FILES)
+	add_custom_target(generate_${BINDING_NAME}_xml 	COMMAND
+						COMMENT "Reusing old XML on ${BINDING_NAME} "
+						VERBATIM)
+	add_custom_target(generate_${BINDING_NAME}_cpp
+						COMMENT "Reusing old binding code with Lua"
+						VERBATIM)
+	endif(NOT REUSE_FILES)
 
 	set(COMMON COMMON_${BINDING_NAME})
-	file(GLOB ${COMMON}_SRC ${CMAKE_SOURCE_DIR}/common/*.cpp) 
-	file(GLOB ${COMMON}_HPP ${CMAKE_SOURCE_DIR}/common/*.hpp) 
+	set(${COMMON}_SRC ${LQT_GEN_DIR}/lqt_common.cpp
+      ${LQT_GEN_DIR}/lqt_common.hpp
+      ${LQT_GEN_DIR}/lqt_qt.cpp
+      ${LQT_GEN_DIR}/lqt_qt.hpp)
 
 	set(${BINDING_NAME}_GENERATED ${LQT_GEN_DIR}/${BINDING_NAME}_enum.cpp
 									${LQT_GEN_DIR}/${BINDING_NAME}_meta.cpp
