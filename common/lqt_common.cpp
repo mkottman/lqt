@@ -358,6 +358,9 @@ static void lqtL_ensurepointer (lua_State *L, const void *p) { // (+1)
 		lua_pushlightuserdata(L, const_cast<void*>(p)); // (3)
 		lua_pushvalue(L, -2); // (4)
 		lua_settable(L, -4); // (2)
+	} else {
+		//const void **pp = static_cast<const void**>(lua_touserdata(L, -1)); // (2)
+		//if (pp!=NULL) *pp = p; // (2)
 	}
 	// (2)
 	lua_remove(L, -2); // (1)
@@ -443,9 +446,15 @@ void *lqtL_toudata (lua_State *L, int index, const char *name) {
 
 void lqtL_eraseudata (lua_State *L, int index, const char *name) {
 	void *ret = 0;
-	if (!lqtL_testudata(L, index, name)) return;
+	if (name!=NULL && !lqtL_testudata(L, index, name)) return;
 	void **pp = static_cast<void**>(lua_touserdata(L, index));
+        void *p = *pp;
 	*pp = 0;
+	lqtL_getpointertable(L); // (1)
+	lua_pushlightuserdata(L, p); // (2)
+        lua_pushnil(L); // (3)
+	lua_settable(L, -3); // (1)
+        lua_pop(L, 1);
 	return;
 }
 
