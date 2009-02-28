@@ -129,42 +129,42 @@ function(build_qt_lib_binding BINDING_HEADER)
 	endif()
 
 	if(NOT REUSE_FILES)
-	set (GEN_XML ${LQT_GEN_DIR}/${BINDING_NAME}.xml)
-	add_custom_target(generate_${BINDING_NAME}_xml 	COMMAND cpptoxml 
-							${BINDING_HEADER} 
-							-C ${PP_CONFIG}
-							-Q ${QT_INCLUDE_DIR} 
-							-o ${GEN_XML}
-						COMMENT "Generating XML: running cpptoxml on ${BINDING_NAME} "
-						VERBATIM)
+		set (GEN_XML ${LQT_GEN_DIR}/${BINDING_NAME}.xml)
+		add_custom_target(generate_${BINDING_NAME}_xml 	COMMAND cpptoxml 
+								${BINDING_HEADER} 
+								-C ${PP_CONFIG}
+								-Q ${QT_INCLUDE_DIR} 
+								-o ${GEN_XML}
+							COMMENT "Generating XML: running cpptoxml on ${BINDING_NAME} "
+							VERBATIM)
 
 
-	math(EXPR MAX ${ARGC}-1)
-	if(MAX)
-		foreach(I RANGE 1 ${MAX})
-			string(TOLOWER ${ARGV${I}} DEPNAME)
-			set(${BINDING_NAME}_TYPES ${${BINDING_NAME}_TYPES} -t ${DEPNAME}_src/${DEPNAME}_types.lua)
-			set(${BINDING_NAME}_DEPENDS ${${BINDING_NAME}_DEPENDS} generate_${DEPNAME}_cpp)
-		endforeach()
-	endif(MAX)
-	add_custom_target(generate_${BINDING_NAME}_cpp  COMMAND cmake -E copy_directory ${CMAKE_SOURCE_DIR}/common ${LQT_GEN_DIR}
-						COMMAND ${LUA_CMD}
-							"${CMAKE_SOURCE_DIR}/generator/generator.lua" 
-							${GEN_XML} 
-							-i ${BINDING_HEADER} -i lqt_qt.hpp 
-							-n ${BINDING_NAME} 
-							-t ${CMAKE_SOURCE_DIR}/generator/qtypes.lua
-							${${BINDING_NAME}_TYPES}
-							-f ${CMAKE_SOURCE_DIR}/generator/qt_internal.lua
-						COMMENT "Generating binding code with Lua"
-						VERBATIM)
+		math(EXPR MAX ${ARGC}-1)
+		if(MAX)
+			foreach(I RANGE 1 ${MAX})
+				string(TOLOWER ${ARGV${I}} DEPNAME)
+				set(${BINDING_NAME}_TYPES ${${BINDING_NAME}_TYPES} -t ${DEPNAME}_src/${DEPNAME}_types.lua)
+				set(${BINDING_NAME}_DEPENDS ${${BINDING_NAME}_DEPENDS} generate_${DEPNAME}_cpp)
+			endforeach()
+		endif(MAX)
+		add_custom_target(generate_${BINDING_NAME}_cpp  COMMAND cmake -E copy_directory ${CMAKE_SOURCE_DIR}/common ${LQT_GEN_DIR}
+							COMMAND ${LUA_CMD}
+								"${CMAKE_SOURCE_DIR}/generator/generator.lua" 
+								${GEN_XML} 
+								-i ${BINDING_HEADER} -i lqt_qt.hpp 
+								-n ${BINDING_NAME} 
+								-t ${CMAKE_SOURCE_DIR}/generator/qtypes.lua
+								${${BINDING_NAME}_TYPES}
+								-f ${CMAKE_SOURCE_DIR}/generator/qt_internal.lua
+							COMMENT "Generating binding code with Lua"
+							VERBATIM)
 	else(NOT REUSE_FILES)
-	add_custom_target(generate_${BINDING_NAME}_xml 	COMMAND
-						COMMENT "Reusing old XML on ${BINDING_NAME} "
-						VERBATIM)
-	add_custom_target(generate_${BINDING_NAME}_cpp
-						COMMENT "Reusing old binding code with Lua"
-						VERBATIM)
+		add_custom_target(generate_${BINDING_NAME}_xml 	COMMAND
+							COMMENT "Reusing old XML on ${BINDING_NAME} "
+							VERBATIM)
+		add_custom_target(generate_${BINDING_NAME}_cpp
+							COMMENT "Reusing old binding code with Lua"
+							VERBATIM)
 	endif(NOT REUSE_FILES)
 
 	set(COMMON COMMON_${BINDING_NAME})
