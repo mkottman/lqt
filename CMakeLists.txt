@@ -168,10 +168,9 @@ function(build_qt_lib_binding BINDING_HEADER)
 	endif(NOT REUSE_FILES)
 
 	set(COMMON COMMON_${BINDING_NAME})
-	set(${COMMON}_SRC ${LQT_GEN_DIR}/lqt_common.cpp
-      ${LQT_GEN_DIR}/lqt_common.hpp
-      ${LQT_GEN_DIR}/lqt_qt.cpp
-      ${LQT_GEN_DIR}/lqt_qt.hpp)
+   file(GLOB ${COMMON}_SRC ${CMAKE_SOURCE_DIR}/common/*.cpp)
+   file(GLOB ${COMMON}_HPP ${CMAKE_SOURCE_DIR}/common/*.hpp)
+
 
 	set(${BINDING_NAME}_GENERATED ${LQT_GEN_DIR}/${BINDING_NAME}_enum.cpp
 									${LQT_GEN_DIR}/${BINDING_NAME}_meta.cpp
