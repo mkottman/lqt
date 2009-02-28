@@ -141,11 +141,11 @@ function(build_qt_lib_binding BINDING_HEADER)
 
 	math(EXPR MAX ${ARGC}-1)
 	if(MAX)
-	foreach(I RANGE 1 ${MAX})
-		string(TOLOWER ${ARGV${I}} DEPNAME)
-		set(${BINDING_NAME}_TYPES ${${BINDING_NAME}_TYPES} -t ${DEPNAME}_src/${DEPNAME}_types.lua)
-		set(${BINDING_NAME}_DEPENDS ${${BINDING_NAME}_DEPENDS} generate_${DEPNAME}_cpp)
-	endforeach()
+		foreach(I RANGE 1 ${MAX})
+			string(TOLOWER ${ARGV${I}} DEPNAME)
+			set(${BINDING_NAME}_TYPES ${${BINDING_NAME}_TYPES} -t ${DEPNAME}_src/${DEPNAME}_types.lua)
+			set(${BINDING_NAME}_DEPENDS ${${BINDING_NAME}_DEPENDS} generate_${DEPNAME}_cpp)
+		endforeach()
 	endif(MAX)
 	add_custom_target(generate_${BINDING_NAME}_cpp  COMMAND cmake -E copy_directory ${CMAKE_SOURCE_DIR}/common ${LQT_GEN_DIR}
 						COMMAND ${LUA_CMD}
