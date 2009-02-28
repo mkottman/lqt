@@ -64,7 +64,7 @@ endif()
 
 if(MSVC)
 	set(CMAKE_SUPPRESS_REGENERATION TRUE) 
-	add_definitions(-D_CRT_SECURE_NO_WARNINGS -D_SCL_SECURE_NO_WARNINGS -DLUA_BUILD_AS_DLL)
+	add_definitions(-D_CRT_SECURE_NO_DEPRECATE -D_CRT_SECURE_NO_WARNINGS -D_SCL_SECURE_NO_WARNINGS -DLUA_BUILD_AS_DLL)
 	set(CMAKE_DEBUG_POSTFIX)
 endif()
 
@@ -107,7 +107,7 @@ set(LQT_BUILDIN_CPPTOXML 1)
 if(LQT_BUILDIN_CPPTOXML)
 	add_subdirectory(cpptoxml)
 else()
-#TODO find cpptpxml
+	#TODO find cpptpxml
 endif()
 
 
@@ -146,7 +146,8 @@ function(build_qt_lib_binding BINDING_HEADER)
 				set(${BINDING_NAME}_TYPES ${${BINDING_NAME}_TYPES} -t ${DEPNAME}_src/${DEPNAME}_types.lua)
 				set(${BINDING_NAME}_DEPENDS ${${BINDING_NAME}_DEPENDS} generate_${DEPNAME}_cpp)
 			endforeach()
-		endif(MAX)
+		endif()
+		
 		add_custom_target(generate_${BINDING_NAME}_cpp  COMMAND cmake -E copy_directory ${CMAKE_SOURCE_DIR}/common ${LQT_GEN_DIR}
 							COMMAND ${LUA_CMD}
 								"${CMAKE_SOURCE_DIR}/generator/generator.lua" 
@@ -158,14 +159,14 @@ function(build_qt_lib_binding BINDING_HEADER)
 								-f ${CMAKE_SOURCE_DIR}/generator/qt_internal.lua
 							COMMENT "Generating binding code with Lua"
 							VERBATIM)
-	else(NOT REUSE_FILES)
+	else()
 		add_custom_target(generate_${BINDING_NAME}_xml 	COMMAND
 							COMMENT "Reusing old XML on ${BINDING_NAME} "
 							VERBATIM)
 		add_custom_target(generate_${BINDING_NAME}_cpp
 							COMMENT "Reusing old binding code with Lua"
 							VERBATIM)
-	endif(NOT REUSE_FILES)
+	endif()
 
 	set(COMMON COMMON_${BINDING_NAME})
 	file(GLOB ${COMMON}_SRC ${CMAKE_SOURCE_DIR}/common/*.cpp)
@@ -212,10 +213,6 @@ function(build_qt_lib_binding BINDING_HEADER)
 	endif()
 endfunction()
 
-if(MSVC)
-	add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
-endif()
-
 if(noqt)
 	include_directories(${CMAKE_CURRENT_SOURCE_DIR}/test/noqt)
 	build_qt_lib_binding(noqt)
@@ -228,13 +225,14 @@ else()
 	build_qt_lib_binding(QtSvg QtScript QtGui QtNetwork QtCore)
 	build_qt_lib_binding(QtXml QtSvg QtScript QtGui QtNetwork QtCore)
 	build_qt_lib_binding(QtWebKit QtSvg QtScript QtOpenGL QtGui QtNetwork QtCore)
+	# TODO
+	#build_qt_lib_binding(QtSql)
+	#build_qt_lib_binding(QtXmlPatterns)
+	#build_qt_lib_binding(Phonon)
 endif()
 
 
-# needs testing
-#build_qt_lib_binding(QtSql)
-#build_qt_lib_binding(QtXmlPatterns)
-#build_qt_lib_binding(Phonon)
+
 
 
 
