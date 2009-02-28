@@ -168,8 +168,8 @@ function(build_qt_lib_binding BINDING_HEADER)
 	endif(NOT REUSE_FILES)
 
 	set(COMMON COMMON_${BINDING_NAME})
-   file(GLOB ${COMMON}_SRC ${CMAKE_SOURCE_DIR}/common/*.cpp)
-   file(GLOB ${COMMON}_HPP ${CMAKE_SOURCE_DIR}/common/*.hpp)
+	file(GLOB ${COMMON}_SRC ${CMAKE_SOURCE_DIR}/common/*.cpp)
+	file(GLOB ${COMMON}_HPP ${CMAKE_SOURCE_DIR}/common/*.hpp)
 
 
 	set(${BINDING_NAME}_GENERATED ${LQT_GEN_DIR}/${BINDING_NAME}_enum.cpp
@@ -213,21 +213,21 @@ function(build_qt_lib_binding BINDING_HEADER)
 endfunction()
 
 if(MSVC)
-		add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
+	add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
 endif()
 
 if(noqt)
 	include_directories(${CMAKE_CURRENT_SOURCE_DIR}/test/noqt)
 	build_qt_lib_binding(noqt)
 else()
-build_qt_lib_binding(QtCore)
-build_qt_lib_binding(QtNetwork QtCore)
-build_qt_lib_binding(QtGui QtNetwork QtCore)
-build_qt_lib_binding(QtScript QtGui QtNetwork QtCore)
-build_qt_lib_binding(QtOpenGL QtGui QtNetwork QtCore)
-build_qt_lib_binding(QtSvg QtScript QtGui QtNetwork QtCore)
-build_qt_lib_binding(QtXml QtSvg QtScript QtGui QtNetwork QtCore)
-build_qt_lib_binding(QtWebKit QtSvg QtScript QtOpenGL QtGui QtNetwork QtCore)
+	build_qt_lib_binding(QtCore)
+	build_qt_lib_binding(QtNetwork QtCore)
+	build_qt_lib_binding(QtGui QtNetwork QtCore)
+	build_qt_lib_binding(QtScript QtGui QtNetwork QtCore)
+	build_qt_lib_binding(QtOpenGL QtGui QtNetwork QtCore)
+	build_qt_lib_binding(QtSvg QtScript QtGui QtNetwork QtCore)
+	build_qt_lib_binding(QtXml QtSvg QtScript QtGui QtNetwork QtCore)
+	build_qt_lib_binding(QtWebKit QtSvg QtScript QtOpenGL QtGui QtNetwork QtCore)
 endif()
 
 
