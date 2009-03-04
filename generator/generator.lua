@@ -752,10 +752,10 @@ local print_metatable = function(c)
 	for b in string.gmatch(c.xarg.bases_with_attributes or '', '([^;]*);') do
 		if not string.match(b, '^virtual') then
 			b = string.gsub(b, '^[^%s]* ', '')
-			bases = bases .. '{"'..string.gsub(b,'::','.')..'*", (char*)(void*)static_cast<'..b..'*>(('..c.xarg.fullname..'*)1)-(char*)1},\n'
+			bases = bases .. '  {"'..string.gsub(b,'::','.')..'*", (char*)(void*)static_cast<'..b..'*>(('..c.xarg.fullname..'*)1)-(char*)1},\n'
 		end
 	end
-	bases = 'static lqt_Base lqt_base'..c.xarg.id..'[] = { '..bases..'{NULL, 0} };\n'
+	bases = 'static lqt_Base lqt_base'..c.xarg.id..'[] = {\n'..bases..'  {NULL, 0}\n};\n'
 	--print_meta(bases)
 	wrappers = wrappers .. bases .. '\n'
 	c.wrappers = wrappers
