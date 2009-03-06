@@ -423,8 +423,8 @@ int main (int argc, char **argv) {
 	for(int i=1; i<argc; i++) {
 		if(argv[i][0]=='-' && argv[i][1]!=0) {
 			QString argValue;
-			bool separed_args = (argv[i][2]=='\0' && argc > i+1);
-			if (separed_args)
+			bool separed = (argv[i][2] == '\0' && argc > i+1 && argv[i+1][0] != '-');
+			if (separed)
 				argValue = QDir::fromNativeSeparators(QString::fromLatin1(argv[i+1]).right(strlen(argv[i+1])));
 			else
 				argValue = QDir::fromNativeSeparators(QString::fromLatin1(argv[i]).right(strlen(argv[i])-2));
@@ -474,9 +474,8 @@ int main (int argc, char **argv) {
 					fprintf(stderr, "found unknown parameter: %s", argv[i]);
 					return 1;
 			}
-			if (separed_args) {
+			if (separed)
 				i++;
-			}
 		} else {
 			sourceName = QString::fromLatin1(argv[i]);
 		}
