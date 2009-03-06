@@ -30,20 +30,38 @@ find_package(Qt4 REQUIRED)
 set(QT_USE_QTCORE 1) 
 include(${QT_USE_FILE})
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/. 
-					${CMAKE_CURRENT_SOURCE_DIR}/parser
-					${CMAKE_CURRENT_SOURCE_DIR}/parser/rpp)
-					
-add_definitions(-DRXX_ALLOCATOR_INIT_0)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/
+                    ${CMAKE_CURRENT_SOURCE_DIR}/parser
+                    ${CMAKE_CURRENT_SOURCE_DIR}/parser/rpp)
 
-file(GLOB parser_src ${CMAKE_CURRENT_SOURCE_DIR}/parser/*.cpp) 
-file(GLOB parser_h ${CMAKE_CURRENT_SOURCE_DIR}/parser/*.h) 
+add_definitions(-DRXX_ALLOCATOR_INIT_0 -DQT_STL)
 
-add_executable(cpptoxml ${parser_src} ${parser_h}
-						${CMAKE_CURRENT_SOURCE_DIR}/main.cpp 
-						${CMAKE_CURRENT_SOURCE_DIR}/parser/rpp/preprocessor.cpp)
+set(parser_src main.cpp 
+               parser/ast.cpp
+               parser/binder.cpp
+               parser/class_compiler.cpp
+               parser/codemodel.cpp
+               parser/codemodel_finder.cpp
+               parser/compiler_utils.cpp
+               parser/control.cpp
+               parser/declarator_compiler.cpp
+               parser/default_visitor.cpp
+               parser/dumptree.cpp
+               parser/lexer.cpp
+               parser/list.cpp
+               parser/name_compiler.cpp
+               parser/parser.cpp
+               parser/smallobject.cpp
+               parser/tokens.cpp
+               parser/type_compiler.cpp
+               parser/visitor.cpp
+               parser/rpp/preprocessor.cpp)
+
+
+add_executable(cpptoxml ${parser_src} )
 
 target_link_libraries(cpptoxml ${QT_LIBRARIES} ${QT_QTMAIN_LIBRARY})
+set_target_properties(cpptoxml PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-
+install(TARGETS cpptoxml DESTINATION bin)
 
