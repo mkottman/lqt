@@ -452,10 +452,10 @@ int main (int argc, char **argv) {
 					printHelp();
 					return 0;
 				case 'I':
-					inclist.append(QDir::fromNativeSeparators(argValue));
+					inclist.append(argValue);
 					break;
 				case 'Q':
-					qtdir = QDir::fromNativeSeparators(argValue);
+					qtdir = argValue;
 					break;
 				case 'q':{
 					if(QString(argv[i]).startsWith("-qt")) {
@@ -467,7 +467,7 @@ int main (int argc, char **argv) {
 						fprintf(stderr, "found unknown parameter: -%s",argv[i]);
 					} break;
 				case 'o':
-					outputFile = QDir::fromNativeSeparators(argValue);
+					outputFile = argValue;
 					break;
 
 				default:
