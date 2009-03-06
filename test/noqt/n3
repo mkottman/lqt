@@ -6,6 +6,32 @@
 #include <cstdio>
 
 
+#include <cassert>
+
+namespace N {
+
+  class Shape {
+  public:
+  Shape() {}
+  };
+
+  class Sphere : public Shape
+  {
+  public:
+  Sphere() {}
+  };
+
+  class Geometry {
+  public:
+    Geometry(Shape *shape) { assert(shape); }
+    void add(Shape *shape) { assert(shape); }
+  };
+
+}
+
+
+
+
 typedef std::vector<void*> ASomething;
 
 class C {
