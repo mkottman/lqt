@@ -15,6 +15,8 @@
 #ifndef PP_ENGINE_BITS_H
 #define PP_ENGINE_BITS_H
 
+#include <stdio.h>
+
 namespace rpp {
 
 inline std::string pp::fix_file_path(std::string const &filename) const
@@ -556,7 +558,7 @@ _InputIterator pp::handle_define (_InputIterator __first, _InputIterator __last)
 
   if (__first != __last && *__first == '(')
     {
-      macro.function_like = true;
+      macro.f.function_like = true;
       macro.formals.reserve (5);
 
       __first = skip_blanks (++__first, __last); // skip '('
@@ -568,7 +570,7 @@ _InputIterator pp::handle_define (_InputIterator __first, _InputIterator __last)
 
       if (*__first == '.')
         {
-          macro.variadics = true;
+          macro.f.variadics = true;
           while (*__first == '.')
             ++__first;
         }
@@ -585,7 +587,7 @@ _InputIterator pp::handle_define (_InputIterator __first, _InputIterator __last)
 
           if (*__first == '.')
             {
-              macro.variadics = true;
+              macro.f.variadics = true;
               while (*__first == '.')
                 ++__first;
             }

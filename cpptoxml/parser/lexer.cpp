@@ -60,7 +60,7 @@ void LocationManager::extract_line(int offset, int *line, QString *filename) con
         *cp++ = *cursor++;
       } while (std::isdigit(*cursor));
       *cp = '\0';
-      int l = strtol(buffer, 0, 0);
+      int l = std::strtol(buffer, 0, 0);
 
       Q_ASSERT(std::isspace(*cursor));
       ++cursor;

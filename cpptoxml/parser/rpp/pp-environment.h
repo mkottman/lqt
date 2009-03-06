@@ -62,7 +62,7 @@ public:
   inline void unbind (pp_fast_string const *__name)
   {
     if (pp_macro *m = resolve (__name))
-      m->hidden = true;
+      m->f.hidden = true;
   }
 
   inline void unbind (char const *__s, std::size_t __size)
@@ -76,7 +76,7 @@ public:
     std::size_t h = hash_code (*__name) % _M_hash_size;
     pp_macro *it = _M_base [h];
 
-    while (it && it->name && it->hash_code == h && (*it->name != *__name || it->hidden))
+    while (it && it->name && it->hash_code == h && (*it->name != *__name || it->f.hidden))
       it = it->next;
 
     return it;

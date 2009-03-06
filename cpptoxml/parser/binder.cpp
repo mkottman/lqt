@@ -619,6 +619,11 @@ void Binder::visitClassSpecifier(ClassSpecifierAST *node)
       return;
     }
 
+  if (class_cc.name().endsWith('>') && !class_cc.name().contains('<')) {
+	  // TODO parser bug in case of template<> Class<8>
+	  return;
+  }
+
   if (class_cc.name().isEmpty())
     {
       // anonymous not supported

@@ -70,7 +70,7 @@ public:
 
   inline ~LocationTable()
   {
-    free(lines);
+    std::free(lines);
   }
 
   inline std::size_t size() const
@@ -79,7 +79,7 @@ public:
   void resize(std::size_t size)
   {
     Q_ASSERT(size > 0);
-    lines = (std::size_t*) ::realloc(lines, sizeof(std::size_t) * size);
+    lines = (std::size_t*) std::realloc(lines, sizeof(std::size_t) * size);
     line_count = size;
   }
 
@@ -115,7 +115,7 @@ public:
   }
 
   inline ~TokenStream()
-  { ::free(tokens); }
+  { std::free(tokens); }
 
   inline std::size_t size() const
   { return token_count; }
@@ -129,7 +129,7 @@ public:
   void resize(std::size_t size)
   {
     Q_ASSERT(size > 0);
-    tokens = (Token*) ::realloc(tokens, sizeof(Token) * size);
+    tokens = (Token*) std::realloc(tokens, sizeof(Token) * size);
     token_count = size;
   }
 

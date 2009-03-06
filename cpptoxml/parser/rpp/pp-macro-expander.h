@@ -221,7 +221,7 @@ public:
             static bool hide_next = false; // ### remove me
 
             pp_macro *macro = env.resolve (name_buffer, name_size);
-            if (! macro || macro->hidden || hide_next)
+            if (! macro || macro->f.hidden || hide_next)
               {
                 hide_next = ! strcmp (name_buffer, "defined");
 
@@ -249,13 +249,13 @@ public:
                 continue;
               }
 
-            if (! macro->function_like)
+            if (! macro->f.function_like)
               {
                 pp_macro *m = 0;
 
                 if (macro->definition)
                   {
-                    macro->hidden = true;
+                    macro->f.hidden = true;
 
                     std::string __tmp;
                     __tmp.reserve (256);
@@ -287,7 +287,7 @@ public:
                           std::copy (__tmp.begin (), __tmp.end (), __result);
                       }
 
-                    macro->hidden = false;
+                    macro->f.hidden = false;
                   }
 
                 if (! m)
@@ -347,9 +347,9 @@ public:
 
               pp_frame frame (macro, &actuals);
               pp_macro_expander expand_macro (env, &frame);
-              macro->hidden = true;
+              macro->f.hidden = true;
               expand_macro (macro->definition->begin (), macro->definition->end (), __result);
-              macro->hidden = false;
+              macro->f.hidden = false;
               generated_lines += expand_macro.lines;
           }
         else
@@ -365,7 +365,7 @@ public:
   {
     _InputIterator arg_end = skip_argument (__first, __last);
 
-    while (__macro->variadics && __first != arg_end && arg_end != __last && *arg_end == ','
+    while (__macro->f.variadics && __first != arg_end && arg_end != __last && *arg_end == ','
         && (__actuals.size () + 1) == __macro->formals.size ())
       {
         arg_end = skip_argument (++arg_end, __last);

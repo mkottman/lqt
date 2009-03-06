@@ -124,20 +124,20 @@ public:
   QStringList qualifiedName() const { return m_qualifiedName; }
   void setQualifiedName(const QStringList &qualified_name) { m_qualifiedName = qualified_name; }
 
-  bool isConstant() const { return m_constant; }
-  void setConstant(bool is) { m_constant = is; }
+  bool isConstant() const { return f.m_constant; }
+  void setConstant(bool is) { f.m_constant = is; }
 
-  bool isVolatile() const { return m_volatile; }
-  void setVolatile(bool is) { m_volatile = is; }
+  bool isVolatile() const { return f.m_volatile; }
+  void setVolatile(bool is) { f.m_volatile = is; }
 
-  bool isReference() const { return m_reference; }
-  void setReference(bool is) { m_reference = is; }
+  bool isReference() const { return f.m_reference; }
+  void setReference(bool is) { f.m_reference = is; }
 
-  int indirections() const { return m_indirections; }
-  void setIndirections(int indirections) { m_indirections = indirections; }
+  int indirections() const { return f.m_indirections; }
+  void setIndirections(int indirections) { f.m_indirections = indirections; }
 
-  bool isFunctionPointer() const { return m_functionPointer; }
-  void setFunctionPointer(bool is) { m_functionPointer = is; }
+  bool isFunctionPointer() const { return f.m_functionPointer; }
+  void setFunctionPointer(bool is) { f.m_functionPointer = is; }
 
   QStringList arrayElements() const { return m_arrayElements; }
   void setArrayElements(const QStringList &arrayElements) { m_arrayElements = arrayElements; }
@@ -169,7 +169,7 @@ private:
       uint m_functionPointer: 1;
       uint m_indirections: 6;
       uint m_padding: 22;
-    };
+    } f;
   };
 
   QStringList m_qualifiedName;
@@ -494,6 +494,8 @@ private:
   TemplateParameterList _M_templateParameters;
   TypeInfo _M_type;
   CodeModel::AccessPolicy _M_accessPolicy;
+
+public:
   union
   {
     struct
@@ -506,7 +508,12 @@ private:
       uint _M_isRegister: 1;
       uint _M_isExtern: 1;
       uint _M_isMutable: 1;
-    };
+      uint _M_isVariadics: 1;
+      uint _M_isVirtual: 1;
+      uint _M_isExplicit: 1;
+      uint _M_isInline: 1;
+      uint _M_isAbstract: 1;
+    } f;
     uint _M_flags;
   };
 

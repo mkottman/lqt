@@ -43,7 +43,7 @@ void dump_macros (pp_environment &env, pp &, std::ostream &__out)
       std::string id (m->name->begin (), m->name->end ());
       __out << "#define " << id;
 
-      if (m->function_like)
+      if (m->f.function_like)
         {
           __out << "(";
 

@@ -186,7 +186,7 @@ QString TypeInfo::toString() const
       tmp += QLatin1String(")");
     }
 
-  foreach (QString elt, arrayElements ())
+  foreach (const QString& elt, arrayElements ())
     {
       tmp += QLatin1String ("[");
       tmp += elt;
@@ -214,7 +214,7 @@ bool TypeInfo::operator==(const TypeInfo &other)
 
   return flags == other.flags
     && m_qualifiedName == other.m_qualifiedName
-    && (!m_functionPointer || m_arguments == other.m_arguments);
+    && (!f.m_functionPointer || m_arguments == other.m_arguments);
 }
 
 // ---------------------------------------------------------------------------
@@ -671,52 +671,52 @@ void _FunctionModelItem::setFunctionType(CodeModel::FunctionType functionType)
 
 bool _FunctionModelItem::isVariadics() const
 {
-  return _M_isVariadics;
+  return f._M_isVariadics;
 }
 
 void _FunctionModelItem::setVariadics(bool isVariadics)
 {
-  _M_isVariadics = isVariadics;
+  f._M_isVariadics = isVariadics;
 }
 
 bool _FunctionModelItem::isVirtual() const
 {
-  return _M_isVirtual;
+  return f._M_isVirtual;
 }
 
 void _FunctionModelItem::setVirtual(bool isVirtual)
 {
-  _M_isVirtual = isVirtual;
+  f._M_isVirtual = isVirtual;
 }
 
 bool _FunctionModelItem::isInline() const
 {
-  return _M_isInline;
+  return f._M_isInline;
 }
 
 void _FunctionModelItem::setInline(bool isInline)
 {
-  _M_isInline = isInline;
+  f._M_isInline = isInline;
 }
 
 bool _FunctionModelItem::isExplicit() const
 {
-  return _M_isExplicit;
+  return f._M_isExplicit;
 }
 
 void _FunctionModelItem::setExplicit(bool isExplicit)
 {
-  _M_isExplicit = isExplicit;
+  f._M_isExplicit = isExplicit;
 }
 
 bool _FunctionModelItem::isAbstract() const
 {
-  return _M_isAbstract;
+  return f._M_isAbstract;
 }
 
 void _FunctionModelItem::setAbstract(bool isAbstract)
 {
-  _M_isAbstract = isAbstract;
+  f._M_isAbstract = isAbstract;
 }
 
 // Qt
@@ -895,82 +895,82 @@ void _MemberModelItem::setAccessPolicy(CodeModel::AccessPolicy accessPolicy)
 
 bool _MemberModelItem::isStatic() const
 {
-  return _M_isStatic;
+  return f._M_isStatic;
 }
 
 void _MemberModelItem::setStatic(bool isStatic)
 {
-  _M_isStatic = isStatic;
+  f._M_isStatic = isStatic;
 }
 
 bool _MemberModelItem::isConstant() const
 {
-  return _M_isConstant;
+  return f._M_isConstant;
 }
 
 void _MemberModelItem::setConstant(bool isConstant)
 {
-  _M_isConstant = isConstant;
+  f._M_isConstant = isConstant;
 }
 
 bool _MemberModelItem::isVolatile() const
 {
-  return _M_isVolatile;
+  return f._M_isVolatile;
 }
 
 void _MemberModelItem::setVolatile(bool isVolatile)
 {
-  _M_isVolatile = isVolatile;
+  f._M_isVolatile = isVolatile;
 }
 
 bool _MemberModelItem::isAuto() const
 {
-  return _M_isAuto;
+  return f._M_isAuto;
 }
 
 void _MemberModelItem::setAuto(bool isAuto)
 {
-  _M_isAuto = isAuto;
+  f._M_isAuto = isAuto;
 }
 
 bool _MemberModelItem::isFriend() const
 {
-  return _M_isFriend;
+  return f._M_isFriend;
 }
 
 void _MemberModelItem::setFriend(bool isFriend)
 {
-  _M_isFriend = isFriend;
+  f._M_isFriend = isFriend;
 }
 
 bool _MemberModelItem::isRegister() const
 {
-  return _M_isRegister;
+  return f._M_isRegister;
 }
 
 void _MemberModelItem::setRegister(bool isRegister)
 {
-  _M_isRegister = isRegister;
+  f._M_isRegister = isRegister;
 }
 
 bool _MemberModelItem::isExtern() const
 {
-  return _M_isExtern;
+  return f._M_isExtern;
 }
 
 void _MemberModelItem::setExtern(bool isExtern)
 {
-  _M_isExtern = isExtern;
+  f._M_isExtern = isExtern;
 }
 
 bool _MemberModelItem::isMutable() const
 {
-  return _M_isMutable;
+  return f._M_isMutable;
 }
 
 void _MemberModelItem::setMutable(bool isMutable)
 {
-  _M_isMutable = isMutable;
+  f._M_isMutable = isMutable;
 }
 
 // kate: space-indent on; indent-width 2; replace-tabs on;

@@ -70,7 +70,7 @@ public:
 	++_M_block_index;
 
 	_M_storage = reinterpret_cast<char**>
-	  (::realloc(_M_storage, sizeof(char*) * (1 + _M_block_index)));
+	  (std::realloc(_M_storage, sizeof(char*) * (1 + _M_block_index)));
 
 	_M_current_block = _M_storage[_M_block_index] = reinterpret_cast<char*>
 	  (new char[_S_block_size]);
