@@ -459,7 +459,7 @@ int main (int argc, char **argv) {
 					break;
 				case 'q':{
 					if(QString(argv[i]).startsWith("-qt")) {
-						configName = QDir::fromNativeSeparators("cpptoxml/parser/rpp/pp-qt-configuration");
+						configName = "cpptoxml/parser/rpp/pp-qt-configuration";
 #ifdef Q_OS_WIN
 						configName += QString("-win");
 #endif
