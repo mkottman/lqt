@@ -503,7 +503,7 @@ int main (int argc, char **argv) {
 			msg += "' or '" + macincludefile;
 #endif
 			msg += "' found";
-			fprintf(stderr, msg.toLatin1().constData());
+			fprintf(stderr, "%s\n", msg.toLatin1().constData());
 			return 1;
 		}
 	}
