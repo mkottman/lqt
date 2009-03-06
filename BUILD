@@ -10,6 +10,12 @@ GCC 4.2
 MSVC 2008, 2008
 
 
+There are two ways to build lqt. The standard way is to use CMake.
+
+Alternatively you may want to build it manually. This can be useful if
+CMake fails, if you have particular needs, or just want to understand
+how lqt works.
+
 1. CMake
 
 
@@ -54,13 +60,15 @@ be suppressed by -DSYSTEM_LUA
 
 == Build the C++ parser ==
 
+First you have to build the C++ parser, called cpptoxml.
+
+If you took lqt from KDE svn, you don't have cpptoxml, so you need to
+get it separately from svn.kde.org/home/kde/trunk/kdesupport/cpptoxml
+
 cd cpptoxml
 qmake
 make
 cd ..
-
-Checkouts from KDE svn needs to build cpptoxml seperately
-svn.kde.org/home/kde/trunk/kdesupport/cpptoxml
 
 
 == Create a cpp file including the module ==
@@ -72,8 +80,13 @@ echo '#include <QtGui>' > ./src/qtgui.cpp
 
 ./cpptoxml/cpptoxml -C cpptoxml/parser/rpp/pp-qt-configuration ./src/qtgui.cpp > src/qtgui.xml
 
-Rememebr that you have to set the QT_INCLUDE env variable such that
-$QT_INCLUDE contains the QtCore, QtGui, etc... directories
+Remember that you have to set the QT_INCLUDE env variable such that
+$QT_INCLUDE contains the QtCore, QtGui, etc... directories. You can check with
+
+ls -d $QT_INCLUDE/Qt*
+
+It should show a list of directories corresponding to the various
+modules of Qt.
 
 The same command could be issued directly on the header file
 e.g.
