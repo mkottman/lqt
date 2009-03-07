@@ -12,6 +12,9 @@ In any case you use it at your own risk.
 The latest version can be found at the main Git
 repository http://repo.or.cz/w/lqt.git
 
+A Wiki and Bugtracker is here:
+http://code.google.com/p/lqt/
+
 The version on the KDE repository is less likely
 to be up to date with the Git one unless/until
 I find a clean way to push changes directly to

@@ -227,6 +227,7 @@ else()
 	build_qt_lib_binding(QtWebKit QtSvg QtScript QtOpenGL QtGui QtNetwork QtCore)
 	# TODO
 	#build_qt_lib_binding(QtSql)
+	#build_qt_lib_binding(QtScriptTools) # 4.5 only
 	#build_qt_lib_binding(QtXmlPatterns)
 	#build_qt_lib_binding(Phonon)
 endif()
