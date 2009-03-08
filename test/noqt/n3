@@ -67,5 +67,22 @@ class A
 };
 }
 
+
+namespace N {
+typedef double Real;
+
+ class  Time
+ {
+ public:
+   Time() {}
+   virtual ~Time() {}
+
+    void setTimeStep(Real h) {}
+   virtual Real getTimeStep() const { return 32;}
+ protected:
+   Real m_timeStep;
+ };
+}
+
 #endif
 
