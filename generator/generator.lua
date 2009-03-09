@@ -374,14 +374,14 @@ local fill_typesystem_with_enums = function(enums, types)
 	local etype = function(en)
 		return {
 			push = function(n)
-				return 'lqtL_pushenum(L, '..n..', "'..en..'")', 1
+				return 'lqtL_pushenum(L, '..n..', "'..string.gsub(en, '::', '.')..'")', 1
 			end,
 			get = function(n)
 				return 'static_cast<'..en..'>'
-				..'(lqtL_toenum(L, '..n..', "'..en..'"))', 1
+				..'(lqtL_toenum(L, '..n..', "'..string.gsub(en, '::', '.')..'"))', 1
 			end,
 			test = function(n)
-				return 'lqtL_isenum(L, '..n..', "'..en..'")', 1
+				return 'lqtL_isenum(L, '..n..', "'..string.gsub(en, '::', '.')..'")', 1
 			end,
 		}
 	end
@@ -964,7 +964,7 @@ end
 local print_enum_creator = function(enums, n)
 	local out = 'static lqt_Enumlist lqt_enum_list[] = {\n'
 	for e in pairs(enums) do
-		out = out..'  { lqt_enum'..e.xarg.id..', "'..e.xarg.fullname..'" },\n'
+		out = out..'  { lqt_enum'..e.xarg.id..', "'..string.gsub(e.xarg.fullname, "::", ".")..'" },\n'
 	end
 	out = out..'  { 0, 0 },\n};\n'
 	out = out .. 'void lqt_create_enums_'..n..' (lua_State *L) {\n'
