@@ -105,6 +105,7 @@ base_types['long long int'] = integer_type
 base_types['unsigned long long int'] = integer_type
 base_types['float'] = number_type
 base_types['double'] = number_type
+base_types['double const&'] = number_type
 base_types['bool'] = bool_type
 
 ---[[
