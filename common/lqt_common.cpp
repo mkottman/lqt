@@ -114,21 +114,22 @@ char ** lqtL_toarguments (lua_State *L, int index) {
 }
 
 static int lqtL_createenum (lua_State *L, lqt_Enum e[], const char *n) {
-	lqtL_getenumtable(L); // (1)
-	lua_newtable(L); // (2)
-	lua_pushvalue(L, -1); // (3)
-	lua_setfield(L, -3, n); // (2)
-	while ( (e->name!=0) ) { // (2)
-		lua_pushstring(L, e->name); // (3)
-		lua_pushinteger(L, e->value); // (4)
-		lua_settable(L, -3); // (2)
-		lua_pushinteger(L, e->value); // (3)
-		lua_pushstring(L, e->name); // (4)
-		lua_settable(L, -3); // (2)
-		e++; // (2)
-	}
-	lua_pop(L, 2); // (0)
-	return 0;
+    lqt_Enum *l = e;
+    lqtL_getenumtable(L); // (1)
+    lua_newtable(L); // (2)
+    lua_pushvalue(L, -1); // (3)
+    lua_setfield(L, -3, n); // (2)
+    while ( (l->name!=0) ) { // (2)
+        lua_pushstring(L, l->name); // (3)
+        lua_pushinteger(L, l->value); // (4)
+        lua_settable(L, -3); // (2)
+        lua_pushinteger(L, l->value); // (3)
+        lua_pushstring(L, l->name); // (4)
+        lua_settable(L, -3); // (2)
+        l++; // (2)
+    }
+    lua_pop(L, 2); // (0)
+    return 0;
 }
 
 int lqtL_createenumlist (lua_State *L, lqt_Enumlist list[]) {
