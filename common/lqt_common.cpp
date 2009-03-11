@@ -424,7 +424,7 @@ void lqtL_passudata (lua_State *L, const void *p, const char *name) {
 
 void lqtL_copyudata (lua_State *L, const void *p, const char *name) {
 	luaL_newmetatable(L, name);
-	lua_pushstring(L, "__copy");
+	lua_pushstring(L, "new");
 	lua_rawget(L, -2);
 	if (lua_isnil(L, -1)) {
 		qDebug() << "cannot copy" << name;
