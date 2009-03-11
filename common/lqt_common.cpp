@@ -75,6 +75,13 @@ void * lqtL_getref (lua_State *L, size_t sz) {
 	return ret;
 }
 
+bool * lqtL_toboolref (lua_State *L, int index) {
+	bool tmp = lua_toboolean(L, index);
+	bool *ret = (bool*)lqtL_getref(L, sizeof(bool));
+	*ret = tmp;
+	return ret;
+}
+
 int * lqtL_tointref (lua_State *L, int index) {
 	int tmp = lua_tointeger(L, index);
 	int *ret = (int*)lqtL_getref(L, sizeof(int));
