@@ -109,6 +109,17 @@ base_types['double const&'] = number_type
 base_types['bool'] = bool_type
 
 ---[[
+base_types['bool*'] = {
+	get = function(j)
+		return 'lqtL_toboolref(L, '..j..')', 1
+	end,
+	push = function(j) -- must handle arguments (e.g. in virtual callbacks) and return values
+		return 'lua_pushboolean(L, *'..tostring(j)..')', 1
+	end,
+	test = function(j) -- must handle arguments (e.g. in virtual callbacks) and return values
+		return 'lqtL_isboolean(L, '..tostring(j)..')', 1
+	end,
+}
 base_types['int&'] = {
 	get = function(j)
 		return '*lqtL_tointref(L, '..j..')', 1
