@@ -71,13 +71,14 @@ void * lqtL_getref (lua_State *L, size_t sz) {
 	void *ret = NULL;
 	lqtL_getreftable(L); // (1)
 	ret = lua_newuserdata(L, sz); // (2)
-	lua_rawseti(L, -2, 1+lua_objlen(L, -2));
+	lua_rawseti(L, -2, 1+lua_objlen(L, -2)); // (1)
 	return ret;
 }
 
 int * lqtL_tointref (lua_State *L, int index) {
+	int tmp = lua_tointeger(L, index);
 	int *ret = (int*)lqtL_getref(L, sizeof(int));
-	*ret = lua_tointeger(L, index);
+	*ret = tmp;
 	return ret;
 }
 
