@@ -36,7 +36,8 @@ int lqtL_qt_metacall (lua_State *L, QObject *self,
 
 
 const char add_method_func[] =
-"return function(qobj, qname, signature, func)\n"
+"return function(qobj, signature, func)\n"
+"	local qname = 'LuaObject('..tostring(qobj)..')'\n"
 "	local stringdata = qobj['"LQT_OBJMETASTRING"']\n"
 "	local data = qobj['"LQT_OBJMETADATA"']\n"
 "	local slots = qobj['"LQT_OBJSLOTS"']\n"

@@ -15,8 +15,8 @@ local LCD_Range = function(...)
 	slider:setRange(0, 99)
 	slider:setValue(0)
 
-	this:__addmethod("LuaLCD", 'valueChanged(int)')
-	this:__addmethod("LuaLCD", 'setValue(int)', function(_, val) slider:setValue(val) end)
+	this:__addmethod('valueChanged(int)')
+	this:__addmethod('setValue(int)', function(_, val) slider:setValue(val) end)
 	QObject.connect(slider, '2valueChanged(int)', lcd, '1display(int)')
 	QObject.connect(slider, '2valueChanged(int)', this, '2valueChanged(int)')
 
