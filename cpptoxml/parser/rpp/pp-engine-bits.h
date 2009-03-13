@@ -190,6 +190,8 @@ inline pp::PP_DIRECTIVE_TYPE pp::find_directive (char const *__directive, std::s
       case 7:
         if (__directive[0] == 'i' && !strcmp (__directive, "include"))
             return PP_INCLUDE;
+        else if (__directive[0] == 'w' && !strcmp (__directive, "warning"))
+            return PP_WARNING;
         break;
 
       case 12:

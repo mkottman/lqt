@@ -138,6 +138,7 @@ class pp
     PP_IFNDEF,
     PP_UNDEF,
     PP_PRAGMA,
+    PP_WARNING,
     PP_ERROR
   };
 
