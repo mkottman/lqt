@@ -122,6 +122,7 @@ char ** lqtL_toarguments (lua_State *L, int index) {
 }
 
 static int lqtL_createenum (lua_State *L, lqt_Enum e[], const char *n) {
+    luaL_Reg empty[] = { { 0, 0 } };
     lqt_Enum *l = e;
     lqtL_getenumtable(L); // (1)
     lua_newtable(L); // (2)
@@ -137,6 +138,18 @@ static int lqtL_createenum (lua_State *L, lqt_Enum e[], const char *n) {
         l++; // (2)
     }
     lua_pop(L, 2); // (0)
+    l = e;
+    luaL_register(L, n, empty); // (1)
+    while ( (l->name!=0) ) { // (1)
+        lua_pushstring(L, l->name); // (2)
+        lua_pushinteger(L, l->value); // (3)
+        lua_settable(L, -3); // (1)
+        lua_pushinteger(L, l->value); // (2)
+        lua_pushstring(L, l->name); // (3)
+        lua_settable(L, -3); // (1)
+        l++; // (1)
+    }
+    lua_pop(L, 1); // (0)
     return 0;
 }
 
@@ -504,13 +517,14 @@ bool lqtL_isenum (lua_State *L, int index, const char *name) {
 	lua_remove(L, -2);
 	lua_pushvalue(L, index);
 	lua_gettable(L, -2);
-	ret = lua_isnumber(L, -1);
+	ret = !lua_isnil(L, -1);
 	lua_pop(L, 2);
 	return ret;
 }
 
 int lqtL_toenum (lua_State *L, int index, const char *name) {
 	int ret = -1;
+        // index = LQT_TOPOSITIVE(L, index);
 	lqtL_getenumtable(L); // (1)
 	lua_getfield(L, -1, name); // (2)
 	if (lua_isnil(L, -1)) {
@@ -518,8 +532,12 @@ int lqtL_toenum (lua_State *L, int index, const char *name) {
 		return 0;
 	}
 	lua_pushvalue(L, index); // (3)
-	lua_gettable(L, -2); // (3)
-	ret = lua_tointeger(L, -1); // (3)
+        lua_gettable(L, -2); // (3)
+        if (lqtL_isinteger(L, -1)) {
+            ret = lua_tointeger(L, -1); // (3)
+        } else {
+            ret = lua_tointeger(L, index); // (3)
+        }
 	lua_pop(L, 3); // (0)
 	return ret;
 }

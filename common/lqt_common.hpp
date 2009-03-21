@@ -55,6 +55,9 @@ extern "C" {
 #define LQT_OBJSLOTS "Lqt Slots"
 #define LQT_OBJSIGS "Lqt Signatures"
 
+// macro to ge positive indexes
+#define LQT_TOPOSITIVE(L, i) (((i)<0)?(lua_gettop(L)+1+(i)):(i))
+
 void lqtL_register(lua_State *, const void *);
 void lqtL_unregister(lua_State *, const void *);
 
