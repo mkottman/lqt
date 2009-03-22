@@ -93,7 +93,7 @@ if not getmetatable(qt_types) then
 						return 'lqtL_pushflags(L, '..i..', "'..e..'")', 1
 					end,
 					test = function(i)
-						return 'lua_istable(L, '..i..')', 1
+						return 'lqtL_isflags(L, '..i..')', 1
 					end,
 				}
 				return ret

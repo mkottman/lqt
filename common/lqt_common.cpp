@@ -558,6 +558,7 @@ int lqtL_getflags (lua_State *L, int index, const char *name) {
 	int ret = 0;
 	int eindex = 0;
 	int i = 1;
+	if (lqtL_isinteger(L, index)) return lua_tointeger(L, index);
 	if (!lua_istable(L, index)) return 0;
 	lqtL_getenumtable(L); // (1)
 	lua_getfield(L, -1, name); // (2)
