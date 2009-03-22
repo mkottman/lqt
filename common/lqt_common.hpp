@@ -124,7 +124,7 @@ int lqtL_createclass (lua_State *, const char *, luaL_Reg *, lqt_Base *);
 /* functions to get/push special types */
 
 bool * lqtL_toboolref (lua_State *, int);
-void * lqtL_getref (lua_State *, size_t);
+void * lqtL_getref (lua_State *, size_t, bool);
 int * lqtL_tointref (lua_State *, int);
 char ** lqtL_toarguments (lua_State *, int);
 void lqtL_pusharguments (lua_State *, char **);

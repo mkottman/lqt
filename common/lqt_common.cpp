@@ -59,7 +59,7 @@ static void lqtL_getreftable (lua_State *L) {
 		lua_pop(L, 1); // (0) pop the nil value
 		lua_newtable(L); // (1) create a new one
 		lua_newtable(L); // (2) create an empty metatable
-		lua_pushstring(L, "kv"); // (3) push the mode value: weak values are enough
+		lua_pushstring(L, "v"); // (3) push the mode value: weak values are enough
 		lua_setfield(L, -2, "__mode"); // (2) set the __mode field
 		lua_setmetatable(L, -2); // (1) set it as the metatable
 		lua_pushvalue(L, -1); // (2) duplicate the new pointer table
@@ -67,24 +67,36 @@ static void lqtL_getreftable (lua_State *L) {
 	}
 }
 
-void * lqtL_getref (lua_State *L, size_t sz) {
+void * lqtL_getref (lua_State *L, size_t sz, bool weak) {
 	void *ret = NULL;
 	lqtL_getreftable(L); // (1)
 	ret = lua_newuserdata(L, sz); // (2)
-	lua_rawseti(L, -2, 1+lua_objlen(L, -2)); // (1)
+        /*
+        lua_newtable(L); // (3)
+        lua_getglobal(L, "DEBUG"); // (4)
+        lua_setfield(L, -2, "__gc"); // (3)
+        lua_setmetatable(L, -2); // (2)
+        */
+        if (weak) {
+            lua_rawseti(L, -2, 1+lua_objlen(L, -2)); // (1)
+        } else {
+            lua_pushinteger(L, 1+lua_objlen(L, -2)); // (3)
+            lua_settable(L, -3); // (1)
+        }
+        lua_pop(L, 1);
 	return ret;
 }
 
 bool * lqtL_toboolref (lua_State *L, int index) {
 	bool tmp = lua_toboolean(L, index);
-	bool *ret = (bool*)lqtL_getref(L, sizeof(bool));
+	bool *ret = (bool*)lqtL_getref(L, sizeof(bool), true);
 	*ret = tmp;
 	return ret;
 }
 
 int * lqtL_tointref (lua_State *L, int index) {
 	int tmp = lua_tointeger(L, index);
-	int *ret = (int*)lqtL_getref(L, sizeof(int));
+	int *ret = (int*)lqtL_getref(L, sizeof(int), false);
 	*ret = tmp;
 	return ret;
 }
@@ -100,7 +112,7 @@ void lqtL_pusharguments (lua_State *L, char **argv) {
 }
 
 char ** lqtL_toarguments (lua_State *L, int index) {
-	char ** ret = (char**)lqtL_getref(L, sizeof(char*)*(lua_objlen(L, index)+1));
+	char ** ret = (char**)lqtL_getref(L, sizeof(char*)*(lua_objlen(L, index)+1), false);
 	const char *str = NULL;
 	size_t strlen = 0;
 	int i = 0;
@@ -113,7 +125,7 @@ char ** lqtL_toarguments (lua_State *L, int index) {
 			break;
 		} else {
 			str = lua_tolstring(L, -1, &strlen);
-			ret[i] = (char*)lqtL_getref(L, sizeof(char)*(strlen+1));
+			ret[i] = (char*)lqtL_getref(L, sizeof(char)*(strlen+1), false);
 			strncpy(ret[i], str, strlen+1);
 			lua_pop(L, 1);
 		}
