@@ -489,7 +489,7 @@ int main (int argc, char **argv) {
 	}
 	
 	QString frameworkDir = "/Library/Frameworks";
-	if (!QFileInfo(sourceName).exists()) {
+	if (!QFileInfo(sourceName).exists() || QFileInfo(sourceName).isDir()) {
 		QString qtincludefile = QDir::fromNativeSeparators(qtdir+'/'+sourceName+'/'+sourceName);
 		QString macincludefile = QString("%1/%2.framework/Headers/%2").arg(frameworkDir).arg(sourceName);
 		if (QFileInfo(qtincludefile).exists()) {
