@@ -913,7 +913,7 @@ local add_class = lqt.classes.insert or error('module lqt.classes not loaded')
 	end
 	print_meta('\t//lua_pushlightuserdata(L, (void*)&LqtSlotAcceptor::staticMetaObject);')
 	print_meta('\t//lua_setfield(L, LUA_REGISTRYINDEX, LQT_METAOBJECT);')
-	print_meta('\tlua_pushlightuserdata(L, (void*)new LqtSlotAcceptor(L));')
+	print_meta('\tlua_pushlightuserdata(L, (void*)(new LqtSlotAcceptor(L)));')
 	print_meta('\tlua_setfield(L, LUA_REGISTRYINDEX, LQT_METACALLER);')
 	print_meta('\treturn 0;\n}')
 	if fmeta then fmeta:close() end
@@ -926,16 +926,16 @@ local fix_methods_wrappers = function(classes)
 		for _, constr in ipairs(c.constructors) do
 			if c.shell then
 				local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
-				constr.calling_line = '*new '..shellname..'(L'
+				constr.calling_line = 'new '..shellname..'(L'
 				if #(constr.arguments)>0 then constr.calling_line = constr.calling_line .. ', ' end
 			else
 				local shellname = c.xarg.fullname
-				constr.calling_line = '*new '..shellname..'('
+				constr.calling_line = 'new '..shellname..'('
 			end
 			for i=1,#(constr.arguments) do
 				constr.calling_line = constr.calling_line .. (i==1 and '' or ', ') .. 'arg' .. i
 			end
-			constr.calling_line = constr.calling_line .. ')'
+			constr.calling_line = '*('..constr.calling_line .. '))'
 			constr.xarg.static = '1'
 			constr.return_type = constr.xarg.type_base..'&'
 		end
