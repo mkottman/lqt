@@ -923,6 +923,7 @@ end
 local fix_methods_wrappers = function(classes)
 	for c in pairs(classes) do
 		c.shell = (not c.abstract) and c.public_destr
+		c.shell = c.shell and (next(c.virtuals)~=nil)
 		for _, constr in ipairs(c.constructors) do
 			if c.shell then
 				local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
