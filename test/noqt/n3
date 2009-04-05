@@ -30,6 +30,26 @@ namespace N {
 }
 
 
+namespace N
+{
+
+class A 
+{
+public:
+  A() {}
+  enum E {
+    E1=3,
+    E2=5,
+    E3=7
+    
+  };
+  
+  void setInt( int i ) { std::cerr << "setInt: " << i << std::endl; }
+  void setEnum( E i ) { std::cerr << "setEnum: " << i << std::endl; }
+};
+
+}
+
 
 
 typedef std::vector<void*> ASomething;
