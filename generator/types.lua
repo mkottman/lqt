@@ -88,6 +88,7 @@ base_types['char const*'] = {
 base_types['char'] = integer_type
 base_types['unsigned char'] = integer_type
 base_types['int'] = integer_type
+base_types['unsigned'] = integer_type
 base_types['unsigned int'] = integer_type
 base_types['short'] = integer_type
 base_types['short int'] = integer_type
