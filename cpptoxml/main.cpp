@@ -320,7 +320,7 @@ QString XMLVisitor::visit(CodeModelItem i) {
 		};
 	}
 	if (EnumeratorModelItem e = model_dynamic_cast<EnumeratorModelItem>(i)) {
-		ret += e->value().prepend(" value=\"").append('\"');
+		ret += ATTR_STR("value", e->value());
 	}
 	if (TypeAliasModelItem t = model_dynamic_cast<TypeAliasModelItem>(i)) {
 		ret += visit(t->type(), t->scope());
