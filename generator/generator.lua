@@ -129,7 +129,7 @@ local fix_arguments = function(all)
 	for a in pairs(all) do
 		if a.label=='Argument'
 			and a.xarg.default=='1'
-			and (not string.match(a.xarg.defaultvalue, '^[-+]?%d+%.?%d*$'))
+			and (not string.match(a.xarg.defaultvalue, '^[-+]?%d+%.?%d*[L]?$'))
 			and (not string.match(a.xarg.defaultvalue, '^".*"$'))
 			and a.xarg.defaultvalue~='true'
 			and a.xarg.defaultvalue~='false'
