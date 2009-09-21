@@ -463,6 +463,9 @@ void lqtL_copyudata (lua_State *L, const void *p, const char *name) {
 			lua_pop(L, 1);
 			lua_pushnil(L);
 		}
+                // Enable autodeletion for copied stuff
+                lua_getfield(L, -1, "delete");
+                lua_setfield(L, -2, "__gc");
 	}
 	return;
 }
