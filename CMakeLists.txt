@@ -148,7 +148,7 @@ function(build_qt_lib_binding BINDING_HEADER)
 			endforeach()
 		endif()
 		
-		add_custom_target(generate_${BINDING_NAME}_cpp  COMMAND cmake -E copy_directory ${CMAKE_SOURCE_DIR}/common ${LQT_GEN_DIR}
+		add_custom_target(generate_${BINDING_NAME}_cpp
 							COMMAND ${LUA_CMD}
 								"${CMAKE_SOURCE_DIR}/generator/generator.lua" 
 								${GEN_XML} 
