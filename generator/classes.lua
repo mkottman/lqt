@@ -41,7 +41,7 @@ local ref_t = function(fn)
 	return {
 		-- the argument is a reference to class
 		push = function(n)
-			return 'lqtL_passudata(L, &'..n..', "'..cn..'*")', 1
+			return 'lqtL_pushudata(L, &'..n..', "'..cn..'*")', 1
 		end,
 		get = function(n)
 			return '*static_cast<'..fn..'*>'
