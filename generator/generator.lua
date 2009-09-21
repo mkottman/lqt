@@ -913,7 +913,7 @@ local add_class = lqt.classes.insert or error('module lqt.classes not loaded')
 	end
 	print_meta('\t//lua_pushlightuserdata(L, (void*)&LqtSlotAcceptor::staticMetaObject);')
 	print_meta('\t//lua_setfield(L, LUA_REGISTRYINDEX, LQT_METAOBJECT);')
-	print_meta('\tlua_pushlightuserdata(L, (void*)(new LqtSlotAcceptor(L)));')
+	print_meta('\tlqtL_passudata(L, (void*)(new LqtSlotAcceptor(L)), "QObject*");')
 	print_meta('\tlua_setfield(L, LUA_REGISTRYINDEX, LQT_METACALLER);')
 	print_meta('\treturn 0;\n}')
 	if fmeta then fmeta:close() end

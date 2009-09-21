@@ -6,8 +6,8 @@ int lqtL_qt_metacall (lua_State *L, QObject *self,
 			int index, void **args) {
 	QObject *call_helper = (QObject*)NULL;
         lua_getfield(L, LUA_REGISTRYINDEX, LQT_METACALLER);
-        if (lua_islightuserdata(L, -1)) {
-                call_helper = (QObject*)lua_touserdata(L, -1);
+        if (lua_isuserdata(L, -1)) {
+                call_helper = (QObject*)lqtL_toudata(L, -1, "QObject*");
         }
         lua_pop(L, 1);
         if (call_helper!=NULL) {
