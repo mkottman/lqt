@@ -58,6 +58,9 @@ extern "C" {
 // macro to ge positive indexes
 #define LQT_TOPOSITIVE(L, i) (((i)<0)?(lua_gettop(L)+1+(i)):(i))
 
+// use standard pcall by default
+#define lqtL_pcall(L, n, r, e) lua_pcall(L, n, r, e)
+
 typedef int (*lqt_PCallPtr) (lua_State *L, int nargs, int nresults, int errfunc);
 
 void lqtL_register(lua_State *, const void *);
