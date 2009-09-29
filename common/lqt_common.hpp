@@ -47,6 +47,7 @@ extern "C" {
 #define LQT_POINTERS "Registry Pointers"
 #define LQT_REFS "Registry References"
 #define LQT_ENUMS "Registry Enumerations"
+#define LQT_PCALL "Registry PCall Pointer"
 
 // Qt-specific fields
 #define LQT_METACALLER "Registry MetaCaller"
@@ -54,13 +55,16 @@ extern "C" {
 #define LQT_OBJMETADATA "Lqt MetaData"
 #define LQT_OBJSLOTS "Lqt Slots"
 #define LQT_OBJSIGS "Lqt Signatures"
-#define LQT_PCALL "Lqt PCall Pointer"
 
 // macro to ge positive indexes
 #define LQT_TOPOSITIVE(L, i) (((i)<0)?(lua_gettop(L)+1+(i)):(i))
 
 // use standard pcall by default
+#ifndef LQT_DEBUG
 #define lqtL_pcall(L, n, r, e) lua_pcall(L, n, r, e)
+#else  // LQT_DEBUG
+#define lqtL_pcall(L, n, r, e) lqtL_pcall_debug(L, n, r, e)
+#endif // LQT_DEBUG
 
 typedef int (*lqt_PCallPtr) (lua_State *L, int nargs, int nresults, int errfunc);
 
