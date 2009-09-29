@@ -539,7 +539,7 @@ local virtual_overload = function(v, types)
 	local pushlines, stack = make_pushlines(v.arguments, types)
 	if not pushlines then return nil end
 	-- make lua call
-	local luacall = 'lua_pcall(L, '..(stack+1)..', '..rn..', 0)'
+	local luacall = 'lqtL_pcall(L, '..(stack+1)..', '..rn..', 0)'
 	-- make prototype and fallback
 	local proto = (v.return_type or 'void')..' ;;'..v.xarg.name..' ('
 	local fallback = ''
@@ -1008,7 +1008,7 @@ local slots_for_signals = function(signals, types)
   //}
   lua_pushvalue(L, -2);
 ]] .. pushlines .. [[
-  if (lua_pcall(L, ]]..stack..[[+1, 0, 0)) {
+  if (lqtL_pcall(L, ]]..stack..[[+1, 0, 0)) {
     //lua_error(L);
     qDebug() << lua_tostring(L, -1);
     lua_pop(L, 1);
