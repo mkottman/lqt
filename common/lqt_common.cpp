@@ -26,9 +26,8 @@
 
 #include "lqt_common.hpp"
 #include <iostream>
+#include <cstdlib>
 #include <cstring>
-
-#include <QDebug>
 
 static void lqtL_getenumtable (lua_State *L) {
 	lua_getfield(L, LUA_REGISTRYINDEX, LQT_ENUMS);
@@ -373,11 +372,11 @@ bool lqtL_missarg (lua_State *L, int index, int n) {
 }
 
 static void CS(lua_State *L) {
-	qDebug() << "++++++++++";
-	for (int i=1;i<=lua_gettop(L);i++) {
-		qDebug() << luaL_typename(L, i) << lua_touserdata(L, i);
-	}
-	qDebug() << "----------";
+    std::cerr << "++++++++++" << std::endl;
+    for (int i=1;i<=lua_gettop(L);i++) {
+        std::cerr << luaL_typename(L, i) << " " << lua_touserdata(L, i) << std::endl;
+    }
+    std::cerr << "----------" << std::endl;
 }
 
 static void lqtL_ensurepointer (lua_State *L, const void *p) { // (+1)
@@ -453,15 +452,15 @@ void lqtL_copyudata (lua_State *L, const void *p, const char *name) {
 	lua_pushstring(L, "new");
 	lua_rawget(L, -2);
 	if (lua_isnil(L, -1)) {
-		qDebug() << "cannot copy" << name;
-		lua_pop(L, 2);
-		lua_pushnil(L);
+            std::cerr << "cannot copy " << name << std::endl;
+            lua_pop(L, 2);
+            lua_pushnil(L);
 	} else {
 		lua_remove(L, -2);
 		lqtL_pushudata(L, p, name);
 		if (lua_pcall(L, 1, 1, 0)) {
-			qDebug() << "error copying" << name;
-			lua_pop(L, 1);
+			std::cerr << "error copying " << name << std::endl;
+                        lua_pop(L, 1);
 			lua_pushnil(L);
 		}
                 // Enable autodeletion for copied stuff
