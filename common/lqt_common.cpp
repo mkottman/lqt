@@ -187,7 +187,7 @@ static int lqtL_gcfunc (lua_State *L) {
 		return 0;
 	}
 	lua_pushvalue(L, 1); // (2)
-	if (lua_pcall(L, 1, 0, 0)) { // (-2;+1/+0)
+	if (lqtL_pcall(L, 1, 0, 0)) { // (-2;+1/+0)
 		// (1)
 		return lua_error(L);
 	}
@@ -458,7 +458,7 @@ void lqtL_copyudata (lua_State *L, const void *p, const char *name) {
 	} else {
 		lua_remove(L, -2);
 		lqtL_pushudata(L, p, name);
-		if (lua_pcall(L, 1, 1, 0)) {
+		if (lqtL_pcall(L, 1, 1, 0)) {
 			std::cerr << "error copying " << name << std::endl;
                         lua_pop(L, 1);
 			lua_pushnil(L);
