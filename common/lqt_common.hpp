@@ -54,6 +54,7 @@ extern "C" {
 #define LQT_OBJMETADATA "Lqt MetaData"
 #define LQT_OBJSLOTS "Lqt Slots"
 #define LQT_OBJSIGS "Lqt Signatures"
+#define LQT_PCALL "Lqt PCall Pointer"
 
 // macro to ge positive indexes
 #define LQT_TOPOSITIVE(L, i) (((i)<0)?(lua_gettop(L)+1+(i)):(i))
