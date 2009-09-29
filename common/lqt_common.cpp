@@ -25,6 +25,7 @@
  */
 
 #include "lqt_common.hpp"
+#include <iostream>
 #include <cstring>
 
 #include <QDebug>
@@ -612,6 +613,26 @@ int lqtL_touintarray (lua_State *L) {
         return 1;
 }
 
+int lqtL_pcall_debug_default (lua_State *L, int narg, int nres, int err) {
+    int status = 0;
+    std::cerr << "entering a pcall" << std::endl;
+    status = lua_pcall(L, narg, nres, err);
+    std::cerr << "pcall finished with status " << status << std::endl;
+    return status;
+}
+
+int lqtL_pcall_debug (lua_State *L, int narg, int nres, int err) {
+    int status = 0;
+    lua_getfield(L, LUA_REGISTRYINDEX, LQT_PCALL);
+    lqt_PCallPtr pcall = (lqt_PCallPtr)lua_touserdata(L, -1);
+    lua_pop(L, 1);
+    if (pcall) {
+        status = pcall(L, narg, nres, err);
+    } else {
+        status = lqtL_pcall_debug_default(L, narg, nres, err);
+    }
+    return status;
+}
 
 
 
