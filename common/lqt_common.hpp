@@ -141,6 +141,7 @@ void lqtL_pushflags (lua_State *, int, const char *);
 
 int lqtL_touintarray (lua_State *);
 
+int lqtL_pcall_debug (lua_State *L, int narg, int nres, int err);
 
 #endif // __LQT_COMMON_HPP
 
