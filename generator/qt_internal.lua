@@ -28,7 +28,6 @@ for c in pairs(classes) do
 			or c.xarg.fullname=='QByteArray::Data' -- private
 			or c.xarg.fullname=='QRegion::QRegionData' -- private
 			or c.xarg.fullname=='QString::Data' -- private
-			or c.xarg.fullname=='QThreadStorageData' -- binding error (function pointer)
 			or c.xarg.fullname=='QXmlAttributes::Attribute' -- private
 			or c.xarg.fullname=='QGLColormap::QGLColormapData' -- private
 
@@ -40,6 +39,7 @@ for c in pairs(classes) do
 			or c.xarg.fullname=='QMacStyle'
 
 			-- binding bugs
+			or c.xarg.fullname=='QThreadStorageData' -- binding error (function pointer)
 			or c.xarg.fullname=='QForeachContainerBase' -- "was not declared in this scope"
 			or c.xarg.fullname=='QtConcurrent::Exception'                 -- GCC throw() in destructor base declaration
 			or c.xarg.fullname=='QtConcurrent::UnhandledException'        -- GCC throw() in destructor base declaration
