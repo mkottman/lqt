@@ -198,14 +198,35 @@ local fill_enums = function(index)
 	return index
 end
 
+local class_is_public = function (fullnames, c)
+	repeat
+		if c.xarg.access~='public' then return false end
+		if c.xarg.member_of_class then
+			local p = fullnames[c.xarg.member_of_class]
+			assert(p, 'member_of_class should exist')
+			assert(p.label=='Class', 'member_of_class should be a class')
+			c = fullnames[c.xarg.member_of_class]
+		else
+			break
+		end
+	until true
+	return true
+end
+
 local copy_classes = function(index)
 	local ret = {}
+	local fullnames = {}
+	for k,v in pairs(index) do
+		if k.label=='Class' then fullnames[k.xarg.fullname] = k end
+	end
 	for e in pairs(index) do
 		if e.label=='Class'
-			and e.xarg.access~='private'
+			and class_is_public(fullnames, e)
 			and not e.xarg.fullname:match'%b<>' then
-			--if e.xarg.fullname=='QMetaObject' then debug'been here' end
 			ret[e] = true
+		elseif e.label=='Class'
+			and not e.xarg.fullname:match'%b<>' then
+			--print('class', e.xarg.fullname, 'rejected because not public')
 		end
 	end
 	return ret
