@@ -349,6 +349,9 @@ public:
   void addPropertyDeclaration(const QString &propertyDeclaration);
   QStringList propertyDeclarations() const { return _M_propertyDeclarations; }
 
+  CodeModel::AccessPolicy accessPolicy() const;
+  void setAccessPolicy(CodeModel::AccessPolicy accessPolicy);
+
 protected:
   _ClassModelItem(CodeModel *model, int kind = __node_kind)
     : _ScopeModelItem(model, kind), _M_classType(CodeModel::Class) {}
@@ -361,6 +364,7 @@ private:
 
   QStringList _M_propertyDeclarations;
 
+  CodeModel::AccessPolicy _M_accessPolicy;
 private:
   _ClassModelItem(const _ClassModelItem &other);
   void operator = (const _ClassModelItem &other);

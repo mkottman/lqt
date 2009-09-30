@@ -394,6 +394,16 @@ void _ClassModelItem::addPropertyDeclaration(const QString &propertyDeclaration)
     _M_propertyDeclarations << propertyDeclaration;
 }
 
+CodeModel::AccessPolicy _ClassModelItem::accessPolicy() const
+{
+  return _M_accessPolicy;
+}
+
+void _ClassModelItem::setAccessPolicy(CodeModel::AccessPolicy accessPolicy)
+{
+  _M_accessPolicy = accessPolicy;
+}
+
 
 // ---------------------------------------------------------------------------
 FunctionModelItem _ScopeModelItem::declaredFunction(FunctionModelItem item)
