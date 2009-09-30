@@ -13,13 +13,13 @@ for c in pairs(classes) do
 			or c.xarg.fullname=='QVariant::Private' -- well, it IS public
 			or c.xarg.fullname=='QVariant::Private::Data' -- well, it IS public
 			or c.xarg.fullname=='QVariant::PrivateShared' -- well, it IS public
+			or c.xarg.fullname=='QObjectData'-- public
 			-- internals, no binding needed
 			or c.xarg.fullname=='QDebug::Stream' -- private
 			or c.xarg.fullname=='QByteArray::Data' -- private
 			or c.xarg.fullname=='QRegion::QRegionData' -- private
-			or c.xarg.fullname=='QString::Data'
-			or c.xarg.fullname=='QObjectData'
-			or c.xarg.fullname=='QThreadStorageData'
+			or c.xarg.fullname=='QString::Data' -- private
+			or c.xarg.fullname=='QThreadStorageData' -- private
 			or c.xarg.fullname=='QXmlAttributes::Attribute'
 			or c.xarg.fullname=='QGLColormap::QGLColormapData'
 			or c.xarg.fullname=='QtConcurrent::internal::ExceptionStore'
