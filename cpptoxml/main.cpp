@@ -282,6 +282,18 @@ QString XMLVisitor::visit(CodeModelItem i) {
 		}
 	}
 	if (ClassModelItem c = model_dynamic_cast<ClassModelItem>(i)) {
+		switch (c->accessPolicy()) {
+			case CodeModel::Public:
+				ret += ATTR_STR("access", "public");
+				break;
+			case CodeModel::Private:
+				ret += ATTR_STR("access", "private");
+				break;
+			case CodeModel::Protected:
+				ret += ATTR_STR("access", "protected");
+				break;
+		};
+
 		if (c->baseClasses().size()>0) {
 			QStringList fullBases;
 			ret += ATTR_STR("bases", c->baseClasses().join(";").append(";"));
