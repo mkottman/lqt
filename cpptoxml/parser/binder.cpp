@@ -651,6 +651,7 @@ void Binder::visitClassSpecifier(ClassSpecifierAST *node)
   _M_current_class->setBaseModifiers(baseModifiers);
   _M_current_class->setClassType(decode_class_type(node->class_key));
   _M_current_class->setTemplateParameters(_M_current_template_parameters);
+  _M_current_class->setAccessPolicy(_M_current_access);
 
   if (! _M_current_template_parameters.isEmpty())
     {
