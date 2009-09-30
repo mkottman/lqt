@@ -23,13 +23,6 @@ for c in pairs(classes) do
 			or c.xarg.fullname=='QUpdateLaterEvent' -- compiles
 			or c.xarg.fullname=='QTextStreamManipulator' -- compiles
 			or c.xarg.fullname=='QtConcurrent::ThreadEngineSemaphore' -- compiles
-			-- internals, no binding needed
-			or c.xarg.fullname=='QDebug::Stream' -- private
-			or c.xarg.fullname=='QByteArray::Data' -- private
-			or c.xarg.fullname=='QRegion::QRegionData' -- private
-			or c.xarg.fullname=='QString::Data' -- private
-			or c.xarg.fullname=='QXmlAttributes::Attribute' -- private
-			or c.xarg.fullname=='QGLColormap::QGLColormapData' -- private
 
 			-- platform specific, TODO
 			or c.xarg.fullname=='QWindowsCEStyle'
