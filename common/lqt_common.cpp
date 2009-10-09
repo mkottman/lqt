@@ -207,6 +207,17 @@ static int lqtL_newindexfunc (lua_State *L) {
 	lua_rawset(L, 1); // (-2)
 	return 0;
 }
+
+int lqtL_getoverload (lua_State *L, int index, const char *name) {
+	if (lua_isuserdata(L, index) && !lua_islightuserdata(L, index)) {
+		lua_getfenv(L, index); // (1)
+		lua_getfield(L, -1, name); // (2)
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
 static int lqtL_indexfunc (lua_State *L) {
 	int i = 1;
 	if (lua_isuserdata(L, 1) && !lua_islightuserdata(L, 1)) {
