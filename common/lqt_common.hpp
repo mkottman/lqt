@@ -146,5 +146,7 @@ int lqtL_touintarray (lua_State *);
 
 int lqtL_pcall_debug (lua_State *L, int narg, int nres, int err);
 
+int lqtL_getoverload (lua_State *L, int index, const char *name);
+
 #endif // __LQT_COMMON_HPP
 
