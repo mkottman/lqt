@@ -319,31 +319,6 @@ int lqtL_createclass (lua_State *L, const char *name, luaL_Reg *mt, lqt_Base *ba
 	return 0;
 }
 
-int lqtL_createclasses (lua_State *L, lqt_Class *list) {
-	while (list->name!=0) { // (0)
-		luaL_newmetatable(L, list->name); // (1)
-		luaL_register(L, NULL, list->mt); // (1)
-		lua_pushstring(L, list->name); // (2)
-		lua_pushboolean(L, 1); // (3)
-		lua_settable(L, -3); // (1)
-		lqtL_pushindexfunc(L, list->name, list->bases); // (2)
-		lua_setfield(L, -2, "__index"); // (1)
-		lua_pushcfunction(L, lqtL_newindexfunc); // (2)
-		lua_setfield(L, -2, "__newindex"); // (1)
-		lua_pushcfunction(L, lqtL_gcfunc); // (2)
-		lua_setfield(L, -2, "__gc"); // (1)
-		lua_pushvalue(L, -1); // (2)
-		lua_setmetatable(L, -2); // (1)
-		lua_pop(L, 1); // (0)
-		lua_pushlstring(L, list->name, strlen(list->name)-1); // (1)
-		lua_newtable(L); // (2)
-		luaL_register(L, NULL, list->mt); // (2)
-		lua_settable(L, LUA_GLOBALSINDEX); // (0)
-		list++;
-	}
-	return 0;
-}
-
 bool lqtL_isinteger (lua_State *L, int i) {
 	if (lua_type(L, i)==LUA_TNUMBER)
 		return lua_tointeger(L, i)==lua_tonumber(L, i);
