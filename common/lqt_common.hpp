@@ -106,26 +106,26 @@ bool lqtL_missarg (lua_State *, int, int);
 //int lqtL_newindex (lua_State *);
 
 typedef struct {
-	const char *name;
-	int value;
+    const char *name;
+    int value;
 } lqt_Enum;
 
 typedef struct {
-	lqt_Enum *enums;
-	const char *name;
+    lqt_Enum *enums;
+    const char *name;
 } lqt_Enumlist;
 
 int lqtL_createenumlist (lua_State *, lqt_Enumlist[]);
 
 typedef struct {
-	const char *basename;
-	ptrdiff_t offset;
+    const char *basename;
+    ptrdiff_t offset;
 } lqt_Base;
 
 typedef struct {
-	luaL_Reg *mt;
-	lqt_Base *bases;
-	const char * name;
+    luaL_Reg *mt;
+    lqt_Base *bases;
+    const char * name;
 } lqt_Class;
 
 int lqtL_createclass (lua_State *, const char *, luaL_Reg *, lqt_Base *);
