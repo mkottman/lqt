@@ -575,7 +575,7 @@ local virtual_overload = function(v, types)
 	ret = proto .. [[ {
   int oldtop = lua_gettop(L);
   lqtL_pushudata(L, this, "]]..string.gsub(v.xarg.member_of_class, '::', '.')..[[*");
-  lua_getfield(L, -1, "]]..v.xarg.name..[[");
+  lqtL_getoverload(L, -1, "]]..v.xarg.name..[[");
   if (lua_isfunction(L, -1)) {
     lua_insert(L, -2);
 ]] .. pushlines .. [[
@@ -986,7 +986,7 @@ end
 local print_enum_creator = function(enums, n)
 	local out = 'static lqt_Enumlist lqt_enum_list[] = {\n'
 	for e in pairs(enums) do
-		out = out..'  { lqt_enum'..e.xarg.id..', "'..string.gsub(e.xarg.fullname, "::", ".")..'" },\n'
+		out = out..'  { lqt_enum'..e.xarg.id..', "'..e.xarg.fullname..'" },\n'
 	end
 	out = out..'  { 0, 0 },\n};\n'
 	out = out .. 'void lqt_create_enums_'..n..' (lua_State *L) {\n'

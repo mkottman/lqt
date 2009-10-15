@@ -46,7 +46,7 @@ extern "C" {
 
 #define LQT_POINTERS "Registry Pointers"
 #define LQT_REFS "Registry References"
-#define LQT_ENUMS "Registry Enumerations"
+#define LQT_ENUMS "Registry Enums"
 #define LQT_PCALL "Registry PCall Pointer"
 
 // Qt-specific fields
