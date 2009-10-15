@@ -577,9 +577,33 @@ int lqtL_getflags (lua_State *L, int index, const char *name) {
     return ret;
 }
 
-void lqtL_pushflags (lua_State *L, int index, const char *name) {
-    // TODO
-    lua_pushnil(L);
+//#include <QDebug>
+
+void lqtL_pushflags (lua_State *L, int value, const char *name) {
+    int index = 1;
+    lua_newtable(L); // (1) return value
+    lqtL_getenumtable(L); // (2)
+    lua_getfield(L, -1, name); // (3)
+    lua_remove(L, -2); // (2) stack: ret, enumtable
+    lua_pushnil(L); // (3) first index
+    while (lua_next(L, -2) != 0) { // (4) stack: ret, enumtable, index, value
+        //if (lua_isnumber(L, -2)) {
+            //qDebug() << ((void*)lua_tointeger(L, -2))
+                //<< ((void*)value) << (void*)(lua_tointeger(L, -2)&value)
+                //<< ((lua_tointeger(L, -2)&value)==lua_tointeger(L, -2)) << lua_tostring(L, -1);
+        //}
+        if (lua_isnumber(L, -2) &&
+                ((lua_tointeger(L, -2)&value)==lua_tointeger(L, -2))) {
+            // (4) if index is the value
+            lua_rawseti(L, -4, index); // (3) the string is put into the ret table
+            index = index + 1; // (3) the size of the ret table has increased
+        } else {
+            lua_pop(L, 1); // (3) pop the value
+        }
+    }
+    // (2) lua_next pops the vale and pushes nothing at the end of the iteration
+    // (2) stack: ret, enumtable
+    lua_pop(L, 1); // (1) stack: ret
     return;
 }
 
