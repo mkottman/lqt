@@ -85,6 +85,7 @@ if not getmetatable(qt_types) then
 				and string.match(k, '^QFlags<[%w:]+>$') then
 				local e = string.match(k, '^QFlags<([%w:]+)>$')
 				if not qt_types[e] then return nil end
+				e = string.gsub(e, '::', '.')
 				local ret = {
 					get = function(i)
 						return '('..k..'(lqtL_getflags(L, '..i..', "'..e..'")))', 1

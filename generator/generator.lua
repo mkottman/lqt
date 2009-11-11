@@ -986,7 +986,7 @@ end
 local print_enum_creator = function(enums, n)
 	local out = 'static lqt_Enumlist lqt_enum_list[] = {\n'
 	for e in pairs(enums) do
-		out = out..'  { lqt_enum'..e.xarg.id..', "'..e.xarg.fullname..'" },\n'
+		out = out..'  { lqt_enum'..e.xarg.id..', "'..string.gsub(e.xarg.fullname, "::", ".")..'" },\n'
 	end
 	out = out..'  { 0, 0 },\n};\n'
 	out = out .. 'void lqt_create_enums_'..n..' (lua_State *L) {\n'
