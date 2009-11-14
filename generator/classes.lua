@@ -18,6 +18,7 @@ local pointer_t = function(fn)
 		test = function(n)
 			return 'lqtL_isudata(L, '..n..', "'..cn..'*")', 1
 		end,
+		onstack = cn..'*,',
 	}
 end
 local pointer_const_t = function(fn)
@@ -34,6 +35,7 @@ local pointer_const_t = function(fn)
 		test = function(n)
 			return 'lqtL_isudata(L, '..n..', "'..cn..'*")', 1
 		end,
+		onstack = cn..'*,',
 	}
 end
 local ref_t = function(fn)
@@ -50,6 +52,7 @@ local ref_t = function(fn)
 		test = function(n)
 			return 'lqtL_isudata(L, '..n..', "'..cn..'*")', 1
 		end,
+		onstack = cn..'*,',
 	}
 end
 local instance_t = function(fn)
@@ -66,6 +69,7 @@ local instance_t = function(fn)
 		test = function(n)
 			return 'lqtL_isudata(L, '..n..', "'..cn..'*")', 1
 		end,
+		onstack = cn..'*,',
 	}
 end
 local const_ref_t = function(fn)
@@ -82,6 +86,7 @@ local const_ref_t = function(fn)
 		test = function(n)
 			return 'lqtL_isudata(L, '..n..', "'..cn..'*")', 1
 		end,
+		onstack = cn..'*,',
 	}
 end
 

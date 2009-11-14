@@ -404,6 +404,7 @@ local fill_typesystem_with_enums = function(enums, types)
 			test = function(n)
 				return 'lqtL_isenum(L, '..n..', "'..string.gsub(en, '::', '.')..'")', 1
 			end,
+			onstack = string.gsub(en, '::', '.')..',',
 		}
 	end
 	local ret = {}
@@ -442,10 +443,16 @@ end
 local fill_wrapper_code = function(f, types)
 	if f.wrapper_code then return f end
 	local stackn, argn = 1, 1
+	local stack_args, defects = '', 0
 	local wrap, line = '  int oldtop = lua_gettop(L);\n', ''
 	if f.xarg.abstract then return nil end
 	if f.xarg.member_of_class and f.xarg.static~='1' then
 		if not types[f.xarg.member_of_class..'*'] then return nil end -- print(f.xarg.member_of_class) return nil end
+		stack_args = stack_args .. types[f.xarg.member_of_class..'*'].onstack
+		defects = defects + 7 -- FIXME: arbitrary
+		if f.xarg.constant=='1' then
+			defects = defects + 7 -- FIXME: arbitrary
+		end
 		local sget, sn = types[f.xarg.member_of_class..'*'].get(stackn)
 		wrap = wrap .. '  ' .. f.xarg.member_of_class .. '* self = ' .. sget .. ';\n'
 		stackn = stackn + sn
@@ -463,6 +470,7 @@ local fill_wrapper_code = function(f, types)
 	for i, a in ipairs(f.arguments) do
 		if not types[a.xarg.type_name] then return nil end
 		local aget, an, arg_as = types[a.xarg.type_name].get(stackn)
+		stack_args = stack_args .. types[a.xarg.type_name].onstack
 		wrap = wrap .. '  ' .. argument_name(arg_as or a.xarg.type_name, 'arg'..argn) .. ' = '
 		if a.xarg.default=='1' and an>0 then
 			wrap = wrap .. 'lua_isnoneornil(L, '..stackn..')'
@@ -491,6 +499,8 @@ local fill_wrapper_code = function(f, types)
 		wrap = wrap .. '  return 0;\n'
 	end
 	f.wrapper_code = wrap
+	f.stack_arguments = stack_args
+	f.defects = defects
 	return f
 end
 

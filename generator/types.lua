@@ -39,6 +39,7 @@ local integer_type = {
 	test = function(j) -- must handle arguments (e.g. in virtual callbacks) and return values
 		return 'lqtL_isinteger(L, '..tostring(j)..')', 1
 	end,
+	onstack = 'integer,',
 }
 local number_type = {
 	get = function(j)
@@ -50,6 +51,7 @@ local number_type = {
 	test = function(j) -- must handle arguments (e.g. in virtual callbacks) and return values
 		return 'lqtL_isnumber(L, '..tostring(j)..')', 1
 	end,
+	onstack = 'number,',
 }
 local integer_type = {
 	get = function(j)
@@ -61,6 +63,7 @@ local integer_type = {
 	test = function(j) -- must handle arguments (e.g. in virtual callbacks) and return values
 		return 'lqtL_isinteger(L, '..tostring(j)..')', 1
 	end,
+	onstack = 'integer,',
 }
 local bool_type = {
 	get = function(j)
@@ -72,6 +75,7 @@ local bool_type = {
 	test = function(j) -- must handle arguments (e.g. in virtual callbacks) and return values
 		return 'lqtL_isboolean(L, '..tostring(j)..')', 1
 	end,
+	onstack = 'boolean,',
 }
 
 base_types['char const*'] = {
@@ -84,6 +88,7 @@ base_types['char const*'] = {
 	test = function(j)
 		return 'lqtL_isstring(L, '..tostring(j)..')', 1
 	end,
+	onstack = 'string,',
 }
 base_types['char'] = integer_type
 base_types['unsigned char'] = integer_type
@@ -120,6 +125,7 @@ base_types['bool*'] = {
 	test = function(j) -- must handle arguments (e.g. in virtual callbacks) and return values
 		return 'lqtL_isboolean(L, '..tostring(j)..')', 1
 	end,
+	onstack = 'boolean,',
 }
 base_types['int&'] = {
 	get = function(j)
@@ -131,6 +137,7 @@ base_types['int&'] = {
 	test = function(j) -- must handle arguments (e.g. in virtual callbacks) and return values
 		return 'lqtL_isinteger(L, '..tostring(j)..')', 1
 	end,
+	onstack = 'integer,',
 }
 base_types['char**'] = {
 	get = function(j)
@@ -142,6 +149,7 @@ base_types['char**'] = {
 	test = function(j) -- must handle arguments (e.g. in virtual callbacks) and return values
 		return 'lua_istable(L, '..tostring(j)..')', 1
 	end,
+	onstack = 'table,',
 }
 --]]
 base_types['std::string const&'] = {
@@ -154,6 +162,7 @@ base_types['std::string const&'] = {
 	test = function(i)
 		return 'lua_isstring(L, '..i..')', 1
 	end,
+	onstack = 'string,',
 }
 base_types['std::string'] = base_types['std::string const&']
 
