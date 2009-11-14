@@ -765,6 +765,18 @@ local print_metatable = function(c)
 		table.insert(methods[n], m)
 	end
 	for n, l in pairs(methods) do
+		local duplicates = {}
+		for _, f in ipairs(l) do
+			for sa, f in pairs(duplicates) do
+			end
+			if duplicates[f.stack_arguments] then
+				debug("Found duplicate for function: ", f.xarg.fullname, ": ", f.stack_arguments)
+			else
+				duplicates[f.stack_arguments] = f
+			end
+		end
+	end
+	for n, l in pairs(methods) do
 		local disp = 'static int lqt_dispatcher_'..n..c.xarg.id..' (lua_State *L) {\n'
 		for _, f in ipairs(l) do
 			disp = disp..'  if ('..f.test_code..') return lqt_bind'..f.xarg.id..'(L);\n'
