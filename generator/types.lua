@@ -29,18 +29,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 local base_types = (...) or {}
 
-local integer_type = {
-	get = function(j)
-		return 'lua_tointeger(L, '..tostring(j)..')', 1
-	end,
-	push = function(j) -- must handle arguments (e.g. in virtual callbacks) and return values
-		return 'lua_pushinteger(L, '..tostring(j)..')', 1
-	end,
-	test = function(j) -- must handle arguments (e.g. in virtual callbacks) and return values
-		return 'lqtL_isinteger(L, '..tostring(j)..')', 1
-	end,
-	onstack = 'integer,',
-}
 local number_type = {
 	get = function(j)
 		return 'lua_tonumber(L, '..tostring(j)..')', 1
