@@ -451,7 +451,7 @@ local fill_wrapper_code = function(f, types)
 		stack_args = stack_args .. types[f.xarg.member_of_class..'*'].onstack
 		defects = defects + 7 -- FIXME: arbitrary
 		if f.xarg.constant=='1' then
-			defects = defects + 7 -- FIXME: arbitrary
+			defects = defects + 8 -- FIXME: arbitrary
 		end
 		local sget, sn = types[f.xarg.member_of_class..'*'].get(stackn)
 		wrap = wrap .. '  ' .. f.xarg.member_of_class .. '* self = ' .. sget .. ';\n'
@@ -471,6 +471,7 @@ local fill_wrapper_code = function(f, types)
 		if not types[a.xarg.type_name] then return nil end
 		local aget, an, arg_as = types[a.xarg.type_name].get(stackn)
 		stack_args = stack_args .. types[a.xarg.type_name].onstack
+		if types[a.xarg.type_name].defect then defects = defects + types[a.xarg.type_name].defect end
 		wrap = wrap .. '  ' .. argument_name(arg_as or a.xarg.type_name, 'arg'..argn) .. ' = '
 		if a.xarg.default=='1' and an>0 then
 			wrap = wrap .. 'lua_isnoneornil(L, '..stackn..')'
@@ -767,14 +768,35 @@ local print_metatable = function(c)
 	for n, l in pairs(methods) do
 		local duplicates = {}
 		for _, f in ipairs(l) do
-			for sa, f in pairs(duplicates) do
+			local itisnew = true
+			for sa, g in pairs(duplicates) do
+				if sa==f.stack_arguments then
+					--debug("function equal: ", f.xarg.fullname, f.stack_arguments, sa, f.defects, g.defects)
+					if f.defects<g.defects then
+					else
+						itisnew = false
+					end
+				elseif string.match(sa, "^"..f.stack_arguments) then -- there is already a version with more arguments
+					--debug("function superseded: ", f.xarg.fullname, f.stack_arguments, sa, f.defects, g.defects)
+				elseif string.match(f.stack_arguments, '^'..sa) then -- there is already a version with less arguments
+					--debug("function superseding: ", f.xarg.fullname, f.stack_arguments, sa, f.defects, g.defects)
+				end
 			end
-			if duplicates[f.stack_arguments] then
-				debug("Found duplicate for function: ", f.xarg.fullname, ": ", f.stack_arguments)
-			else
+			if itisnew then
 				duplicates[f.stack_arguments] = f
 			end
 		end
+		--[[
+		local numinitial = 0
+		local numfinal = 0
+		for sa, f in pairs(l) do
+			numinitial = numinitial + 1
+		end
+		for sa, f in pairs(duplicates) do
+			numfinal = numfinal + 1
+		end
+		if numinitial-numfinal>0 then debug(c.xarg.fullname, "suppressed:", numinitial-numfinal) end
+		--]]
 	end
 	for n, l in pairs(methods) do
 		local disp = 'static int lqt_dispatcher_'..n..c.xarg.id..' (lua_State *L) {\n'

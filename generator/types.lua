@@ -29,7 +29,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 local base_types = (...) or {}
 
-local number_type = {
+local number_type = function(d) return {
 	get = function(j)
 		return 'lua_tonumber(L, '..tostring(j)..')', 1
 	end,
@@ -40,8 +40,9 @@ local number_type = {
 		return 'lqtL_isnumber(L, '..tostring(j)..')', 1
 	end,
 	onstack = 'number,',
-}
-local integer_type = {
+	defect = d,
+} end
+local integer_type = function(d) return {
 	get = function(j)
 		return 'lua_tointeger(L, '..tostring(j)..')', 1
 	end,
@@ -52,8 +53,9 @@ local integer_type = {
 		return 'lqtL_isinteger(L, '..tostring(j)..')', 1
 	end,
 	onstack = 'integer,',
-}
-local bool_type = {
+	defect = d,
+} end
+local bool_type = function(d) return {
 	get = function(j)
 		return 'lua_toboolean(L, '..tostring(j)..')', 1
 	end,
@@ -64,7 +66,8 @@ local bool_type = {
 		return 'lqtL_isboolean(L, '..tostring(j)..')', 1
 	end,
 	onstack = 'boolean,',
-}
+	defect = d,
+} end
 
 base_types['char const*'] = {
 	get = function(j)
@@ -78,29 +81,29 @@ base_types['char const*'] = {
 	end,
 	onstack = 'string,',
 }
-base_types['char'] = integer_type
-base_types['unsigned char'] = integer_type
-base_types['int'] = integer_type
-base_types['unsigned'] = integer_type
-base_types['unsigned int'] = integer_type
-base_types['short'] = integer_type
-base_types['short int'] = integer_type
-base_types['unsigned short'] = integer_type
-base_types['unsigned short int'] = integer_type
-base_types['short unsigned int'] = integer_type
-base_types['long'] = integer_type
-base_types['unsigned long'] = integer_type
-base_types['long int'] = integer_type
-base_types['unsigned long int'] = integer_type
-base_types['long unsigned int'] = integer_type
-base_types['long long'] = integer_type
-base_types['unsigned long long'] = integer_type
-base_types['long long int'] = integer_type
-base_types['unsigned long long int'] = integer_type
-base_types['float'] = number_type
-base_types['double'] = number_type
-base_types['double const&'] = number_type
-base_types['bool'] = bool_type
+base_types['char'] = integer_type(3)
+base_types['unsigned char'] = integer_type(3)
+base_types['int'] = integer_type(1)
+base_types['unsigned'] = integer_type(1)
+base_types['unsigned int'] = integer_type(1)
+base_types['short'] = integer_type(2)
+base_types['short int'] = integer_type(2)
+base_types['unsigned short'] = integer_type(2)
+base_types['unsigned short int'] = integer_type(2)
+base_types['short unsigned int'] = integer_type(2)
+base_types['long'] = integer_type(0)
+base_types['unsigned long'] = integer_type(0)
+base_types['long int'] = integer_type(0)
+base_types['unsigned long int'] = integer_type(0)
+base_types['long unsigned int'] = integer_type(0)
+base_types['long long'] = integer_type(0)
+base_types['unsigned long long'] = integer_type(0)
+base_types['long long int'] = integer_type(0)
+base_types['unsigned long long int'] = integer_type(0)
+base_types['float'] = number_type(1)
+base_types['double'] = number_type(0)
+base_types['double const&'] = number_type(1)
+base_types['bool'] = bool_type()
 
 ---[[
 base_types['bool*'] = {
