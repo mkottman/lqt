@@ -797,10 +797,11 @@ local print_metatable = function(c)
 		end
 		if numinitial-numfinal>0 then debug(c.xarg.fullname, "suppressed:", numinitial-numfinal) end
 		--]]
+		methods[n] = duplicates
 	end
 	for n, l in pairs(methods) do
 		local disp = 'static int lqt_dispatcher_'..n..c.xarg.id..' (lua_State *L) {\n'
-		for _, f in ipairs(l) do
+		for _, f in pairs(l) do
 			disp = disp..'  if ('..f.test_code..') return lqt_bind'..f.xarg.id..'(L);\n'
 		end
 		disp = disp .. '  lua_settop(L, 0);\n'
