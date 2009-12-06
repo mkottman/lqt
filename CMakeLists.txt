@@ -54,6 +54,7 @@ endif()
 
 if(SYSTEM_LUA)
 	find_package(Lua51 REQUIRED)
+	set(LUA_INCLUDE_DIRS ${LUA_INCLUDE_DIR})
 	set(LUA_CMD lua)
 else()
 	add_subdirectory(lua)
