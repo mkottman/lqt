@@ -88,7 +88,7 @@ void * lqtL_getref (lua_State *L, size_t sz, bool weak) {
 }
 
 bool * lqtL_toboolref (lua_State *L, int index) {
-    bool tmp = lua_toboolean(L, index);
+    bool tmp = lua_toboolean(L, index) == 1;
     bool *ret = (bool*)lqtL_getref(L, sizeof(bool), true);
     *ret = tmp;
     return ret;
@@ -415,7 +415,7 @@ void lqtL_pushudata (lua_State *L, const void *p, const char *name) {
         // (2)
         lua_pop(L, 1); // (1)
         lua_getfield(L, -1, name); // (2)
-        already = lua_toboolean(L, -1); // (2)
+        already = lua_toboolean(L, -1) == 1; // (2)
         lua_pop(L, 1); // (1)
     } else {
         // (1)
