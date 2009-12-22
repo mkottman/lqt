@@ -357,8 +357,11 @@ QString XMLVisitor::visit(CodeModelItem i) {
 			children += visit(model_static_cast<CodeModelItem>(n));
 		foreach(EnumModelItem n, model_dynamic_cast<ScopeModelItem>(i)->enums())
 			children += visit(model_static_cast<CodeModelItem>(n));
-		foreach(FunctionModelItem n, model_dynamic_cast<ScopeModelItem>(i)->functions())
-			children += visit(model_static_cast<CodeModelItem>(n));
+		foreach(FunctionModelItem n, model_dynamic_cast<ScopeModelItem>(i)->functions()) {
+			// don't list friend declarations
+			if (model_dynamic_cast<MemberModelItem>(i) && !model_dynamic_cast<MemberModelItem>(i)->isFriend())
+				children += visit(model_static_cast<CodeModelItem>(n));
+		}
 		foreach(TypeAliasModelItem n, model_dynamic_cast<ScopeModelItem>(i)->typeAliases())
 			children += visit(model_static_cast<CodeModelItem>(n));
 		foreach(VariableModelItem n, model_dynamic_cast<ScopeModelItem>(i)->variables())
