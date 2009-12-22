@@ -23,7 +23,22 @@ for c in pairs(classes) do
 			or c.xarg.fullname=='QUpdateLaterEvent' -- compiles
 			or c.xarg.fullname=='QTextStreamManipulator' -- compiles
 			or c.xarg.fullname=='QtConcurrent::ThreadEngineSemaphore' -- compiles
-
+			or c.xarg.fullname=='QTextObject' -- private/protected destcrutor
+			or c.xarg.fullname=='QTextCodec' -- private/protected destcrutor
+			or c.xarg.fullname=='QTextBlockGroup' -- private/protected destcrutor
+			or c.xarg.fullname=='QSessionManager' -- private/protected destcrutor
+			or c.xarg.fullname=='QAccessibleWidget' -- private/protected destcrutor
+			or c.xarg.fullname=='QAccessibleObjectEx' -- private/protected destcrutor
+			or c.xarg.fullname=='QClipboard' -- private/protected destcrutor
+			or c.xarg.fullname=='QAccessibleWidgetEx' -- private/protected destcrutor
+			or c.xarg.fullname=='QWebFrame' -- private/protected destcrutor
+			or c.xarg.fullname=='QWebHistory' -- private/private/protected destcrutor
+			or c.xarg.fullname=='QWebSettings' -- private/protected destcrutor
+			or c.xarg.fullname=='QAccessibleObject' -- private/protected destcrutor
+			or c.xarg.fullname=='QAccessibleObject' -- private/protected destcrutor
+			or c.xarg.fullname=='QAccessibleObject' -- private/protected destcrutor
+			or c.xarg.fullname=='QtConcurrent::ThreadEngineBarrier' -- linker error
+			
 			-- platform specific, TODO
 			or c.xarg.fullname=='QWindowsCEStyle'
 			or c.xarg.fullname=='QWindowsMobileStyle'
@@ -36,6 +51,8 @@ for c in pairs(classes) do
 			or c.xarg.fullname=='QForeachContainerBase' -- "was not declared in this scope"
 			or c.xarg.fullname=='QtConcurrent::Exception'                 -- GCC throw() in destructor base declaration
 			or c.xarg.fullname=='QtConcurrent::UnhandledException'        -- GCC throw() in destructor base declaration
+			or c.xarg.fullname=='QEasingCurve'
+			or c.xarg.fullname=='QHashData'
 
 
 

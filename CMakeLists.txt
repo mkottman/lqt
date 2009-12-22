@@ -44,7 +44,7 @@ set(QT_USE_QTSCRIPT 1)
 set(QT_USE_QTSVG 1)
 set(QT_USE_QTXML 1)
 #set(QT_USE_QTSQL 1)
-#set(QT_USE_QTXMLPATTERNS 1)
+set(QT_USE_QTXMLPATTERNS 1)
 include(${QT_USE_FILE})
 
 if(noqt)
@@ -225,11 +225,11 @@ else()
 	build_qt_lib_binding(QtOpenGL QtGui QtNetwork QtCore)
 	build_qt_lib_binding(QtSvg QtScript QtGui QtNetwork QtCore)
 	build_qt_lib_binding(QtXml QtSvg QtScript QtGui QtNetwork QtCore)
-	build_qt_lib_binding(QtWebKit QtSvg QtScript QtOpenGL QtGui QtNetwork QtCore)
+	build_qt_lib_binding(QtXmlPatterns QtCore QtXml)
+	build_qt_lib_binding(QtWebKit QtXmlPatterns QtSvg QtScript QtOpenGL QtGui QtNetwork QtCore QtXml)
 	# TODO
 	#build_qt_lib_binding(QtSql)
 	#build_qt_lib_binding(QtScriptTools) # 4.5 only
-	#build_qt_lib_binding(QtXmlPatterns)
 	#build_qt_lib_binding(Phonon)
 endif()
 
