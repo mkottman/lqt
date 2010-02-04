@@ -225,7 +225,7 @@ else()
 	build_qt_lib_binding(QtOpenGL QtGui QtNetwork QtCore)
 	build_qt_lib_binding(QtSvg QtScript QtGui QtNetwork QtCore)
 	build_qt_lib_binding(QtXml QtSvg QtScript QtGui QtNetwork QtCore)
-	build_qt_lib_binding(QtWebKit QtSvg QtScript QtOpenGL QtGui QtNetwork QtCore)
+	build_qt_lib_binding(QtWebKit QtXml QtSvg QtScript QtOpenGL QtGui QtNetwork QtCore)
 	# TODO
 	#build_qt_lib_binding(QtSql)
 	#build_qt_lib_binding(QtScriptTools) # 4.5 only
