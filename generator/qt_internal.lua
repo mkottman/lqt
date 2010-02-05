@@ -45,16 +45,33 @@ for c in pairs(classes) do
 			or c.xarg.fullname=='QWindowsXPStyle'
 			or c.xarg.fullname=='QWindowsVistaStyle'
 			or c.xarg.fullname=='QMacStyle'
+			or c.xarg.fullname=='QS60Style'
+			or c.xarg.fullname=='QS60MainApplication'
+			or c.xarg.fullname=='QS60MainAppUI'
+			or c.xarg.fullname=='QS60MainDocument'
+			or c.xarg.fullname=='QWSCalibratedMouseHandler'
+			or c.xarg.fullname=='QWSClient'
+			or c.xarg.fullname=='QWSEmbedWidget'
+			or c.xarg.fullname=='QWSEvent'
+			or c.xarg.fullname=='QWSGLWindowSurface'
+			or c.xarg.fullname=='QWSInputMethod'
+			or c.xarg.fullname=='QWSKeyboardHandler'
+			or c.xarg.fullname=='QWSMouseHandler'
+			or c.xarg.fullname=='QWSPointerCalibrationData'
+			or c.xarg.fullname=='QWSScreenSaver'
+			or c.xarg.fullname=='QWSServer'
+			or c.xarg.fullname=='QWSWindow'
+			or c.xarg.fullname=='QXmlNodeModelIndex' -- a method "name" is public but is not part of the documented API
+			or c.xarg.fullname=='QXmlName' -- a method "localName" is public but is not part of the documented API
 
 			-- binding bugs
 			or c.xarg.fullname=='QThreadStorageData' -- binding error (function pointer)
 			or c.xarg.fullname=='QForeachContainerBase' -- "was not declared in this scope"
 			or c.xarg.fullname=='QtConcurrent::Exception'                 -- GCC throw() in destructor base declaration
 			or c.xarg.fullname=='QtConcurrent::UnhandledException'        -- GCC throw() in destructor base declaration
-			or c.xarg.fullname=='QEasingCurve'
-			or c.xarg.fullname=='QHashData'
-
-
+			or c.xarg.fullname=='QEasingCurve'        -- wrapper for function: function pointer parsing problem
+			or c.xarg.fullname=='QHashData'        -- not in the docs at all. free_helper is not present during compilation
+			--or string.match(c.xarg.fullname, '^QtConcurrent') -- does not make sense anyway, because we should duplicate the lua_State
 
 			) then
 		ret1[c] = true

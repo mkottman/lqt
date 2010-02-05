@@ -612,7 +612,7 @@ int lqtL_touintarray (lua_State *L) {
     size_t i = 0;
     size_t n, nb;
     n = lua_objlen(L, -1);
-    nb = (n + 1) * sizeof(unsigned int );
+    nb = (n + 1) * sizeof(unsigned int);
     p = (unsigned int *)lua_newuserdata(L, nb);
     for (i=1;i<=n;i++) {
         lua_rawgeti(L, -2, i);

@@ -316,7 +316,8 @@ local distinguish_methods = function(index)
 				destruct = f
 			else
 				if (not string.match(f.xarg.name, '^operator%W'))
-					and (not f.xarg.member_template_parameters) then
+					and (not f.xarg.member_template_parameters)
+					and (not f.xarg.friend) then
 					table.insert(normal, f)
 				end
 			end
