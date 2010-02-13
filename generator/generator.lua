@@ -719,7 +719,7 @@ local print_wrappers = function(index)
 			-- if the virtual overload in the shell uses rawget
 			-- on the environment then we can leave these in the
 			-- metatable
-			if f.wrapper_code and f.xarg.virtual~='1' then
+			if f.wrapper_code and f.xarg.abstract~='1' then
 				local out = 'static int lqt_bind'..f.xarg.id
 				..' (lua_State *L) {\n'.. f.wrapper_code .. '}\n'
 				if f.xarg.access=='public' then
