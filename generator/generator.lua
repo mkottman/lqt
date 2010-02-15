@@ -3,7 +3,7 @@
 --[[
 
 Copyright (c) 2007-2009 Mauro Iazzi
-Copyright (c)      2008 Peter Kümmel 
+Copyright (c)      2008 Peter Kümmel
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
@@ -102,6 +102,13 @@ local debug = fprint(io.stderr)
 local print_enum = fprint(assert(io.open(module_name.._src..module_name..'_enum.cpp', 'w')))
 local print_slot_h = fprint(assert(io.open(module_name.._src..module_name..'_slot.hpp', 'w')))
 local print_slot_c = fprint(assert(io.open(module_name.._src..module_name..'_slot.cpp', 'w')))
+
+local warn = false
+local function ignore(name, cause)
+	if warn then
+		io.stderr:write('Ignoring: ', name, '(', cause, ')')
+	end
+end
 
 local xmlstream, idindex = dofile(path..'xml.lua')(readfile(filename))
 
@@ -220,13 +227,15 @@ local copy_classes = function(index)
 		if k.label=='Class' then fullnames[k.xarg.fullname] = k end
 	end
 	for e in pairs(index) do
-		if e.label=='Class'
-			and class_is_public(fullnames, e)
-			and not e.xarg.fullname:match'%b<>' then
-			ret[e] = true
-		elseif e.label=='Class'
-			and not e.xarg.fullname:match'%b<>' then
-			--print('class', e.xarg.fullname, 'rejected because not public')
+		if e.label=='Class' then
+			if class_is_public(fullnames, e)
+				and not e.xarg.fullname:match'%b<>' then
+				ret[e] = true
+			elseif not e.xarg.fullname:match'%b<>' then
+				ignore(e.xarg.fullname, 'not public')
+			else
+				ignore(e.xarg.fullname, 'template')
+			end
 		end
 	end
 	return ret
@@ -319,6 +328,8 @@ local distinguish_methods = function(index)
 					and (not f.xarg.member_template_parameters)
 					and (not f.xarg.friend) then
 					table.insert(normal, f)
+				else
+					ignore(f.xarg.name, 'operator/template/friend')
 				end
 			end
 		end
@@ -448,7 +459,10 @@ local fill_wrapper_code = function(f, types)
 	local wrap, line = '  int oldtop = lua_gettop(L);\n', ''
 	if f.xarg.abstract then return nil end
 	if f.xarg.member_of_class and f.xarg.static~='1' then
-		if not types[f.xarg.member_of_class..'*'] then return nil end -- print(f.xarg.member_of_class) return nil end
+		if not types[f.xarg.member_of_class..'*'] then
+			ignore(f.xarg.member_of_class, 'not a member of selected class')
+			return nil
+		end
 		stack_args = stack_args .. types[f.xarg.member_of_class..'*'].onstack
 		defects = defects + 7 -- FIXME: arbitrary
 		if f.xarg.constant=='1' then
@@ -469,7 +483,10 @@ local fill_wrapper_code = function(f, types)
 		line = f.xarg.fullname..'('
 	end
 	for i, a in ipairs(f.arguments) do
-		if not types[a.xarg.type_name] then return nil end
+		if not types[a.xarg.type_name] then
+			ignore(f.xarg.fullname, 'unkown argument type: '..a.xarg.type_name)
+			return nil
+		end
 		local aget, an, arg_as = types[a.xarg.type_name].get(stackn)
 		stack_args = stack_args .. types[a.xarg.type_name].onstack
 		if types[a.xarg.type_name].defect then defects = defects + types[a.xarg.type_name].defect end
@@ -592,9 +609,9 @@ local virtual_overload = function(v, types)
     lua_insert(L, -2);
 ]] .. pushlines .. [[
     if (!]]..luacall..[[) {
-      ]]..retget..[[;
+        ]]..retget..[[;
+	  }
     }
-  }
   lua_settop(L, oldtop);
   ]] .. fallback
 	v.virtual_overload = ret
@@ -807,7 +824,7 @@ local print_metatable = function(c)
 		end
 		disp = disp .. '  lua_settop(L, 0);\n'
 		disp = disp .. '  lua_pushstring(L, "'..c.xarg.fullname..'::'..n..': incorrect or extra arguments");\n'
-		disp = disp .. '  return lua_error(L);\n}\n' 
+		disp = disp .. '  return lua_error(L);\n}\n'
 		--print_meta(disp)
 		wrappers = wrappers .. disp .. '\n'
 	end
@@ -912,7 +929,7 @@ local print_merged_build = function()
 		merged:write('#include "'..p..'"\n')
 	end
 	local pro_file = assert(io.open(path..mergename..'.pro', 'w'))
-	
+
 	local print_pro= function(...)
 		pro_file:write(...)
 		pro_file:write'\n'
