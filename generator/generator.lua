@@ -161,6 +161,31 @@ local fix_arguments = function(all)
 	return all
 end
 
+local operatorTrans = {
+	['<<'] = 'IN',
+	['>>'] = 'OUT',
+	['+='] = 'PEQ',
+	['-='] = 'MEQ',
+	['++'] = 'INC',
+	['--'] = 'DEC',
+}
+
+local get_operator = function(name)
+	return name:match('^operator(.+)$')
+end
+
+local is_operator = function(name)
+	return name:match('^operator.')
+end
+
+local rename_operator = function(name)
+	local trans = operatorTrans[get_operator(name)]
+	if is_operator(name) and trans then
+		return 'op'..trans
+	end
+	return name
+end
+
 local fix_functions = function(index)
 	for f in pairs(index) do
 		local args = {}
@@ -313,6 +338,17 @@ local fill_virtuals = function(index)
 	return index
 end
 
+local should_wrap = function(f)
+	local name = f.xarg.name
+	-- FIXME: operator and friend, causes trouble with QDataStream
+	if f.xarg.friend then return false end
+	-- not an operator - accept
+	if not name:match('^operator') then return true end
+	-- accept supported operators
+	if is_operator(name) and operatorTrans[get_operator(name)] then return true end
+	return false
+end
+
 local distinguish_methods = function(index)
 	for c in pairs(index) do
 		local construct, destruct, normal = {}, nil, {}
@@ -324,7 +360,7 @@ local distinguish_methods = function(index)
 			elseif f.xarg.name:match'~' then
 				destruct = f
 			else
-				if (not string.match(f.xarg.name, '^operator%W'))
+				if should_wrap(f)
 					and (not f.xarg.member_template_parameters)
 					and (not f.xarg.friend) then
 					table.insert(normal, f)
@@ -478,7 +514,16 @@ local fill_wrapper_code = function(f, types)
   }
 ]]
 		--print(sget, sn)
+		if is_operator(f.xarg.name) then
+			local op = get_operator(f.xarg.name)
+			line = '*self '..op
+			-- the ++ and -- operators don't line () at the end, like: *self ++()
+			if op ~= '++' and op ~= '--' then
+				line = line .. '('
+			end
+		else
 		line = 'self->'..f.xarg.fullname..'('
+		end
 	else
 		line = f.xarg.fullname..'('
 	end
@@ -504,7 +549,9 @@ local fill_wrapper_code = function(f, types)
 		stackn = stackn + an
 		argn = argn + 1
 	end
-	line = line .. ')'
+	if not f.xarg.name:match('%+%+') and not f.xarg.name:match('%-%-') then
+		line = line .. ')'
+	end
 	-- FIXME: hack follows for constructors
 	if f.calling_line then line = f.calling_line end
 	if f.return_type then line = f.return_type .. ' ret = ' .. line end
@@ -818,7 +865,8 @@ local print_metatable = function(c)
 		methods[n] = duplicates
 	end
 	for n, l in pairs(methods) do
-		local disp = 'static int lqt_dispatcher_'..n..c.xarg.id..' (lua_State *L) {\n'
+		local name = rename_operator(n)
+		local disp = 'static int lqt_dispatcher_'..name..c.xarg.id..' (lua_State *L) {\n'
 		for _, f in pairs(l) do
 			disp = disp..'  if ('..f.test_code..') return lqt_bind'..f.xarg.id..'(L);\n'
 		end
@@ -830,7 +878,7 @@ local print_metatable = function(c)
 	end
 	local metatable = 'static luaL_Reg lqt_metatable'..c.xarg.id..'[] = {\n'
 	for n, l in pairs(methods) do
-		metatable = metatable .. '  { "'..n..'", lqt_dispatcher_'..n..c.xarg.id..' },\n'
+		metatable = metatable .. '  { "'..rename_operator(n)..'", lqt_dispatcher_'..rename_operator(n)..c.xarg.id..' },\n'
 	end
 	metatable = metatable .. '  { "delete", lqt_delete'..c.xarg.id..' },\n'
 	metatable = metatable .. '  { 0, 0 },\n};\n'
