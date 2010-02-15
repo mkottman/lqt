@@ -33,6 +33,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/lib)
 
 #set(CMAKE_VERBOSE_MAKEFILE TRUE)
 
+set(SYSTEM_LUA 1)
 
 find_package(Qt4 REQUIRED)
 set(QT_USE_QTCORE 1)
@@ -202,6 +203,7 @@ function(build_qt_lib_binding BINDING_HEADER)
 											${${COMMON}_MOC})
 											
 	target_link_libraries(${BINDING_NAME} ${QT_LIBRARIES} ${LUA_LIBRARIES})		
+	set_target_properties(${BINDING_NAME} PROPERTIES PREFIX "")
 
 	if(LQT_BUILDIN_CPPTOXML)
 		add_dependencies(generate_${BINDING_NAME}_xml  cpptoxml)
