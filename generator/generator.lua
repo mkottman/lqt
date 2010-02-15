@@ -867,11 +867,13 @@ local print_metatable = function(c)
 	for n, l in pairs(methods) do
 		local name = rename_operator(n)
 		local disp = 'static int lqt_dispatcher_'..name..c.xarg.id..' (lua_State *L) {\n'
+		local testcode = {}
 		for _, f in pairs(l) do
 			disp = disp..'  if ('..f.test_code..') return lqt_bind'..f.xarg.id..'(L);\n'
+			testcode[#testcode+1] = _
 		end
 		disp = disp .. '  lua_settop(L, 0);\n'
-		disp = disp .. '  lua_pushstring(L, "'..c.xarg.fullname..'::'..n..': incorrect or extra arguments");\n'
+		disp = disp .. '  lua_pushstring(L, "'..c.xarg.fullname..'::'..n..': incorrect or extra arguments, expecting: "' .. string.format("%q", table.concat(testcode, " or ")) .. ');\n'
 		disp = disp .. '  return lua_error(L);\n}\n'
 		--print_meta(disp)
 		wrappers = wrappers .. disp .. '\n'
