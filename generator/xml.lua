@@ -82,7 +82,7 @@ function collect(s)
 				error("trying to close "..toclose.label.." with "..label)
 			end
 			table.insert(top, toclose)
-			toclose.parent = top
+			-- toclose.parent = top
 			toclose.index = #top
 			index[toclose] = true
 		end
