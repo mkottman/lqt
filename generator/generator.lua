@@ -245,7 +245,60 @@ local class_is_public = function (fullnames, c)
 	return true
 end
 
-local copy_classes = function(index)
+local gen_id = 100000
+local function next_id() gen_id = gen_id + 1; return gen_id end
+
+local function deepcopy(object)
+	local lookup_table = {}
+	local function _copy(object)
+		if type(object) ~= "table" then
+			return object
+		elseif lookup_table[object] then
+			return lookup_table[object]
+		end
+		local new_table = {}
+		lookup_table[object] = new_table
+		for index, value in pairs(object) do
+			-- HACK: generate new ids for copied nodes
+			if index == "id" then new_table.id = "_" .. next_id()
+			else new_table[_copy(index)] = _copy(value) end
+		end
+		return new_table
+	end
+	return _copy(object)
+end
+
+local function try_templates(e, templates, ret)
+	local replace_in = {context=true, fullname=true, member_of=true, member_of_class=true,
+		scope=true, type_base=true, type_name=true }
+	local function template_repare(o, orig, new)
+		for k,v in pairs(o) do
+			if replace_in[k] then
+				o[k] = o[k]:gsub(orig, new)
+			elseif type(v) == "table" then
+				template_repare(v, orig, new)
+			end
+		end
+	end
+
+	local name = e.xarg.fullname
+	for _, t in ipairs(templates) do
+		local oclass, oparams = name:match('^([^<]+)<([^<]+)>')
+		local tclass, tparams = t:match('^([^<]+)<([^<]+)>')
+		if tclass == oclass then
+			-- debug('Found candidate!', name, tclass, tparams, oclass, oparams)
+			-- TODO: handle multiple template parameters
+			name = name:gsub(oparams, tparams)
+			local copy = deepcopy(e)
+			template_repare(copy, oparams, tparams)
+			ret[copy] = true
+		else
+			ignore(name, 'template not bound')
+		end
+	end
+end
+
+local copy_classes = function(index, templates)
 	local ret = {}
 	local fullnames = {}
 	for k,v in pairs(index) do
@@ -259,7 +312,7 @@ local copy_classes = function(index)
 			elseif not e.xarg.fullname:match'%b<>' then
 				ignore(e.xarg.fullname, 'not public')
 			else
-				ignore(e.xarg.fullname, 'template')
+				try_templates(e, templates, ret)
 			end
 		end
 	end
@@ -1201,7 +1254,11 @@ local functions = fix_functions(functions) -- fixes name and fullname and fills 
 local enums = copy_enums(idindex) -- picks enums if public
 local enums = fill_enums(enums) -- fills field "values"
 
-local classes = copy_classes(idindex) -- picks classes if not private and not blacklisted
+local templates = {
+	"QList<QString>",
+}
+
+local classes = copy_classes(idindex, templates) -- picks classes if not private and not blacklisted
 local classes = fill_virtuals(classes) -- does that, destructor ("~") excluded
 local classes = distinguish_methods(classes) -- does that
 local classes = fill_public_destr(classes) -- does that: checks if destructor is public
