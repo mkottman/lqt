@@ -104,10 +104,10 @@ local print_slot_h = fprint(assert(io.open(module_name.._src..module_name..'_slo
 local print_slot_c = fprint(assert(io.open(module_name.._src..module_name..'_slot.cpp', 'w')))
 
 local warn = true
-local ignore_file = assert(io.open('ignores'..module_name..'.csv', 'a'))
-local function ignore(name, cause)
+local ignore_file = assert(io.open('ignores_'..module_name..'.csv', 'w'))
+local function ignore(name, cause, context)
 	if warn then
-		ignore_file:write(name..';'..cause..'\n')
+		ignore_file:write(name..';'..cause..';'..(context or '')..'\n')
 	end
 end
 
@@ -366,7 +366,7 @@ local distinguish_methods = function(index)
 					and (not f.xarg.friend) then
 					table.insert(normal, f)
 				else
-					ignore(f.xarg.name, 'operator/template/friend')
+					ignore(f.xarg.fullname, 'operator/template/friend', c.xarg.name)
 				end
 			end
 		end
@@ -497,7 +497,7 @@ local fill_wrapper_code = function(f, types)
 	if f.xarg.abstract then return nil end
 	if f.xarg.member_of_class and f.xarg.static~='1' then
 		if not types[f.xarg.member_of_class..'*'] then
-			ignore(f.xarg.member_of_class, 'not a member of selected class')
+			ignore(f.xarg.fullname, 'not a member of wrapped class', f.xarg.member_of_class)
 			return nil
 		end
 		stack_args = stack_args .. types[f.xarg.member_of_class..'*'].onstack
@@ -530,7 +530,7 @@ local fill_wrapper_code = function(f, types)
 	end
 	for i, a in ipairs(f.arguments) do
 		if not types[a.xarg.type_name] then
-			ignore(f.xarg.fullname, 'unkown argument type: '..a.xarg.type_name)
+			ignore(f.xarg.fullname, 'unkown argument type', a.xarg.type_name)
 			return nil
 		end
 		local aget, an, arg_as = types[a.xarg.type_name].get(stackn)
@@ -615,7 +615,7 @@ end
 local make_pushlines = function(args, types)
 	local pushlines, stack = '', 0
 	for i, a in ipairs(args) do
-		if not types[a.xarg.type_name] then return nil end
+		if not types[a.xarg.type_name] then return nil, a.xarg.type_name end
 		local apush, an = types[a.xarg.type_name].push('arg'..i)
 		pushlines = pushlines .. '    ' .. apush .. ';\n'
 		stack = stack + an
@@ -628,7 +628,7 @@ local virtual_overload = function(v, types)
 	if v.virtual_overload then return v end
 	-- make return type
 	if v.return_type and not types[v.return_type] then
-		ignore(v.xarg.fullname, 'unknown return type')
+		ignore(v.xarg.fullname, 'unknown return type', v.return_type)
 		return nil
 	end
 	local rget, rn = '', 0
@@ -638,7 +638,10 @@ local virtual_overload = function(v, types)
 	.. (v.return_type and ' ret' or '')
 	-- make argument push
 	local pushlines, stack = make_pushlines(v.arguments, types)
-	if not pushlines then return nil end
+	if not pushlines then
+		ignore(v.xarg.fullname, 'unknown argument type', stack)
+		return nil
+	end
 	-- make lua call
 	local luacall = 'lqtL_pcall(L, '..(stack+1)..', '..rn..', 0)'
 	-- make prototype and fallback
