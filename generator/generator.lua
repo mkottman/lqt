@@ -626,7 +626,10 @@ local virtual_overload = function(v, types)
 	local ret = ''
 	if v.virtual_overload then return v end
 	-- make return type
-	if v.return_type and not types[v.return_type] then return nil end
+	if v.return_type and not types[v.return_type] then
+		ignore(v.xarg.fullname, 'unknown return type')
+		return nil
+	end
 	local rget, rn = '', 0
 	if v.return_type then rget, rn, ret_as = types[v.return_type].get'oldtop+1' end
 	local retget = (v.return_type and argument_name(ret_as or v.return_type, 'ret')
