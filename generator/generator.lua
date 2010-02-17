@@ -103,10 +103,11 @@ local print_enum = fprint(assert(io.open(module_name.._src..module_name..'_enum.
 local print_slot_h = fprint(assert(io.open(module_name.._src..module_name..'_slot.hpp', 'w')))
 local print_slot_c = fprint(assert(io.open(module_name.._src..module_name..'_slot.cpp', 'w')))
 
-local warn = false
+local warn = true
+local ignore_file = assert(io.open('ignores'..module_name..'.csv', 'a'))
 local function ignore(name, cause)
 	if warn then
-		io.stderr:write('Ignoring: ', name, '(', cause, ')')
+		ignore_file:write(name..';'..cause..'\n')
 	end
 end
 
