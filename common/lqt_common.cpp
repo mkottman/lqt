@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2007-2008 Mauro Iazzi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without
@@ -9,10 +9,10 @@
  * copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following
  * conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -299,6 +299,8 @@ int lqtL_createclass (lua_State *L, const char *name, luaL_Reg *mt, lqt_Base *ba
     lua_setfield(L, -2, "__newindex"); // (1)
     lua_pushcfunction(L, lqtL_gcfunc); // (2)
     lua_setfield(L, -2, "__gc"); // (1)
+    lua_pushstring(L, name);
+    lua_setfield(L, -2, "__type");
 
     // set it as its own metatable
     lua_pushvalue(L, -1); // (2)
