@@ -3,7 +3,7 @@
 --[[
 
 Copyright (c) 2007-2009 Mauro Iazzi
-Copyright (c)      2008 Peter Kümmel
+Copyright (c)      2008 Peter Kï¿½mmel
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
@@ -112,6 +112,20 @@ local function ignore(name, cause, context)
 end
 
 local xmlstream, idindex = dofile(path..'xml.lua')(readfile(filename))
+
+-- Remove duplicate entries (~4300/20000 for QtCore)
+local dups = {}
+local remove = {}
+for e in pairs(idindex) do
+	if e.xarg and e.xarg.id and dups[e.xarg.id] then
+		-- print('Duplicate!', dups[e.xarg.id], e.xarg.name, e.xarg.id)
+		remove[e] = true
+	end
+	dups[e.xarg.id] = true
+end
+for e in pairs(remove) do
+	idindex[e] = nil
+end
 
 dofile(path..'classes.lua') -- this should become a require at some point
 
@@ -246,23 +260,95 @@ local class_is_public = function (fullnames, c)
 	return true
 end
 
-local copy_classes = function(index)
+local gen_id = 100000 -- TODO: maybe this will not be enough
+local function next_id() gen_id = gen_id + 1; return gen_id end
+
+local function deepcopy(object)
+	local lookup_table = {}
+	local function _copy(object)
+		if type(object) ~= "table" then
+			return object
+		elseif lookup_table[object] then
+			return lookup_table[object]
+		end
+		local new_table = {}
+		lookup_table[object] = new_table
+		for index, value in pairs(object) do
+			-- HACK: generate new ids for copied nodes
+			if index == "id" then new_table.id = "_" .. next_id()
+			else new_table[_copy(index)] = _copy(value) end
+		end
+		return new_table
+	end
+	return _copy(object)
+end
+
+-- cannot modify idindex directly while traversing it ->
+-- new methods from template classes are added here first and then
+-- added to idindex after the traversal
+local idindex_add = {}
+
+local function try_templates(class, templates, ret)
+	local replace_in = {name=true, context=true, fullname=true, member_of=true, member_of_class=true,
+		scope=true, type_base=true, type_name=true, return_type=true }
+
+	local function template_repare(o, orig, new)
+		for k,v in pairs(o) do
+			if replace_in[k] then
+				o[k] = o[k]:gsub(orig, new)
+			elseif k == 'member_template_parameters' then
+				-- ignore
+				o[k] = nil
+			elseif type(v) == "table" then
+				template_repare(v, orig, new)
+			end
+		end
+		if o.label and o.label:match'^Function' then
+			idindex_add[o] = true -- will be copied to index, so that later it can be picked up by copy_functions
+		end
+	end
+
+	local name = class.xarg.fullname
+	for _, t in ipairs(templates) do
+		local oclass, oparams = name:match('^(.+)<([^>]+)>$')
+		local tclass, tparams = t:match('^(.+)<([^>]+)>$')
+		if tclass == oclass then
+			-- TODO: handle multiple template parameters
+			local copy = deepcopy(class)
+			template_repare(copy, oparams, tparams)
+			copy.xarg.safename = copy.xarg.fullname:gsub('[<>]', '_')
+			ret[copy] = true
+		else
+			ignore(name, 'template not bound')
+		end
+	end
+end
+
+local copy_classes = function(index, templates)
 	local ret = {}
 	local fullnames = {}
 	for k,v in pairs(index) do
 		if k.label=='Class' then fullnames[k.xarg.fullname] = k end
 	end
+	idindex_add = {}
 	for e in pairs(index) do
 		if e.label=='Class' then
+			e.xarg.safename = e.xarg.fullname
 			if class_is_public(fullnames, e)
 				and not e.xarg.fullname:match'%b<>' then
 				ret[e] = true
 			elseif not e.xarg.fullname:match'%b<>' then
 				ignore(e.xarg.fullname, 'not public')
 			else
-				ignore(e.xarg.fullname, 'template')
+				if templates[e.xarg.fullname] then
+					try_templates(e, templates[e.xarg.fullname], ret)
+				end
 			end
 		end
+	end
+	-- add new functions to index
+	for f in pairs(idindex_add) do
+		idindex[f] = true
 	end
 	return ret
 end
@@ -353,7 +439,8 @@ end
 local distinguish_methods = function(index)
 	for c in pairs(index) do
 		local construct, destruct, normal = {}, nil, {}
-		local n = c.xarg.name
+		local n = c.xarg.name:gsub('%b<>', '')
+
 		local copy = nil
 		for _, f in ipairs(c) do
 			if n==f.xarg.name then
@@ -674,7 +761,7 @@ local virtual_overload = function(v, types)
 end
 
 local fill_shell_class = function(c, types)
-	local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
+	local shellname = 'lqt_shell_'..string.gsub(c.xarg.safename, '::', '_LQT_')
 	local shell = 'class LQT_EXPORT ' .. shellname .. ' : public ' .. c.xarg.fullname .. ' {\npublic:\n'
 	shell = shell .. '  lua_State *L;\n'
 	for _, constr in ipairs(c.constructors) do
@@ -741,7 +828,7 @@ local print_shell_classes = function(classes)
 	local fhead = nil
 	for c in pairs(classes) do
 		if fhead then fhead:close() end
-		local n = string.gsub(c.xarg.fullname, '::', '_LQT_')
+		local n = string.gsub(c.xarg.safename, '::', '_LQT_')
 		fhead = assert(io.open(module_name.._src..module_name..'_head_'..n..'.hpp', 'w'))
 		local print_head = function(...)
 			fhead:write(...)
@@ -769,7 +856,7 @@ local print_virtual_overloads = function(classes)
 	for c in pairs(classes) do
 		if c.shell then
 			local vo = ''
-			local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
+			local shellname = 'lqt_shell_'..string.gsub(c.xarg.safename, '::', '_LQT_')
 			for _,v in pairs(c.virtuals) do
 				if v.virtual_overload then
 					vo = vo .. string.gsub(v.virtual_overload, ';;', shellname..'::', 1)
@@ -917,7 +1004,7 @@ end
 local cpp_files = {}
 
 local print_single_class = function(c)
-	local n = string.gsub(c.xarg.fullname, '::', '_LQT_')
+	local n = string.gsub(c.xarg.safename, '::', '_LQT_')
 	local lua_name = string.gsub(c.xarg.fullname, '::', '.')
 	local cppname = module_name..'_meta_'..n..'.cpp'
 	table.insert(cpp_files, cppname);
@@ -1008,7 +1095,7 @@ local print_class_list = function(classes)
 	local big_picture = {}
 	local type_list_t = {}
 	for c in pairs(classes) do
-		local n = string.gsub(c.xarg.fullname, '::', '_LQT_')
+		local n = string.gsub(c.xarg.safename, '::', '_LQT_')
 		if n=='QObject' then qobject_present = true end
 		print_single_class(c)
 		table.insert(big_picture, 'luaopen_'..n)
@@ -1067,7 +1154,7 @@ local fix_methods_wrappers = function(classes)
 		c.shell = c.shell and (next(c.virtuals)~=nil)
 		for _, constr in ipairs(c.constructors) do
 			if c.shell then
-				local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
+				local shellname = 'lqt_shell_'..string.gsub(c.xarg.safename, '::', '_LQT_')
 				constr.calling_line = 'new '..shellname..'(L'
 				if #(constr.arguments)>0 then constr.calling_line = constr.calling_line .. ', ' end
 			else
@@ -1079,7 +1166,7 @@ local fix_methods_wrappers = function(classes)
 			end
 			constr.calling_line = '*('..constr.calling_line .. '))'
 			constr.xarg.static = '1'
-			constr.return_type = constr.xarg.type_base..'&'
+			constr.return_type = constr.xarg.scope..'&'
 		end
 		if c.destructor then
 			c.destructor.return_type = nil
@@ -1195,20 +1282,30 @@ do
 		end,
 		__index = function(t, k)
 			local ret = ts[k]
-			--if not ret then debug("unknown type:", tostring(k), ret) end
+			-- if not ret then debug("unknown type:", tostring(k), ret) end
 			return ret
 		end,
 	})
 end
 
 fix_arguments(idindex) -- fixes default arguments if they are context-relative
-local functions = copy_functions(idindex) -- picks functions and fixes label
-local functions = fix_functions(functions) -- fixes name and fullname and fills arguments
-
 local enums = copy_enums(idindex) -- picks enums if public
 local enums = fill_enums(enums) -- fills field "values"
 
-local classes = copy_classes(idindex) -- picks classes if not private and not blacklisted
+-- TODO: maybe automate this?
+local templates = {
+	["QList<T>"] = { "QList<QString>", "QList<QFileInfo>" },
+}
+
+local classes = copy_classes(idindex, templates) -- picks classes if not private and not blacklisted
+
+for _, f in ipairs(filterfiles) do
+	classes, enums = loadfile(f)(classes, enums)
+end
+
+local functions = copy_functions(idindex) -- picks functions and fixes label
+local functions = fix_functions(functions) -- fixes name and fullname and fills arguments
+
 local classes = fill_virtuals(classes) -- does that, destructor ("~") excluded
 local classes = distinguish_methods(classes) -- does that
 local classes = fill_public_destr(classes) -- does that: checks if destructor is public
@@ -1216,13 +1313,8 @@ local classes = fill_copy_constructor(classes) -- does that: checks if copy cont
 local classes = fix_methods_wrappers(classes)
 local classes = get_qobjects(classes)
 
-for _, f in ipairs(filterfiles) do
-	classes, enums = loadfile(f)(classes, enums)
-end
-
 local enums = fill_typesystem_with_enums(enums, typesystem) -- does that
 local classes = fill_typesystem_with_classes(classes, typesystem)
-
 local functions = fill_wrappers(functions, typesystem)
 local classes = fill_virtual_overloads(classes, typesystem) -- does that
 local classes = fill_shell_classes(classes, typesystem) -- does that
