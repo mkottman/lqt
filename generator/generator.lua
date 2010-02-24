@@ -28,9 +28,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 --]]
 
-require 'lfs'
-require 'repr'
-
 local osseparator = package.config:sub(1,1)
 
 local path = string.match(arg[0], '(.*'..osseparator..')[^%'..osseparator..']+') or ''
@@ -48,16 +45,6 @@ local output_includes = {
 	'lqt_common.hpp',
 }
 
----[=[
-path = "/home/miky/projects/lqt/generator/"
-lfs.chdir("/dev/shm/lqt")
-filename = "/dev/shm/lqt/qtcore_src/qtcore.xml"
-table.insert(output_includes, "QtCore")
-table.insert(output_includes, "lqt_qt.h")
-module_name = "qtcore"
-table.insert(typefiles, path.."qtypes.lua")
-table.insert(filterfiles, path.."qt_internal.lua")
---[[ ]=]
 do
 	local i = 1
 	while select(i, ...) do
@@ -80,7 +67,6 @@ do
 		i = i + 1
 	end
 end
---]]
 
 local my_includes = ''
 for _, i in ipairs(output_includes) do
@@ -273,7 +259,7 @@ local class_is_public = function (fullnames, c)
 	return true
 end
 
-local gen_id = 100000
+local gen_id = 100000 -- TODO: maybe this will not be enough
 local function next_id() gen_id = gen_id + 1; return gen_id end
 
 local function deepcopy(object)
@@ -302,13 +288,16 @@ end
 local idindex_add = {}
 
 local function try_templates(class, templates, ret)
-	local replace_in = {context=true, fullname=true, member_of=true, member_of_class=true,
+	local replace_in = {name=true, context=true, fullname=true, member_of=true, member_of_class=true,
 		scope=true, type_base=true, type_name=true, return_type=true }
 
 	local function template_repare(o, orig, new)
 		for k,v in pairs(o) do
 			if replace_in[k] then
 				o[k] = o[k]:gsub(orig, new)
+			elseif k == 'member_template_parameters' then
+				-- ignore
+				o[k] = nil
 			elseif type(v) == "table" then
 				template_repare(v, orig, new)
 			end
@@ -323,9 +312,7 @@ local function try_templates(class, templates, ret)
 		local oclass, oparams = name:match('^(.+)<([^>]+)>$')
 		local tclass, tparams = t:match('^(.+)<([^>]+)>$')
 		if tclass == oclass then
-			debug('Found candidate!', name, tclass, tparams, oclass, oparams)
 			-- TODO: handle multiple template parameters
-			name = name:gsub(oparams, tparams)
 			local copy = deepcopy(class)
 			template_repare(copy, oparams, tparams)
 			copy.xarg.safename = copy.xarg.fullname:gsub('[<>]', '_')
@@ -352,7 +339,9 @@ local copy_classes = function(index, templates)
 			elseif not e.xarg.fullname:match'%b<>' then
 				ignore(e.xarg.fullname, 'not public')
 			else
-				try_templates(e, templates, ret)
+				if templates[e.xarg.fullname] then
+					try_templates(e, templates[e.xarg.fullname], ret)
+				end
 			end
 		end
 	end
@@ -449,7 +438,8 @@ end
 local distinguish_methods = function(index)
 	for c in pairs(index) do
 		local construct, destruct, normal = {}, nil, {}
-		local n = c.xarg.name
+		local n = c.xarg.name:gsub('%b<>', '')
+
 		local copy = nil
 		for _, f in ipairs(c) do
 			if n==f.xarg.name then
@@ -594,7 +584,6 @@ local fill_wrapper_code = function(f, types)
 	if f.xarg.member_of_class and f.xarg.static~='1' then
 		if not types[f.xarg.member_of_class..'*'] then
 			ignore(f.xarg.member_of_class, 'not a member of selected class')
-			if f.xarg.scope:match"^QList" then print(repr(f)) end
 			return nil
 		end
 		stack_args = stack_args .. types[f.xarg.member_of_class..'*'].onstack
@@ -905,7 +894,7 @@ local print_wrappers = function(index)
 			end
 		end
 		--local shellname = 'lqt_shell_'..string.gsub(c.xarg.fullname, '::', '_LQT_')
-		local lua_name = string.gsub(c.xarg.safename, '::', '.')
+		local lua_name = string.gsub(c.xarg.fullname, '::', '.')
 		local out = 'static int lqt_delete'..c.xarg.id..' (lua_State *L) {\n'
 		out = out ..'  '..c.xarg.fullname..' *p = static_cast<'
 			..c.xarg.fullname..'*>(lqtL_toudata(L, 1, "'..lua_name..'*"));\n'
@@ -1009,7 +998,7 @@ local cpp_files = {}
 
 local print_single_class = function(c)
 	local n = string.gsub(c.xarg.safename, '::', '_LQT_')
-	local lua_name = string.gsub(c.xarg.safename, '::', '.')
+	local lua_name = string.gsub(c.xarg.fullname, '::', '.')
 	local cppname = module_name..'_meta_'..n..'.cpp'
 	table.insert(cpp_files, cppname);
 	local fmeta = assert(io.open(module_name.._src..cppname, 'w'))
@@ -1162,7 +1151,7 @@ local fix_methods_wrappers = function(classes)
 				constr.calling_line = 'new '..shellname..'(L'
 				if #(constr.arguments)>0 then constr.calling_line = constr.calling_line .. ', ' end
 			else
-				local shellname = c.xarg.safename
+				local shellname = c.xarg.fullname
 				constr.calling_line = 'new '..shellname..'('
 			end
 			for i=1,#(constr.arguments) do
@@ -1170,7 +1159,7 @@ local fix_methods_wrappers = function(classes)
 			end
 			constr.calling_line = '*('..constr.calling_line .. '))'
 			constr.xarg.static = '1'
-			constr.return_type = constr.xarg.type_base..'&'
+			constr.return_type = constr.xarg.scope..'&'
 		end
 		if c.destructor then
 			c.destructor.return_type = nil
@@ -1286,7 +1275,7 @@ do
 		end,
 		__index = function(t, k)
 			local ret = ts[k]
-			if not ret then debug("unknown type:", tostring(k), ret) end
+			-- if not ret then debug("unknown type:", tostring(k), ret) end
 			return ret
 		end,
 	})
@@ -1296,8 +1285,9 @@ fix_arguments(idindex) -- fixes default arguments if they are context-relative
 local enums = copy_enums(idindex) -- picks enums if public
 local enums = fill_enums(enums) -- fills field "values"
 
+-- TODO: maybe automate this?
 local templates = {
-	"QList<QString>",
+	["QList<T>"] = { "QList<QString>", "QList<QFileInfo>" },
 }
 
 local classes = copy_classes(idindex, templates) -- picks classes if not private and not blacklisted
