@@ -592,7 +592,7 @@ local virtual_overload = function(v, types)
     lua_insert(L, -2);
 ]] .. pushlines .. [[
     if (!]]..luacall..[[) {
-      ]]..retget..[[;
+      return lua_error(L);
     }
   }
   lua_settop(L, oldtop);
