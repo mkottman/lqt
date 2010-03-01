@@ -592,7 +592,7 @@ local virtual_overload = function(v, types)
     lua_insert(L, -2);
 ]] .. pushlines .. [[
     if (!]]..luacall..[[) {
-      return lua_error(L);
+      lua_error(L);
     }
   }
   lua_settop(L, oldtop);
@@ -682,6 +682,7 @@ local print_shell_classes = function(classes)
 		--print_head('#include <'..string.match(c.xarg.fullname, '^[^:]+')..'>')
 		print_head''
 		if c.shell then
+			print_head('#include "'..module_name..'_slot.hpp'..'"\n\n')
 			if c then
 				print_head(c.shell_class)
 			else
@@ -897,7 +898,7 @@ int lqt_shell_]]..n..[[::qt_metacall(QMetaObject::Call call, int index, void **a
         //qDebug() << "fake calling!";
         index = ]]..c.xarg.fullname..[[::qt_metacall(call, index, args);
         if (index < 0) return index;
-	return lqtL_qt_metacall(L, this, call, "QWidget*", index, args);
+        return lqtL_qt_metacall(L, this, lqtSlotAcceptor_]]..module_name..[[, call, "]]..c.xarg.fullname..[[*", index, args);
 }
 ]])
 	end
@@ -912,7 +913,7 @@ local print_merged_build = function()
 		merged:write('#include "'..p..'"\n')
 	end
 	local pro_file = assert(io.open(path..mergename..'.pro', 'w'))
-	
+
 	local print_pro= function(...)
 		pro_file:write(...)
 		pro_file:write'\n'
@@ -980,8 +981,9 @@ local add_class = lqt.classes.insert or error('module lqt.classes not loaded')
 	end
 	print_meta('\t//lua_pushlightuserdata(L, (void*)&LqtSlotAcceptor::staticMetaObject);')
 	print_meta('\t//lua_setfield(L, LUA_REGISTRYINDEX, LQT_METAOBJECT);')
-	print_meta('\tlqtL_passudata(L, (void*)(new LqtSlotAcceptor(L)), "QObject*");')
-	print_meta('\tlua_setfield(L, LUA_REGISTRYINDEX, LQT_METACALLER);')
+	print_meta('\t//lqtL_passudata(L, (void*)(new LqtSlotAcceptor(L)), "QObject*");')
+	print_meta('\t//lua_setfield(L, LUA_REGISTRYINDEX, LQT_METACALLER);')
+	print_meta('\tlqtSlotAcceptor_'..module_name..' = new LqtSlotAcceptor(L);')
 	print_meta('\treturn 0;\n}')
 	if fmeta then fmeta:close() end
 	return classes
@@ -1093,16 +1095,18 @@ local print_slots = function(s)
 	print_slot_h'  Q_OBJECT'
 	print_slot_h'  lua_State *L;'
 	print_slot_h'  public:'
-	print_slot_h'  LqtSlotAcceptor(lua_State *l, QObject *p=NULL) : QObject(p), L(l) { lqtL_register(L, this); }'
+	print_slot_h('  LqtSlotAcceptor(lua_State *l, QObject *p=NULL) : QObject(p), L(l) { setObjectName("'..module_name..'"); lqtL_register(L, this); }')
 	print_slot_h'  virtual ~LqtSlotAcceptor() { lqtL_unregister(L, this); }'
 	print_slot_h'  public slots:'
 	for p, b in pairs(s) do
 		print_slot_h('  '..p..';')
 	end
 	print_slot_h'};\n'
+	print_slot_h('\nextern LqtSlotAcceptor *lqtSlotAcceptor_'..module_name..';')
 	for p, b in pairs(s) do
 		print_slot_c(b)
 	end
+	print_slot_c('\nLqtSlotAcceptor *lqtSlotAcceptor_'..module_name..';')
 end
 
 
@@ -1162,6 +1166,8 @@ local slots = slots_for_signals(signals, typesystem)
 
 
 print_enum(output_includes)
+print_slot_h('#ifndef LQT_SLOT_'..module_name)
+print_slot_h('#define LQT_SLOT_'..module_name)
 print_slot_h(output_includes)
 print_slot_c('#include "'..module_name..'_slot.hpp'..'"\n\n')
 
@@ -1175,6 +1181,8 @@ local classes = print_metatables(classes) -- just collects the wrappers + genera
 local classes = print_class_list(classes) -- does that + prints everything related to class
 
 local slots = print_slots(slots)
+
+print_slot_h('#endif')
 
 --print_openmodule(module_name) -- does that
 
