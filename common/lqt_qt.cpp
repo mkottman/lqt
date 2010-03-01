@@ -1,36 +1,28 @@
 #include "lqt_qt.hpp"
 
 
-int lqtL_qt_metacall (lua_State *L, QObject *self,
+int lqtL_qt_metacall (lua_State *L, QObject *self, QObject *acceptor,
         QMetaObject::Call call, const char *name,
         int index, void **args) {
-    QObject *call_helper = (QObject*)NULL;
-    lua_getfield(L, LUA_REGISTRYINDEX, LQT_METACALLER);
-    if (lua_isuserdata(L, -1)) {
-        call_helper = (QObject*)lqtL_toudata(L, -1, "QObject*");
+    int callindex = 0, oldtop = 0;
+    oldtop = lua_gettop(L);
+    lqtL_pushudata(L, self, name); // (1)
+    lua_getfield(L, -1, LQT_OBJSIGS); // (2)
+    //qDebug() << lua_gettop(L) << luaL_typename(L, -1);
+    lua_rawgeti(L, -1, index + 1); // (3)
+    if (!lua_isstring(L, -1)) {
+        lua_pop(L, 3); // (0)
+        lua_settop(L, oldtop); // (0)
+        QMetaObject::activate(self, self->metaObject(), index, args);
+    } else {
+        callindex = acceptor->metaObject()->indexOfSlot(lua_tostring(L, -1));
+        // qDebug() << "Found slot" << name << lua_tostring(L,-1) << "on" << acceptor->objectName() << "with index" << callindex;
+        lua_pop(L, 2); // (1)
+        lua_getfield(L, -1, LQT_OBJSLOTS); // (2)
+        lua_rawgeti(L, -1, index+1); // (3)
+        lua_remove(L, -2); // (2)
+        index = acceptor->qt_metacall(call, callindex, args);
     }
-    lua_pop(L, 1);
-    if (call_helper!=NULL) {
-        int callindex = 0, oldtop = 0;
-        oldtop = lua_gettop(L);
-        lqtL_pushudata(L, self, name); // (1)
-        lua_getfield(L, -1, LQT_OBJSIGS); // (2)
-        //qDebug() << lua_gettop(L) << luaL_typename(L, -1);
-        lua_rawgeti(L, -1, index + 1); // (3)
-        if (!lua_isstring(L, -1)) {
-            lua_pop(L, 3); // (0)
-            lua_settop(L, oldtop); // (0)
-            QMetaObject::activate(self, self->metaObject(), index, args);
-        } else {
-            callindex = call_helper->metaObject()->indexOfSlot(lua_tostring(L, -1));
-            lua_pop(L, 2); // (1)
-            lua_getfield(L, -1, LQT_OBJSLOTS); // (2)
-            lua_rawgeti(L, -1, index+1); // (3)
-            lua_remove(L, -2); // (2)
-            index = call_helper->qt_metacall(call, callindex, args);
-        }
-    }
-    //qDebug() << "no call_helper found";
     return -1;
 }
 
