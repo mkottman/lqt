@@ -752,6 +752,7 @@ local virtual_overload = function(v, types)
     if (!]]..luacall..[[) {
       lua_error(L);
     }
+  }
   lua_settop(L, oldtop);
   ]] .. fallback
 	v.virtual_overload = ret
