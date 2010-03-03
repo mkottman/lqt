@@ -86,6 +86,41 @@ const char add_method_func[] =
 "	qobj['"LQT_OBJSIGS"'] = sigs\n"
 "end\n";
 
+#include <QMetaObject>
+#include <QMetaMethod>
+
+#define CASE(x) case QMetaMethod::x : lua_pushstring(L, " " #x); break
+static int lqtL_methods(lua_State *L) {
+	QObject* self = static_cast<QObject*>(lqtL_toudata(L, 1, "QObject*"));
+	if (self == NULL)
+		luaL_argerror(L, 1, "expecting QObject*");
+	const QMetaObject *mo = self->metaObject();
+	lua_createtable(L, mo->methodCount(), 0);
+	for (int i=0; i < mo->methodCount(); i++) {
+		QMetaMethod m = mo->method(i);
+		lua_pushstring(L, m.signature());
+		switch (m.access()) {
+		CASE(Private);
+		CASE(Protected);
+		CASE(Public);
+		}
+		switch (m.methodType()) {
+		CASE(Method);
+		CASE(Signal);
+		CASE(Slot);
+		CASE(Constructor);
+		}
+		lua_concat(L, 3);
+		lua_rawseti(L, -2, i+1);
+	}
+	return 1;
+}
+#undef CASE
+
+void lqtL_pushmethods(lua_State *L) {
+    lua_pushcfunction(L, lqtL_methods);
+}
+
 void lqtL_pushaddmethod (lua_State *L) {
     luaL_dostring(L, add_method_func);
 }
