@@ -115,6 +115,7 @@ typedef struct {
     const char *name;
 } lqt_Enumlist;
 
+int lqtL_createenum (lua_State *L, lqt_Enum e[], const char *n);
 int lqtL_createenumlist (lua_State *, lqt_Enumlist[]);
 
 typedef struct {

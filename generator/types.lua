@@ -135,7 +135,7 @@ base_types['int*'] = {
 		return 'lqtL_tointref(L, '..j..')', 1
 	end,
 	push = function(j) -- must handle arguments (e.g. in virtual callbacks) and return values
-		return 'lua_pushinteger(L, '..tostring(j)..')', 1
+		return 'lua_pushinteger(L, *'..tostring(j)..')', 1
 	end,
 	test = function(j) -- must handle arguments (e.g. in virtual callbacks) and return values
 		return 'lqtL_isinteger(L, '..tostring(j)..')', 1
