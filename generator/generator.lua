@@ -4,6 +4,7 @@
 
 Copyright (c) 2007-2009 Mauro Iazzi
 Copyright (c)      2008 Peter K�mmel
+Copyright (c)      2010 Michal Kottman
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
@@ -27,8 +28,6 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 
 --]]
-
-require 'repr'
 
 local osseparator = package.config:sub(1,1)
 
