@@ -87,6 +87,8 @@ function virtual_overload(v, types)
     lua_insert(L, -2);
 ]] .. pushlines .. [[
     if (!]]..luacall..[[) {
+      ]]..retget..[[;
+    } else {
       lua_error(L);
     }
   }
