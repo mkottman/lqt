@@ -135,7 +135,6 @@ local typesystem = dofile(path..'types.lua')
 do
 	local ts = {}
 	for i, ft in ipairs(typefiles) do
-		print('IGNORING', ft)
 		ts = assert(loadfile(ft))(ts)
 	end
 	setmetatable(typesystem, {

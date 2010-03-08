@@ -107,7 +107,6 @@ function fill_virtual_overloads(classes, types)
 					local vret, err = virtual_overload(v, types)
 					if not vret and v.xarg.abstract then
 						-- cannot create instance without implementation of an abstract method
-						print('Abstract!', v.xarg.fullname, err)
 						c.abstract = true
 					end
 				end

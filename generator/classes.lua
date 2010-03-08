@@ -261,6 +261,9 @@ function fill_typesystem_with_classes(types)
 	for c in pairs(classes) do
 		if not types[c.xarg.fullname] then
 			put_class_in_filesystem(c.xarg.fullname, types) --, true)
+		else
+			-- ignore this class - already generated elsewhere
+			classes[c] = nil
 		end
 	end
 end
