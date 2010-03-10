@@ -53,11 +53,19 @@ function virtual_overload(v, types)
 		ignore(v.xarg.fullname, 'unknown return type', v.return_type)
 		return nil, 'return: '..v.return_type
 	end
-	local rget, rn = '', 0
+	local rget, rn, ret_as = '', 0
 	if v.return_type then rget, rn, ret_as = types[v.return_type].get'oldtop+1' end
-	local retget = (v.return_type and argument_name(ret_as or v.return_type, 'ret')
-	.. ' = ' .. rget .. ';' or '') .. 'lua_settop(L, oldtop);return'
-	.. (v.return_type and ' ret' or '')
+	local retget = ''
+	if v.return_type then
+		local atest, an = types[v.return_type].test('oldtop+1')
+		retget = [[if (!(]]..atest..[[)) {
+        luaL_error(L, "Unexpected virtual method return type: %s; expecting %s",
+          luaL_typename(L,oldtop+1), "]]..v.return_type..[[");
+      }
+      ]]
+		retget = retget .. argument_name(ret_as or v.return_type, 'ret') .. ' = ' .. rget .. ';\n      '
+	end
+	retget = retget .. 'lua_settop(L, oldtop);\n      return' .. (v.return_type and ' ret' or '')
 	-- make argument push
 	local pushlines, stack = make_pushlines(v.arguments, types)
 	if not pushlines then
