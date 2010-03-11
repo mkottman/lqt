@@ -9,7 +9,7 @@ local slots = {}
 function copy_signals(functions)
 	for f in pairs(functions) do
 		if f.xarg.signal=='1' then
-			signals[f] = 1
+			signals[f] = true
 		end
 	end
 end
@@ -23,8 +23,9 @@ function slots_for_signals(types)
 		end
 		args = args .. ')'
 		local pushlines, stack = make_pushlines(sig.arguments, types)
-		if not slots['void __slot '..args] and pushlines then
-			slots['void __slot '..args] = 'void LqtSlotAcceptor::__slot '..args..[[ {
+		if pushlines then
+			if not slots['void __slot '..args] then
+				slots['void __slot '..args] = 'void LqtSlotAcceptor::__slot '..args..[[ {
   //int oldtop = lua_gettop(L);
   //lua_getfield(L, -1, "__slot]]..string.gsub(args, ' arg.', '')..[[");
   //if (lua_isnil(L, -1)) {
@@ -45,6 +46,9 @@ function slots_for_signals(types)
   //lua_settop(L, oldtop);
 }
 ]]
+			end
+		else
+			ignore(sig.xarg.fullname, 'slot', stack)
 		end
 	end
 end
@@ -59,12 +63,10 @@ function print_slots(s)
 	print_slot_h'  public slots:'
 	for p, b in pairs(s) do
 		print_slot_h('  '..p..';')
+		print_slot_c(b)
 	end
 	print_slot_h'};\n'
 	print_slot_h('\nextern LqtSlotAcceptor *lqtSlotAcceptor_'..module_name..';')
-	for p, b in pairs(s) do
-		print_slot_c(b)
-	end
 	print_slot_c('\nLqtSlotAcceptor *lqtSlotAcceptor_'..module_name..';')
 end
 
@@ -73,7 +75,7 @@ end
 
 function process(functions, typesystem)
 	copy_signals(functions)
-	slots_for_signals(signals, typesystem)
+	slots_for_signals(typesystem)
 end
 
 function output()
