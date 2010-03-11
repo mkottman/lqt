@@ -647,5 +647,15 @@ int lqtL_pcall_debug (lua_State *L, int narg, int nres, int err) {
     return status;
 }
 
-
-
+const char * lqtL_source(lua_State *L, int idx) {
+    static char buf[1024]; // TODO: try something better
+    lua_Debug ar = {0};
+    lua_pushvalue(L, idx);
+    lua_getinfo(L, ">S", &ar);
+    if (ar.source[0] != '@') {
+        sprintf(buf, "%s", ar.source);
+    } else {
+        sprintf(buf, "%s %s:%d", ar.name, ar.source, ar.linedefined);
+    }
+    return buf;
+}

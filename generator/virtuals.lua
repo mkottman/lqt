@@ -54,13 +54,13 @@ function virtual_overload(v, types)
 		return nil, 'return: '..v.return_type
 	end
 	local rget, rn, ret_as = '', 0
-	if v.return_type then rget, rn, ret_as = types[v.return_type].get'oldtop+1' end
+	if v.return_type then rget, rn, ret_as = types[v.return_type].get'oldtop+2' end
 	local retget = ''
 	if v.return_type then
-		local atest, an = types[v.return_type].test('oldtop+1')
+		local atest, an = types[v.return_type].test('oldtop+2')
 		retget = [[if (!(]]..atest..[[)) {
-        luaL_error(L, "Unexpected virtual method return type: %s; expecting %s",
-          luaL_typename(L,oldtop+1), "]]..v.return_type..[[");
+        luaL_error(L, "Unexpected virtual method return type: %s; expecting %s\nin: %s",
+          luaL_typename(L,oldtop+2), "]]..v.return_type..[[", lqtL_source(L,oldtop+1));
       }
       ]]
 		retget = retget .. argument_name(ret_as or v.return_type, 'ret') .. ' = ' .. rget .. ';\n      '
@@ -91,8 +91,10 @@ function virtual_overload(v, types)
   int oldtop = lua_gettop(L);
   lqtL_pushudata(L, this, "]]..string.gsub(v.xarg.member_of_class, '::', '.')..[[*");
   lqtL_getoverload(L, -1, "]]..v.xarg.name..[[");
+  lua_pushvalue(L, -1); // copy of function
   if (lua_isfunction(L, -1)) {
-    lua_insert(L, -2);
+    lua_insert(L, -3);
+    lua_insert(L, -3);
 ]] .. pushlines .. [[
     if (!]]..luacall..[[) {
       ]]..retget..[[;
