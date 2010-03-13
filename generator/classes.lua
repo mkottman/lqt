@@ -96,7 +96,7 @@ function copy_classes(index)
 				ignore(e.xarg.fullname, 'not public')
 			else
 				if templates.should_copy(e) then
-					-- templates.create(e, classes)
+					templates.create(e, classes)
 				end
 			end
 		end
@@ -117,9 +117,6 @@ function fix_methods_wrappers()
 				local shellname = c.xarg.fullname
 				constr.calling_line = 'new '..shellname..'('
 			end
-			
-			if not constr.arguments then dump(c) end
-			
 			for i=1,#(constr.arguments) do
 				constr.calling_line = constr.calling_line .. (i==1 and '' or ', ') .. 'arg' .. i
 			end
@@ -181,7 +178,6 @@ function distinguish_methods()
 		local copy = nil
 		for _, f in ipairs(c) do
 			if n==f.xarg.name then
-				if not f.arguments then dump(f, 'constructor') end
 				table.insert(construct, f)
 			elseif f.xarg.name:match'~' then
 				destruct = f
@@ -259,12 +255,7 @@ local put_class_in_filesystem = lqt.classes.insert
 
 function fill_typesystem_with_classes(types)
 	for c in pairs(classes) do
-		if not types[c.xarg.fullname] then
-			put_class_in_filesystem(c.xarg.fullname, types) --, true)
-		else
-			-- ignore this class - already generated elsewhere
-			classes[c] = nil
-		end
+		classes[c] = put_class_in_filesystem(c.xarg.fullname, types) --, true)
 	end
 end
 
@@ -642,8 +633,7 @@ local add_class = lqt.classes.insert or error('module lqt.classes not loaded')
 	type_list_f:close()
 
 	print_merged_build()
-	if fmeta then fmeta:close() end
-	fmeta = assert(io.open(module_name.._src..module_name..'_meta.cpp', 'w'))
+	local fmeta = assert(io.open(module_name.._src..module_name..'_meta.cpp', 'w'))
 	local print_meta = function(...)
 		fmeta:write(...)
 		fmeta:write'\n'
@@ -681,13 +671,13 @@ end
 ------------------------------------------------------------
 
 function preprocess(index)
+	copy_classes(index) -- picks classes if not private and not blacklisted
 	copy_functions(index) -- picks functions and fixes label
 	fix_arguments(index) -- fixes default arguments if they are context-relative
 	fix_functions() -- fixes name and fullname and fills arguments
 end
 
 function process(index, typesystem, filterfiles)
-	copy_classes(index) -- picks classes if not private and not blacklisted
 	for _, f in ipairs(filterfiles) do
 		classes = loadfile(f)(classes)
 	end
@@ -709,7 +699,7 @@ end
 
 function output()
 	virtuals.print_shell_classes(classes) -- does that
-	virtuals.print_virtual_overloads(classes, typesystem) -- does that
+	virtuals.print_virtual_overloads(classes) -- does that
 	print_wrappers(classes) -- just compiles metatable list
 	print_metatables(classes) -- just collects the wrappers + generates dispatchers
 	print_class_list(classes) -- does that + prints everything related to class
