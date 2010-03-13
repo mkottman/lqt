@@ -90,6 +90,8 @@ local const_ref_t = function(fn)
 	}
 end
 
+local const_ptr_ref_t = pointer_const_t
+
 lqt.classes.insert = function(cname, types) --, cancopy)
 	if types[cname]==nil then
 		types[cname..'*'] = pointer_t(cname)
@@ -98,6 +100,7 @@ lqt.classes.insert = function(cname, types) --, cancopy)
 		--if cancopy then
 		types[cname] = instance_t(cname)
 		types[cname..' const&'] = const_ref_t(cname)
+		types[cname..'* const&'] = const_ptr_ref_t(cname)
 		--end
 		return true
 	else
