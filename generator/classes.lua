@@ -218,6 +218,50 @@ function fill_public_destr()
 	end
 end
 
+
+function  generate_default_copy_constructor(c)
+	if not c.xarg then return end
+	
+	local copy = {
+		[1] = {
+			label = "Argument";
+			xarg = {
+				context = c.xarg.name;
+				id = next_id();
+				name = "p";
+				scope = "";
+				type_base = c.xarg.name;
+				type_constant = "1";
+				type_name = c.xarg.name .. " const&";
+				type_reference = "1";
+			}
+		};
+		label = "Function";
+		return_type = c.xarg.name;
+		xarg = {
+			access = "public";
+			context = c.xarg.name;
+			fullname = c.xarg.name.."::"..c.xarg.name;
+			id = next_id();
+			inline = "1";
+			member_of = c.xarg.name;
+			member_of_class = c.xarg.name;
+			name = c.xarg.name;
+			scope = c.xarg.name;
+			type_base = c.xarg.name;
+			type_name = c.xarg.name;
+		};
+	}
+	copy.arguments = {copy[1]}
+	
+	table.insert(c, copy)
+	table.insert(c.constructors, copy)
+	functions[copy] = true
+	
+	return copy
+end
+
+
 function fill_copy_constructor()
 	for c in pairs(classes) do
 		local copy = nil
@@ -228,6 +272,7 @@ function fill_copy_constructor()
 				break
 			end
 		end
+		if not copy then copy = generate_default_copy_constructor(c) end
 		c.copy_constructor = copy
 	end
 	local function copy_constr_is_public(c)
