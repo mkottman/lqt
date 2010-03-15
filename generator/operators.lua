@@ -3,8 +3,10 @@ module('operators', package.seeall)
 local operatorTrans = {
 	['<<'] = 'IN',
 	['>>'] = 'OUT',
-	['+='] = 'PEQ',
-	['-='] = 'MEQ',
+	['+='] = 'ADD',
+	['-='] = 'SUB',
+	['*='] = 'MUL',
+	['/='] = 'DIV',
 	['++'] = 'INC',
 	['--'] = 'DEC',
 }
@@ -20,7 +22,7 @@ end
 function rename_operator(name)
 	local trans = operatorTrans[get_operator(name)]
 	if is_operator(name) and trans then
-		return 'op'..trans
+		return trans
 	end
 	return name
 end
