@@ -272,7 +272,6 @@ function fill_copy_constructor()
 				break
 			end
 		end
-		if not copy then copy = generate_default_copy_constructor(c) end
 		c.copy_constructor = copy
 	end
 	local function copy_constr_is_public(c)
@@ -292,6 +291,9 @@ function fill_copy_constructor()
 	end
 	for c in pairs(classes) do
 		c.public_constr = copy_constr_is_public(c)
+		if c.public_constr and not c.copy_constructor then
+			c.copy_constructor = generate_default_copy_constructor(c)
+		end
 	end
 end
 
