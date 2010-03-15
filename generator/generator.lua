@@ -164,6 +164,17 @@ function argument_name(tn, an)
 	return ret
 end
 
+local gen_id = 0
+for e in pairs(idindex) do
+	if e.xarg and e.xarg.id then
+		local id = assert(tonumber(e.xarg.id:match("_(%d+)")))
+		if id > gen_id then gen_id = id + 1 end
+	end
+end	
+
+function next_id() gen_id = gen_id + 1; return "_" .. gen_id end
+
+
 --- Constructs the code that pushes arguments to the Lua stack.
 -- Returns the code as a string, and stack increment. In case that an unknown
 -- type is encountered, nil and the unknown type is returned.

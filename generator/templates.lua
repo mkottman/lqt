@@ -10,9 +10,6 @@ local translate = {
 	}
 }
 
-local gen_id = 100000 -- TODO: maybe this will not be enough
-local function next_id() gen_id = gen_id + 1; return gen_id end
-
 --- Creates a deep copy of an object.
 local function deepcopy(object)
 	local lookup_table = {}
@@ -26,7 +23,7 @@ local function deepcopy(object)
 		lookup_table[object] = new_table
 		for index, value in pairs(object) do
 			-- HACK: generate new ids for copied nodes
-			if index == "id" then new_table.id = "_" .. next_id()
+			if index == "id" then new_table.id = next_id()
 			-- deep copy value
 			else new_table[_copy(index)] = _copy(value) end
 		end
