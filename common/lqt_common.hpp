@@ -48,6 +48,7 @@ extern "C" {
 #define LQT_REFS "Registry References"
 #define LQT_ENUMS "Registry Enums"
 #define LQT_PCALL "Registry PCall Pointer"
+#define LQT_SUPER "SUPER"
 
 // Qt-specific fields
 #define LQT_METACALLER "Registry MetaCaller"
@@ -150,5 +151,9 @@ int lqtL_pcall_debug (lua_State *L, int narg, int nres, int err);
 int lqtL_getoverload (lua_State *L, int index, const char *name);
 
 const char * lqtL_source(lua_State *L, int idx);
+
+bool lqtL_is_super(lua_State *L, int idx);
+int lqtL_register_super(lua_State *L);
+
 #endif // __LQT_COMMON_HPP
 

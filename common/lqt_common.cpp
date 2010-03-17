@@ -659,3 +659,22 @@ const char * lqtL_source(lua_State *L, int idx) {
     }
     return buf;
 }
+
+bool lqtL_is_super(lua_State *L, int idx) {
+    lua_getfield(L, LUA_GLOBALSINDEX, LQT_SUPER);
+    void *super = lua_touserdata(L, -1);
+    void *comp = lua_touserdata(L, idx);
+    bool ret = lua_equal(L, -1, idx);
+    lua_pop(L, 1);
+    return ret;
+}
+
+int lqtL_register_super(lua_State *L) {
+    lua_getfield(L, LUA_GLOBALSINDEX, LQT_SUPER);
+    if (lua_isnil(L, -1)) {
+        void *ud = lua_newuserdata(L, sizeof(int));
+        lua_setfield(L, LUA_GLOBALSINDEX, LQT_SUPER);
+    } else {
+        lua_pop(L, -1);
+    }
+}

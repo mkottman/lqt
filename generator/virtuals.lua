@@ -83,9 +83,9 @@ function virtual_overload(v, types)
 		fallback = fallback .. (i>1 and ', arg' or 'arg') .. i
 	end
 	proto = proto .. ')' .. (v.xarg.constant=='1' and ' const' or '')
-	fallback = (v.return_type and 'return this->' or 'this->') .. v.xarg.fullname .. '(' .. fallback .. ');\n}\n'
+	fallback = (v.return_type and 'return this->' or 'this->') .. v.xarg.fullname .. '(' .. fallback .. ');'
 	if v.xarg.abstract then
-		fallback = 'luaL_error(L, "Abstract method %s not implemented!", "' .. v.xarg.name .. '");\n}\n'
+		fallback = 'luaL_error(L, "Abstract method %s not implemented! In %s", "' .. v.xarg.name .. '", lqtL_source(L,oldtop+1));'
 	end
 	ret = proto .. [[ {
   int oldtop = lua_gettop(L);
@@ -99,11 +99,15 @@ function virtual_overload(v, types)
     if (!]]..luacall..[[) {
       ]]..retget..[[;
     } else {
-      lua_error(L);
+      if (lqtL_is_super(L, lua_gettop(L))) {
+        lua_settop(L, oldtop);
+        ]]..fallback..[[ 
+      } else
+        lua_error(L);
     }
   }
   lua_settop(L, oldtop);
-  ]] .. fallback
+  ]] .. fallback .. '\n}\n'
 	v.virtual_overload = ret
 	v.virtual_proto = string.gsub(proto, ';;', '', 1)
 	return v

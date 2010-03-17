@@ -710,6 +710,7 @@ local add_class = lqt.classes.insert or error('module lqt.classes not loaded')
 	print_meta('\t//lua_setfield(L, LUA_REGISTRYINDEX, LQT_METAOBJECT);')
 	print_meta('\t//lqtL_passudata(L, (void*)(new LqtSlotAcceptor(L)), "QObject*");')
 	print_meta('\t//lua_setfield(L, LUA_REGISTRYINDEX, LQT_METACALLER);')
+	print_meta('\tlqtL_register_super(L);')
 	print_meta('\tlqtSlotAcceptor_'..module_name..' = new LqtSlotAcceptor(L);')
 	print_meta('\treturn 0;\n}')
 	if fmeta then fmeta:close() end
