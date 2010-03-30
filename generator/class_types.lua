@@ -99,6 +99,7 @@ lqt.classes.insert = function(cname, types) --, cancopy)
 		types[cname..'&'] = ref_t(cname)
 		--if cancopy then
 		types[cname] = instance_t(cname)
+		types[cname..' const'] = instance_t(cname)
 		types[cname..' const&'] = const_ref_t(cname)
 		types[cname..'* const&'] = const_ptr_ref_t(cname)
 		--end
