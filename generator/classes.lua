@@ -159,8 +159,8 @@ end
 
 local should_wrap = function(f)
 	local name = f.xarg.name
-	-- FIXME: operator and friend, causes trouble with QDataStream
-	if f.xarg.friend then return false end
+	-- unfixed operator and friend, causes trouble with QDataStream
+	if f.xarg.friend and #f.arguments ==2 then return false end
 	-- not an operator - accept
 	if not name:match('^operator') then return true end
 	-- accept supported operators
@@ -183,8 +183,7 @@ function distinguish_methods()
 				destruct = f
 			else
 				if should_wrap(f)
-					and (not f.xarg.member_template_parameters)
-					and (not f.xarg.friend) then
+					and (not f.xarg.member_template_parameters) then
 					table.insert(normal, f)
 				else
 					ignore(f.xarg.fullname, 'operator/template/friend', c.xarg.name)
@@ -338,7 +337,10 @@ function fill_wrapper_code(f, types)
 		--print(sget, sn)
 		if operators.is_operator(f.xarg.name) then
 			local op = operators.get_operator(f.xarg.name)
-			if op == '++' or op == '--' then
+			if op == "*" and #f.arguments == 0 then
+				ignore(f.xarg.fullname, "pointer dereference operator", f.xarg.member_of_class)
+				return nil
+			elseif op == '++' or op == '--' then
 				-- the ++ and -- operators don't line () at the end, like: *self ++()
 				if f.arguments[1] then
 					line = op..' *self'
@@ -736,6 +738,7 @@ function preprocess(index)
 	copy_functions(index) -- picks functions and fixes label
 	fix_arguments(index) -- fixes default arguments if they are context-relative
 	fix_functions() -- fixes name and fullname and fills arguments
+	operators.fix_operators(index)
 end
 
 function process(index, typesystem, filterfiles)
