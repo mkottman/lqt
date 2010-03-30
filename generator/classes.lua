@@ -338,10 +338,16 @@ function fill_wrapper_code(f, types)
 		--print(sget, sn)
 		if operators.is_operator(f.xarg.name) then
 			local op = operators.get_operator(f.xarg.name)
-			line = '*self '..op
-			-- the ++ and -- operators don't line () at the end, like: *self ++()
-			if op ~= '++' and op ~= '--' then
-				line = line .. '('
+			if op == '++' or op == '--' then
+				-- the ++ and -- operators don't line () at the end, like: *self ++()
+				if f.arguments[1] then
+					line = op..' *self'
+					f.arguments[1] = nil
+				else
+					line = '*self '..op
+				end
+			else
+				line = '*self '..op..'('
 			end
 		else
 		line = 'self->'..f.xarg.fullname..'('
