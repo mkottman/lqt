@@ -149,12 +149,9 @@ function fill_shell_class(c, types)
 				.. '(' .. argline .. '), L(l) '
 				.. '{\n    lqtL_register(L, this);\n'
 			if c.protected_enums then
-				for _,e in ipairs(c.protected_enums) do
-					cline = cline .. '    ' .. e.enum_table
-					cline = cline .. '    lqtL_createenum(L, lqt_enum'..e.xarg.id..', "'..string.gsub(e.xarg.fullname, "::", ".")..'");\n'
-				end
+				cline = cline .. '    registerEnums();\n'
 			end
-			cline = cline .. ' }\n'
+			cline = cline .. '  }\n'
 			shell = shell .. cline
 		end
 	end
@@ -177,9 +174,12 @@ function fill_shell_class(c, types)
 		shell = shell .. '      Q_DISABLE_COPY('..shellname..');\n'
 	end
 	if c.protected_enums then
+		shell = shell .. '  void registerEnums() {\n'
 		for _,e in ipairs(c.protected_enums) do
-			-- TODO
+			shell = shell .. e.enum_table
+			shell = shell .. '    lqtL_createenum(L, lqt_enum'..e.xarg.id..', "'..string.gsub(e.xarg.fullname, "::", ".")..'");\n'
 		end
+		shell = shell .. '  }\n'
 	end
 	shell = shell .. '};\n'
 	c.shell_class = shell
