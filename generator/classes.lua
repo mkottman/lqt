@@ -312,7 +312,10 @@ function fill_wrapper_code(f, types)
 	local stackn, argn = 1, 1
 	local stack_args, defects = '', 0
 	local wrap, line = '  int oldtop = lua_gettop(L);\n', ''
-	if f.xarg.abstract then return nil end
+	if f.xarg.abstract then
+		ignore(f.xarg.fullname, 'abstract method', f.xarg.member_of_class)
+		return nil
+	end
 	if f.xarg.member_of_class and f.xarg.static~='1' then
 		if not types[f.xarg.member_of_class..'*'] then
 			ignore(f.xarg.fullname, 'not a member of wrapped class', f.xarg.member_of_class)
@@ -376,7 +379,10 @@ function fill_wrapper_code(f, types)
 	if f.return_type then line = f.return_type .. ' ret = ' .. line end
 	wrap = wrap .. '  ' .. line .. ';\n  lua_settop(L, oldtop);\n' -- lua_pop(L, '..stackn..');\n'
 	if f.return_type then
-		if not types[f.return_type] then return nil end
+		if not types[f.return_type] then
+			ignore(f.xarg.fullname, 'unknown return type', f.return_type)
+			return nil
+		end
 		local rput, rn = types[f.return_type].push'ret'
 		wrap = wrap .. '  luaL_checkstack(L, '..rn..', "cannot grow stack for return value");\n'
 		wrap = wrap .. '  '..rput..';\n  return '..rn..';\n'
@@ -497,6 +503,7 @@ local print_metatable = function(c)
 					--debug("function equal: ", f.xarg.fullname, f.stack_arguments, sa, f.defects, g.defects)
 					if f.defects<g.defects then
 					else
+						ignore(f.xarg.fullname, "duplicate function", f.stack_arguments)
 						itisnew = false
 					end
 				elseif string.match(sa, "^"..f.stack_arguments) then -- there is already a version with more arguments
