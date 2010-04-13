@@ -155,5 +155,6 @@ const char * lqtL_source(lua_State *L, int idx);
 bool lqtL_is_super(lua_State *L, int idx);
 int lqtL_register_super(lua_State *L);
 
+void lqtL_pushtrace(lua_State *L);
 #endif // __LQT_COMMON_HPP
 

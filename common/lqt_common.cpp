@@ -496,6 +496,13 @@ bool lqtL_testudata (lua_State *L, int index, const char *name) {
     return true;
 }
 
+void lqtL_pushtrace(lua_State *L) {
+    lua_getglobal(L, "debug");
+    lua_getfield(L, -1, "traceback");
+    lua_remove(L, -2); 
+    lua_call(L, 0, 1);
+}
+  
 void lqtL_pushenum (lua_State *L, int value, const char *name) {
     lqtL_getenumtable(L);
     lua_getfield(L, -1, name);
