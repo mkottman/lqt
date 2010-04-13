@@ -7,6 +7,7 @@ local translate = {
 	},
 	qtgui = {
 		["QList<T>"] = { "QList<QGraphicsItem*>" },
+		["QVector<T>"] = { "QVector<QPointF>" }
 	}
 }
 
