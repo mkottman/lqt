@@ -460,7 +460,7 @@ function print_wrappers()
 			if f.wrapper_code then
 				local out = 'static int lqt_bind'..f.xarg.id
 				..' (lua_State *L) {\n'.. f.wrapper_code .. '}\n'
-				if f.xarg.access~='private' then
+				if f.xarg.access=='public' then
 					--print_meta(out)
 					wrappers = wrappers .. out .. '\n'
 					meta[f] = f.xarg.name
@@ -472,7 +472,7 @@ function print_wrappers()
 				if f.wrapper_code then
 					local out = 'static int lqt_bind'..f.xarg.id
 					    ..' (lua_State *L) {\n'.. f.wrapper_code .. '}\n'
-					if f.xarg.access~='private' then
+					if f.xarg.access=='public' then
 						--print_meta(out)
 						wrappers = wrappers .. out .. '\n'
 						meta[f] = 'new'
