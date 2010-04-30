@@ -260,6 +260,20 @@ function  generate_default_copy_constructor(c)
 	return copy
 end
 
+-- HACK: do not create copy contructors for classes, that
+-- contain variables of class '*Private' - they will not compile
+-- in Qt 4.6
+local function has_private_fields(c)
+	for _,v in ipairs(c) do
+		if v.label == 'Variable' then
+			if v.xarg.type_base:match('Private') then
+				ignore(c.xarg.fullname, 'cannot create copy constructor', v.xarg.fullname .. ' : ' ..v.xarg.type_base)
+				return true
+			end
+		end
+	end
+	return false
+end
 
 function fill_copy_constructor()
 	for c in pairs(classes) do
@@ -278,6 +292,7 @@ function fill_copy_constructor()
 			return (c.copy_constructor.xarg.access=='public')
 			or (c.copy_constructor.xarg.access=='protected')
 		else
+			if has_private_fields(c) then return false end
 			local ret = nil
 			for b in string.gmatch(c.xarg.bases or '', '([^;]+);') do
 				local base = fullnames[b]
