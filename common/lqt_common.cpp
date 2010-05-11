@@ -676,7 +676,7 @@ bool lqtL_is_super(lua_State *L, int idx) {
     return ret;
 }
 
-int lqtL_register_super(lua_State *L) {
+void lqtL_register_super(lua_State *L) {
     lua_getfield(L, LUA_GLOBALSINDEX, LQT_SUPER);
     if (lua_isnil(L, -1)) {
         void *ud = lua_newuserdata(L, sizeof(int));

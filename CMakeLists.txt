@@ -33,7 +33,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/lib)
 
 #set(CMAKE_VERBOSE_MAKEFILE TRUE)
 
-set(SYSTEM_LUA 1)
+option(SYSTEM_LUA "Use installed Lua" TRUE) 
 
 find_package(Qt4 REQUIRED)
 set(QT_USE_QTCORE 1)
@@ -214,8 +214,6 @@ function(build_qt_lib_binding BINDING_HEADER)
 	if(NOT SYSTEM_LUA)
 		add_dependencies(generate_${BINDING_NAME}_cpp luaexec)
 	endif()
-	
-	install(TARGETS ${BINDING_NAME} LIBRARY DESTINATION /usr/lib/lua/5.1)
 endfunction()
 
 if(noqt)
