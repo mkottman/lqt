@@ -117,11 +117,77 @@ static int lqtL_methods(lua_State *L) {
 }
 #undef CASE
 
-void lqtL_pushmethods(lua_State *L) {
-    lua_pushcfunction(L, lqtL_methods);
+static int lqtL_pushqobject(lua_State *L, QObject * object) {
+    const QMetaObject * meta = object->metaObject();
+    while (meta) {
+        QString className = meta->className();
+        className += "*";
+        char * cname = strdup(qPrintable(className));
+        lua_getfield(L, LUA_REGISTRYINDEX, cname);
+        int isnil = lua_isnil(L, -1);
+        lua_pop(L, 1);
+        if (!isnil) {
+            lqtL_pushudata(L, object, cname);
+            free(cname);
+            return 1;
+        } else {
+            free(cname);
+            meta = meta->superClass();
+        }
+    }
+    return 0;
 }
 
-void lqtL_pushaddmethod (lua_State *L) {
+static int lqtL_findchild(lua_State *L) {
+    QObject* self = static_cast<QObject*>(lqtL_toudata(L, 1, "QObject*"));
+    if (self == NULL)
+        luaL_argerror(L, 1, "expecting QObject*");
+
+    QString name = luaL_checkstring(L, 2);
+    QObject * child = self->findChild<QObject*>(name);
+
+    if (child) {
+        lqtL_pushqobject(L, child);
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+static int lqtL_children(lua_State *L) {
+    QObject* self = static_cast<QObject*>(lqtL_toudata(L, 1, "QObject*"));
+    if (self == NULL)
+        luaL_argerror(L, 1, "expecting QObject*");
+    const QObjectList & children = self->children();
+
+    lua_newtable(L);
+    for (int i=0; i < children.count(); i++) {
+        QObject * object = children[i];
+        QString name = object->objectName();
+        if (!name.isEmpty() && lqtL_pushqobject(L, object)) {
+            lua_setfield(L, -2, qPrintable(name));
+        }
+    }
+    return 1;
+}
+
+void lqtL_qobject_custom (lua_State *L) {
+    lua_getfield(L, LUA_REGISTRYINDEX, "QObject*");
+    int qobject = lua_gettop(L);
+
+    lua_pushstring(L, "__addmethod");
     luaL_dostring(L, add_method_func);
-}
+    lua_rawset(L, qobject);
 
+    lua_pushstring(L, "__methods");
+    lua_pushcfunction(L, lqtL_methods);
+    lua_rawset(L, qobject);
+
+    lua_pushstring(L, "findChild");
+    lua_pushcfunction(L, lqtL_findchild);
+    lua_rawset(L, qobject);
+
+    lua_pushstring(L, "children");
+    lua_pushcfunction(L, lqtL_children);
+    lua_rawset(L, qobject);
+}

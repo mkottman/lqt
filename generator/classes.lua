@@ -731,13 +731,7 @@ local add_class = lqt.classes.insert or error('module lqt.classes not loaded')
 	end
 	print_meta('\tlqt_create_enums_'..module_name..'(L);')
 	if qobject_present then
-		print_meta('\tlua_getfield(L, LUA_REGISTRYINDEX, "QObject*");')
-		print_meta('\tlua_pushstring(L, "__addmethod");')
-		print_meta('\tlqtL_pushaddmethod(L);')
-		print_meta('\tlua_rawset(L, -3);')
-		print_meta('\tlua_pushstring(L, "__methods");')
-		print_meta('\tlqtL_pushmethods(L);')
-		print_meta('\tlua_rawset(L, -3);')
+		print_meta('\tlqtL_qobject_custom(L);')
 	end
 	print_meta('\t//lua_pushlightuserdata(L, (void*)&LqtSlotAcceptor::staticMetaObject);')
 	print_meta('\t//lua_setfield(L, LUA_REGISTRYINDEX, LQT_METAOBJECT);')
