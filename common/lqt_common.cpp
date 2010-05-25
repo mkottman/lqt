@@ -496,13 +496,14 @@ bool lqtL_testudata (lua_State *L, int index, const char *name) {
     return true;
 }
 
-void lqtL_pushtrace(lua_State *L) {
+const char * lqtL_pushtrace(lua_State *L) {
     lua_getglobal(L, "debug");
     lua_getfield(L, -1, "traceback");
-    lua_remove(L, -2); 
+    lua_remove(L, -2);
     lua_call(L, 0, 1);
+    return lua_tostring(L, -1);
 }
-  
+
 void lqtL_pushenum (lua_State *L, int value, const char *name) {
     lqtL_getenumtable(L);
     lua_getfield(L, -1, name);
@@ -652,6 +653,31 @@ int lqtL_pcall_debug (lua_State *L, int narg, int nres, int err) {
         status = lqtL_pcall_debug_default(L, narg, nres, err);
     }
     return status;
+}
+
+void lqtL_pushudatatype (lua_State *L, int index) {
+    if (!lua_isuserdata(L, index) || lua_islightuserdata(L, index)) {
+        lua_pushstring(L, luaL_typename(L, index));
+    } else {
+        lua_getfield(L, index, "__type");
+        if (lua_isnil(L, -1)) {
+            lua_pop(L, 1);
+            lua_pushstring(L, luaL_typename(L, index));
+        }
+    }
+}
+
+const char * lqtL_getarglist (lua_State *L) {
+    int args = lua_gettop(L);
+    lua_checkstack(L, args * 2);
+    lua_pushliteral(L, "");
+    for(int i = 1; i <= args; i++) {
+        lqtL_pushudatatype(L, i);
+        if (i<args)
+            lua_pushliteral(L, ", ");
+    }
+    lua_concat(L, 2*args - 1);
+    return lua_tostring(L, -1);
 }
 
 const char * lqtL_source(lua_State *L, int idx) {
