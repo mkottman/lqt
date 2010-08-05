@@ -40,6 +40,7 @@ end
 local filename = nil
 local dirname = nil
 module_name = nil
+template_file = path .. 'qtemplates.lua'
 local typefiles = {}
 local filterfiles = {}
 output_includes = {
@@ -62,6 +63,9 @@ do
 		elseif argi=='-f' then
 			i = i + 1
 			table.insert(filterfiles, (select(i, ...)))
+		elseif argi=='-c' then
+			i = i + 1
+			template_file = select(i, ...)
 		else
 			filename = filename and error'duplicate filename' or argi
 		end

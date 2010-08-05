@@ -1,15 +1,7 @@
 module('templates', package.seeall)
 
 -- TODO: maybe automate this?
-local translate = {
-	qtcore = {
-		["QList<T>"] = { "QList<QString>", "QList<QFileInfo>" },
-	},
-	qtgui = {
-		["QList<T>"] = { "QList<QGraphicsItem*>" },
-		["QVector<T>"] = { "QVector<QPointF>" }
-	}
-}
+local translate = dofile(template_file)
 
 --- Creates a deep copy of an object.
 local function deepcopy(object)
@@ -40,17 +32,16 @@ local idindex_add = {}
 
 
 --- Return true if an instance of templated class should be created.
--- The decision is based on the contents of the 'translate' table and the
--- name of current module
 function should_copy(class)
-	return translate[module_name] and translate[module_name][class.xarg.fullname]
+	return translate[class.xarg.fullname] or
+		(translate[module_name] and translate[module_name][class.xarg.fullname])
 end
 
 --- Creates instantiated copies of template class.
 -- New classes are created according to the 'translate' table as deep copies, and
 -- are inserted into the 'ret' table.
 function create(class, ret)
-	local temps = translate[module_name][class.xarg.fullname]
+	local temps = should_copy(class)
 
 	local replace_in = {name=true, context=true, fullname=true, member_of=true, member_of_class=true,
 		scope=true, type_base=true, type_name=true, return_type=true }
