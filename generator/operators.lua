@@ -11,23 +11,54 @@ local operatorTrans = {
 	['--'] = 'DEC',
 	['+'] = '__add',
 	['-'] = '__sub',
+	['_'] = '__unm',
 	['*'] = '__mul',
 	['/'] = '__div',
+	['=='] = '__eq',
 }
 
 function fix_operators(index)
 	for f in pairs(index) do
 		if f.label == "Function" then
-			if f.xarg.name:match("^operator") and f.xarg.friend and #f.arguments == 2 then
+			if f.xarg.name == 'operator-' and #f.arguments == 1 then
+				-- use '_' as a marker for unary minus
+				f.xarg.name = 'operator_'
+				table.remove(f, 1)
+				table.remove(f.arguments, 1)				
+			elseif f.xarg.name:match("^operator") and f.xarg.friend then
 				if f[1].xarg.type_base == f.xarg.member_of then
-					-- friend operator for class defined outside of class - has 2 arguments,
-					-- although in reality only the second one is used; the first is 'this',
-					-- so we need to remove it
+					-- overloaded friend operator - its first argument is 'this', 
+					-- needs to be removed
 					table.remove(f, 1)
 					table.remove(f.arguments, 1)
+				else
+					-- operator in form: number OP class - do not bind these
+					f.ignore = true
 				end
 			end
 		end
+	end
+end
+
+function call_line(f)
+	local op = operators.get_operator(f.xarg.name)
+	print(op, f.xarg.fullname, f.xarg.id)
+	if op == "*" and #f.arguments == 0 then
+		ignore(f.xarg.fullname, "pointer dereference operator", f.xarg.member_of_class)
+		return nil
+	elseif op == '_' then
+		-- unary minus
+		return '- *self', false
+	elseif op == '++' or op == '--' then
+		-- the ++ and -- operators don't line () at the end, like: *self ++()
+		if f.arguments[1] then
+			f.arguments[1] = nil
+			return op..' *self', false
+		else
+			return '*self '..op, false
+		end
+	else
+		return '*self '..op..'(', true
 	end
 end
 

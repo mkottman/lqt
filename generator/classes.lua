@@ -160,11 +160,11 @@ end
 local should_wrap = function(f)
 	local name = f.xarg.name
 	-- unfixed operator and friend, causes trouble with QDataStream
-	if f.xarg.friend and #f.arguments ==2 then return false end
+	-- if f.xarg.friend and #f.arguments ==2 then return false end
 	-- not an operator - accept
 	if not name:match('^operator') then return true end
 	-- accept supported operators
-	if operators.is_operator(name)then return true end
+	if operators.is_operator(name) then return true end
 	return false
 end
 
@@ -325,6 +325,7 @@ function fill_wrapper_code(f, types)
 	if f.wrapper_code then return f end
 	local stackn, argn = 1, 1
 	local stack_args, defects = '', 0
+	local has_args = true
 	local wrap, line = '  int oldtop = lua_gettop(L);\n', ''
 	if f.xarg.abstract then
 		ignore(f.xarg.fullname, 'abstract method', f.xarg.member_of_class)
@@ -353,23 +354,10 @@ function fill_wrapper_code(f, types)
 ]]
 		--print(sget, sn)
 		if operators.is_operator(f.xarg.name) then
-			local op = operators.get_operator(f.xarg.name)
-			if op == "*" and #f.arguments == 0 then
-				ignore(f.xarg.fullname, "pointer dereference operator", f.xarg.member_of_class)
-				return nil
-			elseif op == '++' or op == '--' then
-				-- the ++ and -- operators don't line () at the end, like: *self ++()
-				if f.arguments[1] then
-					line = op..' *self'
-					f.arguments[1] = nil
-				else
-					line = '*self '..op
-				end
-			else
-				line = '*self '..op..'('
-			end
+			line, has_args = operators.call_line(f)
+			if not line then return nil end
 		else
-		line = 'self->'..f.xarg.fullname..'('
+			line = 'self->'..f.xarg.fullname..'('
 		end
 	else
 		line = f.xarg.fullname..'('
@@ -396,7 +384,7 @@ function fill_wrapper_code(f, types)
 		stackn = stackn + an
 		argn = argn + 1
 	end
-	if not f.xarg.name:match('%+%+') and not f.xarg.name:match('%-%-') then
+	if has_args then
 		line = line .. ')'
 	end
 	-- FIXME: hack follows for constructors
@@ -472,7 +460,7 @@ function print_wrappers()
 			-- if the virtual overload in the shell uses rawget
 			-- on the environment then we can leave these in the
 			-- metatable
-			if f.wrapper_code then
+			if f.wrapper_code and not f.ignore then
 				local out = 'static int lqt_bind'..f.xarg.id
 				..' (lua_State *L) {\n'.. f.wrapper_code .. '}\n'
 				if f.xarg.access=='public' then
@@ -522,23 +510,25 @@ local print_metatable = function(c)
 	for n, l in pairs(methods) do
 		local duplicates = {}
 		for _, f in ipairs(l) do
-			local itisnew = true
-			for sa, g in pairs(duplicates) do
-				if sa==f.stack_arguments then
+			if not f.ignore then
+				local itisnew = true
+				for sa, g in pairs(duplicates) do
+					if sa==f.stack_arguments then
 					--debug("function equal: ", f.xarg.fullname, f.stack_arguments, sa, f.defects, g.defects)
-					if f.defects<g.defects then
-					else
-						ignore(f.xarg.fullname, "duplicate function", f.stack_arguments)
-						itisnew = false
+						if f.defects<g.defects then
+						else
+							ignore(f.xarg.fullname, "duplicate function", f.stack_arguments)
+							itisnew = false
+						end
+					elseif string.match(sa, "^"..f.stack_arguments) then -- there is already a version with more arguments
+						--debug("function superseded: ", f.xarg.fullname, f.stack_arguments, sa, f.defects, g.defects)
+					elseif string.match(f.stack_arguments, '^'..sa) then -- there is already a version with less arguments
+						--debug("function superseding: ", f.xarg.fullname, f.stack_arguments, sa, f.defects, g.defects)
 					end
-				elseif string.match(sa, "^"..f.stack_arguments) then -- there is already a version with more arguments
-					--debug("function superseded: ", f.xarg.fullname, f.stack_arguments, sa, f.defects, g.defects)
-				elseif string.match(f.stack_arguments, '^'..sa) then -- there is already a version with less arguments
-					--debug("function superseding: ", f.xarg.fullname, f.stack_arguments, sa, f.defects, g.defects)
 				end
-			end
-			if itisnew then
-				duplicates[f.stack_arguments] = f
+				if itisnew then
+					duplicates[f.stack_arguments] = f
+				end
 			end
 		end
 		--[[
