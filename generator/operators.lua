@@ -42,7 +42,6 @@ end
 
 function call_line(f)
 	local op = operators.get_operator(f.xarg.name)
-	print(op, f.xarg.fullname, f.xarg.id)
 	if op == "*" and #f.arguments == 0 then
 		ignore(f.xarg.fullname, "pointer dereference operator", f.xarg.member_of_class)
 		return nil
