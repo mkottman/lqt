@@ -38,7 +38,6 @@ function fix_arguments(index)
 			end
 			if fullnames[context..'::'..dv] then
 				if fullnames[context..'::'..dv].xarg.name==fullnames[context..'::'..dv].xarg.member_of_class then
-					print("==>", a.xarg.id, context..'::'..dv..call)
 					context = string.match(context, '^(.*)::') or ''
 				end
 				a.xarg.defaultvalue = context..'::'..dv..call
