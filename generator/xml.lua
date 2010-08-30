@@ -93,7 +93,7 @@ function collect(s)
 		table.insert(stack[#stack], text)
 	end
 	if #stack > 1 then
-		error("unclosed "..stack[stack.n].label)
+		error("unclosed "..stack[#stack].label)
 	end
 	return stack[1], index
 end
