@@ -8,20 +8,26 @@ int lqtL_qt_metacall (lua_State *L, QObject *self, QObject *acceptor,
     oldtop = lua_gettop(L);
     lqtL_pushudata(L, self, name); // (1)
     lua_getfield(L, -1, LQT_OBJSIGS); // (2)
-    //qDebug() << lua_gettop(L) << luaL_typename(L, -1);
-    lua_rawgeti(L, -1, index + 1); // (3)
-    if (!lua_isstring(L, -1)) {
-        lua_pop(L, 3); // (0)
-        lua_settop(L, oldtop); // (0)
+    if (lua_isnil(L, -1)) {
+        // TODO: determine what is wrong
+        lua_settop(L, oldtop);
         QMetaObject::activate(self, self->metaObject(), index, args);
     } else {
-        callindex = acceptor->metaObject()->indexOfSlot(lua_tostring(L, -1));
-        // qDebug() << "Found slot" << name << lua_tostring(L,-1) << "on" << acceptor->objectName() << "with index" << callindex;
-        lua_pop(L, 2); // (1)
-        lua_getfield(L, -1, LQT_OBJSLOTS); // (2)
-        lua_rawgeti(L, -1, index+1); // (3)
-        lua_remove(L, -2); // (2)
-        index = acceptor->qt_metacall(call, callindex, args);
+        //qDebug() << lua_gettop(L) << luaL_typename(L, -1);
+        lua_rawgeti(L, -1, index + 1); // (3)
+        if (!lua_isstring(L, -1)) {
+            lua_settop(L, oldtop);
+            QMetaObject::activate(self, self->metaObject(), index, args);
+        } else {
+            callindex = acceptor->metaObject()->indexOfSlot(lua_tostring(L, -1));
+            // qDebug() << "Found slot" << name << lua_tostring(L,-1) << "on" << acceptor->objectName() << "with index" << callindex;
+            lua_pop(L, 2); // (1)
+            lua_getfield(L, -1, LQT_OBJSLOTS); // (2)
+            lua_rawgeti(L, -1, index+1); // (3)
+            lua_remove(L, -2); // (2)
+            index = acceptor->qt_metacall(call, callindex, args);
+            lua_settop(L, oldtop);
+        }
     }
     return -1;
 }

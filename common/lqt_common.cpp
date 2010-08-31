@@ -209,6 +209,7 @@ static int lqtL_newindexfunc (lua_State *L) {
 }
 
 int lqtL_getoverload (lua_State *L, int index, const char *name) {
+    luaL_checkstack(L, 2, "no space to grow");
     if (lua_isuserdata(L, index) && !lua_islightuserdata(L, index)) {
         lua_getfenv(L, index); // (1)
         lua_getfield(L, -1, name); // (2)
