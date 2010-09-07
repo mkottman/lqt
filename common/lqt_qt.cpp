@@ -99,7 +99,7 @@ const char add_method_func[] =
 static int lqtL_methods(lua_State *L) {
 	QObject* self = static_cast<QObject*>(lqtL_toudata(L, 1, "QObject*"));
 	if (self == NULL)
-		luaL_argerror(L, 1, "expecting QObject*");
+		return luaL_argerror(L, 1, "expecting QObject*");
 	const QMetaObject *mo = self->metaObject();
 	lua_createtable(L, mo->methodCount(), 0);
 	for (int i=0; i < mo->methodCount(); i++) {
@@ -147,7 +147,7 @@ static int lqtL_pushqobject(lua_State *L, QObject * object) {
 static int lqtL_findchild(lua_State *L) {
     QObject* self = static_cast<QObject*>(lqtL_toudata(L, 1, "QObject*"));
     if (self == NULL)
-        luaL_argerror(L, 1, "expecting QObject*");
+        return luaL_argerror(L, 1, "expecting QObject*");
 
     QString name = luaL_checkstring(L, 2);
     QObject * child = self->findChild<QObject*>(name);
@@ -163,7 +163,7 @@ static int lqtL_findchild(lua_State *L) {
 static int lqtL_children(lua_State *L) {
     QObject* self = static_cast<QObject*>(lqtL_toudata(L, 1, "QObject*"));
     if (self == NULL)
-        luaL_argerror(L, 1, "expecting QObject*");
+        return luaL_argerror(L, 1, "expecting QObject*");
     const QObjectList & children = self->children();
 
     lua_newtable(L);
@@ -174,6 +174,31 @@ static int lqtL_children(lua_State *L) {
             lua_setfield(L, -2, qPrintable(name));
         }
     }
+    return 1;
+}
+
+static int lqtL_connect(lua_State *L) {
+    QObject* sender = static_cast<QObject*>(lqtL_toudata(L, 1, "QObject*"));
+    if (sender == NULL)
+        return luaL_argerror(L, 1, "sender not QObject*");
+    const char *signal = luaL_checkstring(L, 2);
+    QObject* receiver = static_cast<QObject*>(lqtL_toudata(L, 3, "QObject*"));
+    if (receiver == NULL)
+        return luaL_argerror(L, 3, "receiver not QObject*");
+    const char *method = luaL_checkstring(L, 4);
+
+    const QMetaObject *senderMeta = sender->metaObject();
+    int idxS = senderMeta->indexOfSignal(signal + 1);
+    if (idxS == -1)
+        return luaL_argerror(L, 2, qPrintable(QString("no such sender signal: '%1'").arg(signal + 1)));
+
+    const QMetaObject *receiverMeta = receiver->metaObject();
+    int idxR = receiverMeta->indexOfMethod(method + 1);
+    if (idxR == -1)
+        return luaL_argerror(L, 4, qPrintable(QString("no such receiver method: '%1'").arg(method + 1)));
+
+    bool ok = QObject::connect(sender, signal, receiver, method);
+    lua_pushboolean(L, ok);
     return 1;
 }
 
@@ -196,4 +221,13 @@ void lqtL_qobject_custom (lua_State *L) {
     lua_pushstring(L, "children");
     lua_pushcfunction(L, lqtL_children);
     lua_rawset(L, qobject);
+
+    lua_pushstring(L, "connect");
+    lua_pushcfunction(L, lqtL_connect);
+    lua_rawset(L, qobject);
+
+    // also modify the static QObject::connect function
+    lua_getfield(L, LUA_GLOBALSINDEX, "QObject");
+    lua_pushcfunction(L, lqtL_connect);
+    lua_setfield(L, -2, "connect");
 }
