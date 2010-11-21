@@ -45,19 +45,19 @@ end
 -- Returns nil if a parameter or return type is of unknown/ignored type. Normal
 -- virtual methods call original virtual method if no corresponding Lua function is
 -- found, pure virtual (abstract) methods throw Lua error.
-function virtual_overload(v, types)
+function virtual_overload(v)
 	local ret = ''
 	if v.virtual_overload then return v end
 	-- make return type
-	if v.return_type and not types[v.return_type] then
+	if v.return_type and not typesystem[v.return_type] then
 		ignore(v.xarg.fullname, 'unknown return type', v.return_type)
 		return nil, 'return: '..v.return_type
 	end
 	local rget, rn, ret_as = '', 0
-	if v.return_type then rget, rn, ret_as = types[v.return_type].get'oldtop+2' end
+	if v.return_type then rget, rn, ret_as = typesystem[v.return_type].get'oldtop+2' end
 	local retget = ''
 	if v.return_type then
-		local atest, an = types[v.return_type].test('oldtop+2')
+		local atest, an = typesystem[v.return_type].test('oldtop+2')
 		retget = [[if (!(]]..atest..[[)) {
         luaL_error(L, "Unexpected virtual method return type: %s; expecting %s\nin: %s",
           luaL_typename(L,oldtop+2), "]]..v.return_type..[[", lqtL_source(L,oldtop+1));
@@ -67,7 +67,7 @@ function virtual_overload(v, types)
 	end
 	retget = retget .. 'lua_settop(L, oldtop);\n      return' .. (v.return_type and ' ret' or '')
 	-- make argument push
-	local pushlines, stack = make_pushlines(v.arguments, types)
+	local pushlines, stack = make_pushlines(v.arguments)
 	if not pushlines then
 		ignore(v.xarg.fullname, 'unknown argument type', stack)
 		return nil, 'argument: '..stack
@@ -115,12 +115,12 @@ end
 
 
 
-function fill_virtual_overloads(classes, types)
+function fill_virtual_overloads(classes)
 	for c in pairs(classes) do
 		if c.virtuals then
 			for i, v in pairs(c.virtuals) do
 				if v.xarg.access~='private' then
-					local vret, err = virtual_overload(v, types)
+					local vret, err = virtual_overload(v)
 					if not vret and v.xarg.abstract then
 						-- cannot create instance without implementation of an abstract method
 						c.abstract = true
@@ -187,10 +187,10 @@ function fill_shell_class(c, types)
 end
 
 
-function fill_shell_classes(classes, types)
+function fill_shell_classes(classes)
 	for c in pairs(classes) do
 		if c.shell then
-			local nc = fill_shell_class(c, types)
+			local nc = fill_shell_class(c)
 			if not nc then
 				 -- FIXME: useless, but may change
 				ignore(c.xarg.fullname, 'failed to generate shell class')

@@ -317,14 +317,14 @@ end
 
 local put_class_in_filesystem = lqt.classes.insert
 
-function fill_typesystem_with_classes(types)
+function fill_typesystem_with_classes()
 	for c in pairs(classes) do
-		classes[c] = put_class_in_filesystem(c.xarg.fullname, types) --, true)
+		classes[c] = put_class_in_filesystem(c.xarg.fullname) --, true)
 	end
 end
 
 
-function fill_wrapper_code(f, types)
+function fill_wrapper_code(f)
 	if f.wrapper_code then return f end
 	local stackn, argn = 1, 1
 	local stack_args, defects = '', 0
@@ -335,16 +335,16 @@ function fill_wrapper_code(f, types)
 		return nil
 	end
 	if f.xarg.member_of_class and f.xarg.static~='1' then
-		if not types[f.xarg.member_of_class..'*'] then
+		if not typesystem[f.xarg.member_of_class..'*'] then
 			ignore(f.xarg.fullname, 'not a member of wrapped class', f.xarg.member_of_class)
 			return nil
 		end
-		stack_args = stack_args .. types[f.xarg.member_of_class..'*'].onstack
+		stack_args = stack_args .. typesystem[f.xarg.member_of_class..'*'].onstack
 		defects = defects + 7 -- FIXME: arbitrary
 		if f.xarg.constant=='1' then
 			defects = defects + 8 -- FIXME: arbitrary
 		end
-		local sget, sn = types[f.xarg.member_of_class..'*'].get(stackn)
+		local sget, sn = typesystem[f.xarg.member_of_class..'*'].get(stackn)
 		wrap = wrap .. '  ' .. f.xarg.member_of_class .. '* self = ' .. sget .. ';\n'
 		stackn = stackn + sn
 		wrap = wrap .. [[
@@ -366,13 +366,13 @@ function fill_wrapper_code(f, types)
 		line = f.xarg.fullname..'('
 	end
 	for i, a in ipairs(f.arguments) do
-		if not types[a.xarg.type_name] then
+		if not typesystem[a.xarg.type_name] then
 			ignore(f.xarg.fullname, 'unkown argument type', a.xarg.type_name)
 			return nil
 		end
-		local aget, an, arg_as = types[a.xarg.type_name].get(stackn)
-		stack_args = stack_args .. types[a.xarg.type_name].onstack
-		if types[a.xarg.type_name].defect then defects = defects + types[a.xarg.type_name].defect end
+		local aget, an, arg_as = typesystem[a.xarg.type_name].get(stackn)
+		stack_args = stack_args .. typesystem[a.xarg.type_name].onstack
+		if typesystem[a.xarg.type_name].defect then defects = defects + typesystem[a.xarg.type_name].defect end
 		wrap = wrap .. '  ' .. argument_name(arg_as or a.xarg.type_name, 'arg'..argn) .. ' = '
 		if a.xarg.default=='1' and an>0 then
 			wrap = wrap .. 'lua_isnoneornil(L, '..stackn..')'
@@ -395,11 +395,11 @@ function fill_wrapper_code(f, types)
 	if f.return_type then line = f.return_type .. ' ret = ' .. line end
 	wrap = wrap .. '  ' .. line .. ';\n  lua_settop(L, oldtop);\n' -- lua_pop(L, '..stackn..');\n'
 	if f.return_type then
-		if not types[f.return_type] then
+		if not typesystem[f.return_type] then
 			ignore(f.xarg.fullname, 'unknown return type', f.return_type)
 			return nil
 		end
-		local rput, rn = types[f.return_type].push'ret'
+		local rput, rn = typesystem[f.return_type].push'ret'
 		wrap = wrap .. '  luaL_checkstack(L, '..rn..', "cannot grow stack for return value");\n'
 		wrap = wrap .. '  '..rput..';\n  return '..rn..';\n'
 	else
@@ -412,18 +412,18 @@ function fill_wrapper_code(f, types)
 end
 
 
-function fill_test_code(f, types)
+function fill_test_code(f)
 	local stackn = 1
 	local test = ''
 	if f.xarg.member_of_class and f.xarg.static~='1' then
-		if not types[f.xarg.member_of_class..'*'] then return nil end -- print(f.xarg.member_of_class) return nil end
-		local stest, sn = types[f.xarg.member_of_class..'*'].test(stackn)
+		if not typesystem[f.xarg.member_of_class..'*'] then return nil end -- print(f.xarg.member_of_class) return nil end
+		local stest, sn = typesystem[f.xarg.member_of_class..'*'].test(stackn)
 		test = test .. ' && ' .. stest
 		stackn = stackn + sn
 	end
 	for i, a in ipairs(f.arguments) do
-		if not types[a.xarg.type_name] then return nil end -- print(a.xarg.type_name) return nil end
-		local atest, an = types[a.xarg.type_name].test(stackn)
+		if not typesystem[a.xarg.type_name] then return nil end -- print(a.xarg.type_name) return nil end
+		local atest, an = typesystem[a.xarg.type_name].test(stackn)
 		if a.xarg.default=='1' and an>0 then
 			test = test .. ' && (lqtL_missarg(L, ' .. stackn .. ', ' .. an .. ') || '
 			test = test .. atest .. ')'
@@ -440,11 +440,11 @@ end
 
 
 
-function fill_wrappers(types)
+function fill_wrappers()
 	for f in pairs(functions) do
-		local nf = fill_wrapper_code(f, types)
+		local nf = fill_wrapper_code(f)
 		if nf then
-			nf = assert(fill_test_code(nf, types), nf.xarg.fullname) -- MUST pass
+			nf = assert(fill_test_code(nf), nf.xarg.fullname) -- MUST pass
 		else
 			-- failed to generate wrapper
 			functions[f] = nil
@@ -752,6 +752,8 @@ function process(index, typesystem, filterfiles)
 		classes = loadfile(f)(classes)
 	end
 
+	fill_typesystem_with_classes()
+
 	virtuals.fill_virtuals(classes) -- does that, destructor ("~") excluded
 	distinguish_methods() -- does that
 	fill_public_destr() -- does that: checks if destructor is public
@@ -759,17 +761,17 @@ function process(index, typesystem, filterfiles)
 	fix_methods_wrappers()
 	get_qobjects()
 
-	fill_typesystem_with_classes(typesystem)
-	fill_wrappers(typesystem)
-	virtuals.fill_virtual_overloads(classes, typesystem) -- does that
-	virtuals.fill_shell_classes(classes, typesystem) -- does that
-	
-	signalslot.process(functions, typesystem)
+	fill_wrappers()
+	virtuals.fill_virtual_overloads(classes) -- does that
+	virtuals.fill_shell_classes(classes) -- does that
+
+	signalslot.process(functions)
 end
 
 function output()
-	virtuals.print_shell_classes(classes) -- does that
+	virtuals.print_shell_classes(classes) -- does that, and outputs headers
 	virtuals.print_virtual_overloads(classes) -- does that
+
 	print_wrappers(classes) -- just compiles metatable list
 	print_metatables(classes) -- just collects the wrappers + generates dispatchers
 	print_class_list(classes) -- does that + prints everything related to class
