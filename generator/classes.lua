@@ -91,7 +91,7 @@ end
 function copy_classes(index)
 	for e in pairs(index) do
 		if e.label=='Class' then
-			e.xarg.safename = e.xarg.fullname
+			e.xarg.cname = string.gsub(e.xarg.fullname, '::', '_LQT_')
 			if class_is_public(e)
 				and not e.xarg.fullname:match'%b<>' then
 				classes[e] = true
@@ -113,7 +113,7 @@ function fix_methods_wrappers()
 		c.shell = c.shell and (next(c.virtuals)~=nil)
 		for _, constr in ipairs(c.constructors) do
 			if c.shell then
-				local shellname = 'lqt_shell_'..string.gsub(c.xarg.safename, '::', '_LQT_')
+				local shellname = 'lqt_shell_'..c.xarg.cname
 				constr.calling_line = 'new '..shellname..'(L'
 				if #(constr.arguments)>0 then constr.calling_line = constr.calling_line .. ', ' end
 			else
@@ -595,7 +595,7 @@ end
 
 
 function print_single_class(c)
-	local n = string.gsub(c.xarg.safename, '::', '_LQT_')
+	local n = c.xarg.cname
 	local lua_name = string.gsub(c.xarg.fullname, '::', '.')
 	local cppname = module_name..'_meta_'..n..'.cpp'
 	table.insert(cpp_files, cppname) -- global cpp_files
@@ -687,7 +687,7 @@ function print_class_list()
 	local big_picture = {}
 	local type_list_t = {}
 	for c in pairs(classes) do
-		local n = string.gsub(c.xarg.safename, '::', '_LQT_')
+		local n = c.xarg.cname
 		if n=='QObject' then qobject_present = true end
 		print_single_class(c)
 		table.insert(big_picture, 'luaopen_'..n)

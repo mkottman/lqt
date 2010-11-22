@@ -133,8 +133,8 @@ end
 
 
 
-function fill_shell_class(c, types)
-	local shellname = 'lqt_shell_'..string.gsub(c.xarg.safename, '::', '_LQT_')
+function fill_shell_class(c)
+	local shellname = 'lqt_shell_'..c.xarg.cname
 	local shell = 'class LQT_EXPORT ' .. shellname .. ' : public ' .. c.xarg.fullname .. ' {\npublic:\n'
 	shell = shell .. '  lua_State *L;\n'
 	for _, constr in ipairs(c.constructors) do
@@ -203,11 +203,9 @@ end
 ----------------------------------------------------------------------
 
 function print_shell_classes(classes)
-	local fhead = nil
 	for c in pairs(classes) do
-		if fhead then fhead:close() end
-		local n = string.gsub(c.xarg.safename, '::', '_LQT_')
-		fhead = assert(io.open(module_name.._src..module_name..'_head_'..n..'.hpp', 'w'))
+		local n = c.xarg.cname
+		local fhead = assert(io.open(module_name.._src..module_name..'_head_'..n..'.hpp', 'w'))
 		local print_head = function(...)
 			fhead:write(...)
 			fhead:write'\n'
@@ -226,8 +224,8 @@ function print_shell_classes(classes)
 			end
 		end
 		print_head('#endif // LQT_HEAD_'..n)
+		fhead:close()
 	end
-	if fhead then fhead:close() end
 	return classes
 end
 
@@ -235,7 +233,7 @@ function print_virtual_overloads(classes)
 	for c in pairs(classes) do
 		if c.shell then
 			local vo = ''
-			local shellname = 'lqt_shell_'..string.gsub(c.xarg.safename, '::', '_LQT_')
+			local shellname = 'lqt_shell_'..c.xarg.cname
 			for _,v in pairs(c.virtuals) do
 				if v.virtual_overload then
 					vo = vo .. string.gsub(v.virtual_overload, ';;', shellname..'::', 1)
