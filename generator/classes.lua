@@ -5,9 +5,14 @@ require 'signalslot'
 
 module('classes', package.seeall)
 
+-- collection of all functions
 local functions = {}
+-- collection of bound classes
 local classes = {}
+-- list of files to be included
 local cpp_files = {}
+-- table of classes by their cname
+local classlist = {}
 
 --- Copies functions from the index.
 function copy_functions(index)
@@ -105,6 +110,9 @@ function copy_classes(index)
 		end
 	end
 	templates.finish(index)
+	for c in pairs(classes) do
+		classlist[c.xarg.cname] = c
+	end
 end
 
 function fix_methods_wrappers()
@@ -314,12 +322,91 @@ function fill_copy_constructor()
 	end
 end
 
+function fill_implicit_constructor()
+	typesystem.can_convert = {}
+	for c in pairs(classes) do
+		for _,f in ipairs(c) do
+			if f.label:match("^Function") then
+				-- find non-explicit constructor, which has 1 argument of type different
+				-- from class, i.e. an implicit conversion constructor
+				if f.xarg.name == c.xarg.name
+					and #f == 1
+					and (not f.xarg.access or f.xarg.access == "public")
+					and f[1].xarg.type_base ~= c.xarg.name
+					and not f[1].xarg.type_base:match('Private$')
+					and not f.xarg.explicit
+					and not c.abstract
+				then
+					local class_name = c.xarg.cname
+					local from_type = f[1].xarg.type_base
+					typesystem.can_convert[class_name] = typesystem.can_convert[class_name] or { from = {}, class = c }
+					typesystem.can_convert[class_name].from[ from_type ] = f
+					local safe_from = from_type:gsub('[<>*]', '_'):gsub('::', '_LQT_')
+				end
+			end
+		end
+	end
+end
+
+local function generate_implicit_code(class_name, t)
+	local c = t.class
+	local fullname = c.xarg.fullname
+	local luaname = fullname:gsub('::', '.')
+
+	local test_header = 'bool lqt_canconvert_' .. class_name .. '(lua_State *L, int n)'
+	local convert_header = 'void* lqt_convert_' .. class_name .. '(lua_State *L, int n)' 
+
+	local test_code = ""
+	local convert_code = ""
+	local tests = {}
+
+	for _, f in pairs(t.from) do
+		local typ = f[1].xarg.type_name
+		if not typesystem[typ] then
+			ignore(typ, "implicit constructor - unknown type", _)
+		else
+			local test = typesystem[typ].test('n')
+			if not tests[test] then
+				tests[test] = true
+				test_code = test_code..'  if ('..test..')\n'
+				test_code = test_code..'    return true;\n'
+				
+				local newtype = fullname .. '(arg)'
+				if c.shell then newtype = 'lqt_shell_'..c.xarg.cname..'(L,arg)' end
+				convert_code = convert_code
+					..'  if ('..test..') {\n'
+					..'    '..typ..' arg = '..typesystem[typ].get('n')..';\n'
+					..'    '..fullname..' *ret = new '..newtype..';\n'
+					..'    lqtL_passudata(L, ret, "'..luaname..'*");\n'
+					..'    return ret;\n  }\n'
+			end
+		end
+	end
+	test_code = test_code .. '  return false;'
+	convert_code = convert_code..'  return NULL;'
+
+	c.implicit = {
+		headers = { test = test_header, convert = convert_header },
+		test = test_header .. '{\n' .. test_code .. '\n}',
+		convert = convert_header .. '{\n' .. convert_code .. '\n}'
+	}
+end
+
+
+function fill_implicit_wrappers()
+	for class_name, t in pairs(typesystem.can_convert) do
+		if not t.class.abstract then
+			generate_implicit_code(class_name, t)
+		end
+	end
+end
+
 
 local put_class_in_filesystem = lqt.classes.insert
 
 function fill_typesystem_with_classes()
 	for c in pairs(classes) do
-		classes[c] = put_class_in_filesystem(c.xarg.fullname) --, true)
+		classes[c] = put_class_in_filesystem(c.xarg.fullname)
 	end
 end
 
@@ -598,13 +685,19 @@ function print_single_class(c)
 	local n = c.xarg.cname
 	local lua_name = string.gsub(c.xarg.fullname, '::', '.')
 	local cppname = module_name..'_meta_'..n..'.cpp'
-	table.insert(cpp_files, cppname) -- global cpp_files
+	table.insert(cpp_files, n) -- global cpp_files
 	local fmeta = assert(io.open(module_name.._src..cppname, 'w'))
 	local print_meta = function(...)
 		fmeta:write(...)
 		fmeta:write'\n'
 	end
 	print_meta('#include "'..module_name..'_head_'..n..'.hpp'..'"\n\n')
+	
+	if c.implicit then
+		print_meta(c.implicit.test)
+		print_meta(c.implicit.convert)
+	end
+	
 	print_meta(c.wrappers)
 	if c.virtual_overloads then
 		print_meta(c.virtual_overloads)
@@ -614,6 +707,18 @@ function print_single_class(c)
 		..lua_name..'*", lqt_metatable'
 		..c.xarg.id..', lqt_base'
 		..c.xarg.id..');')
+	
+	if c.implicit then
+		print_meta('\tluaL_getmetatable(L, "'..lua_name..'*");')
+		print_meta('\tlua_pushliteral(L, "__test");')
+		print_meta('\tlua_pushlightuserdata(L, (void*)&lqt_canconvert_'..c.xarg.cname..');')
+		print_meta('\tlua_rawset(L, -3);')
+		print_meta('\tlua_pushliteral(L, "__convert");')
+		print_meta('\tlua_pushlightuserdata(L, (void*)&lqt_convert_'..c.xarg.cname..');')
+		print_meta('\tlua_rawset(L, -3);')
+		print_meta('\tlua_pop(L, 1);')
+	end
+	
 	print_meta'\treturn 0;'
 	print_meta'}'
 	print_meta''
@@ -661,7 +766,11 @@ function print_merged_build()
 	local mergename = module_name..'_merged_build'
 	local merged = assert(io.open(path..mergename..'.cpp', 'w'))
 	for _, p in ipairs(cpp_files) do
-		merged:write('#include "'..p..'"\n')
+		merged:write('#include "',module_name,'_head_',p,'.hpp"\n')
+	end
+	merged:write('\n')
+	for _, p in ipairs(cpp_files) do
+		merged:write('#include "',module_name,'_meta_',p,'.cpp"\n')
 	end
 	local pro_file = assert(io.open(path..mergename..'.pro', 'w'))
 
@@ -690,15 +799,18 @@ function print_class_list()
 		local n = c.xarg.cname
 		if n=='QObject' then qobject_present = true end
 		print_single_class(c)
-		table.insert(big_picture, 'luaopen_'..n)
-		table.insert(type_list_t, 'add_class(\''..c.xarg.fullname..'\', types)\n')
+		table.insert(big_picture, n)
+		table.insert(type_list_t, 'add_class \''..c.xarg.fullname..'\'\n')
 	end
 
 	local type_list_f = assert(io.open(module_name.._src..module_name..'_types.lua', 'w'))
 	type_list_f:write([[
 #!/usr/bin/lua
 local types = (...) or {}
-local add_class = lqt.classes.insert or error('module lqt.classes not loaded')
+assert(lqt.classes.insert, 'module lqt.classes not loaded')
+local function add_class(class)
+	lqt.classes.insert(class, true)
+end
 ]])
 	for k, v in ipairs(type_list_t) do
 		type_list_f:write(v)
@@ -716,12 +828,12 @@ local add_class = lqt.classes.insert or error('module lqt.classes not loaded')
 	print_meta('#include "lqt_common.hpp"')
 	print_meta('#include "'..module_name..'_slot.hpp'..'"\n\n')
 	for _, p in ipairs(big_picture) do
-		print_meta('extern "C" LQT_EXPORT int '..p..' (lua_State *);')
+		print_meta('extern "C" LQT_EXPORT int luaopen_'..p..' (lua_State *);')
 	end
 	print_meta('void lqt_create_enums_'..module_name..' (lua_State *);')
 	print_meta('extern "C" LQT_EXPORT int luaopen_'..module_name..' (lua_State *L) {')
 	for _, p in ipairs(big_picture) do
-		print_meta('\t'..p..'(L);')
+		print_meta('\tluaopen_'..p..'(L);')
 	end
 	print_meta('\tlqt_create_enums_'..module_name..'(L);')
 	if qobject_present then
@@ -752,18 +864,19 @@ function process(index, typesystem, filterfiles)
 		classes = loadfile(f)(classes)
 	end
 
-	fill_typesystem_with_classes()
-
 	virtuals.fill_virtuals(classes) -- does that, destructor ("~") excluded
 	distinguish_methods() -- does that
 	fill_public_destr() -- does that: checks if destructor is public
 	fill_copy_constructor() -- does that: checks if copy contructor is public or protected
+	fill_implicit_constructor()
 	fix_methods_wrappers()
 	get_qobjects()
 
+	fill_typesystem_with_classes()
 	fill_wrappers()
 	virtuals.fill_virtual_overloads(classes) -- does that
 	virtuals.fill_shell_classes(classes) -- does that
+	fill_implicit_wrappers()
 
 	signalslot.process(functions)
 end

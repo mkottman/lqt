@@ -90,6 +90,13 @@ void * lqtL_checkudata (lua_State *, int, const char *);
 void lqtL_eraseudata (lua_State *, int, const char *);
 #define lqtL_isudata lqtL_testudata
 
+
+bool lqtL_canconvert(lua_State *L, int n, const char *to_type);
+void *lqtL_convert(lua_State *L, int n, const char *to_type);
+typedef bool  (*lqt_testfunc) (lua_State *L, int n);
+typedef void* (*lqt_convertfunc) (lua_State *L, int n);
+
+
 void lqtL_pushenum (lua_State *, int, const char *);
 bool lqtL_isenum (lua_State *, int, const char *);
 int lqtL_toenum (lua_State *, int, const char *);

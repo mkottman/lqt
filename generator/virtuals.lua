@@ -223,7 +223,9 @@ function print_shell_classes(classes)
 				dump(c)
 			end
 		end
-		print_head('#endif // LQT_HEAD_'..n)
+		
+		print_head('extern "C" LQT_EXPORT int luaopen_'..n..' (lua_State *);')
+		print_head('\n\n#endif // LQT_HEAD_'..n)
 		fhead:close()
 	end
 	return classes
