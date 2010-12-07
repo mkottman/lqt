@@ -19,8 +19,7 @@ return {
 	qtnetwork = {
 		["QList<T>"] = { "QList<QSslError>", "QList<QSslCertificate>", "QList<QNetworkCookie>",
 			"QList<QSslCipher>", "QList<QNetworkAddressEntry>", "QList<QNetworkProxy>", 
-			"QList<QHostAddress>", "QList<QNetworkConfiguration>", "QList<QUrl>",
-			"QList<QModelIndex>" }
+			"QList<QHostAddress>", "QList<QUrl>", "QList<QModelIndex>" }
 	},
 	qtsql = {
 		["QList<T>"] = { "QList<QModelIndex>", "QList<QUrl>" },
