@@ -23,14 +23,6 @@ for c in pairs(classes) do
 			or c.xarg.fullname=='QUpdateLaterEvent' -- compiles
 			or c.xarg.fullname=='QTextStreamManipulator' -- compiles
 			or c.xarg.fullname=='QtConcurrent::ThreadEngineSemaphore' -- compiles
-			or c.xarg.fullname=='QTextObject' -- private/protected destcrutor
-			or c.xarg.fullname:match('^QTextCodec') -- private/protected destcrutor
-			or c.xarg.fullname=='QTextBlockGroup' -- private/protected destcrutor
-			or c.xarg.fullname=='QSessionManager' -- private/protected destcrutor
-			or c.xarg.fullname=='QClipboard' -- private/protected destcrutor
-			or c.xarg.fullname=='QWebFrame' -- private/protected destcrutor
-			or c.xarg.fullname=='QWebHistory' -- private/private/protected destcrutor
-			or c.xarg.fullname=='QWebSettings' -- private/protected destcrutor
 			or c.xarg.fullname=='QtConcurrent::ThreadEngineBarrier' -- linker error
 			
 			-- platform specific, TODO
