@@ -7,7 +7,7 @@ function fill_virtuals(classes)
 	for c in pairs(classes) do
 		byname[c.xarg.fullname] = c
 	end
-	local function get_virtuals(c)
+	local function get_virtuals(c, includePrivate)
 		local ret = {}
 		for _, f in ipairs(c) do
 			if f.label=='Function' and f.xarg.virtual=='1' then
@@ -18,7 +18,7 @@ function fill_virtuals(classes)
 		for b in string.gmatch(c.xarg.bases or '', '([^;]+);') do
 			local base = byname[b]
 			if type(base)=='table' then
-				local bv = get_virtuals(base)
+				local bv = get_virtuals(base, true)
 				for n, f in pairs(bv) do
 					if not ret[n] then ret[n] = f end
 				end
@@ -26,7 +26,7 @@ function fill_virtuals(classes)
 		end
 		for _, f in ipairs(c) do
 			if f.label=='Function'
-				and f.xarg.access~='private'
+				and (includePrivate or f.xarg.access~='private')
 				and (ret[string.match(f.xarg.name, '~') or f.xarg.name]) then
 				f.xarg.virtual = '1'
 				local n = string.match(f.xarg.name, '~')or f.xarg.name
