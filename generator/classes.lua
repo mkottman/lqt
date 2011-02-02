@@ -360,28 +360,46 @@ local function generate_implicit_code(class_name, t)
 	local convert_code = ""
 	local tests = {}
 
+	local order = {}
 	for _, f in pairs(t.from) do
 		local typ = f[1].xarg.type_name
 		if not typesystem[typ] then
 			ignore(typ, "implicit constructor - unknown type", _)
 		else
-			local test = typesystem[typ].test('n')
+			local test
+			if typesystem[typ].raw_test then
+				test = typesystem[typ].raw_test('n')
+			else
+				test = typesystem[typ].test('n')
+			end
 			if not tests[test] then
 				tests[test] = true
-				test_code = test_code..'  if ('..test..')\n'
-				test_code = test_code..'    return true;\n'
+				local test_code =
+				  '  if ('..test..')\n'
+				..'    return true;\n'
 				
 				local newtype = fullname .. '(arg)'
 				if c.shell then newtype = 'lqt_shell_'..c.xarg.cname..'(L,arg)' end
-				convert_code = convert_code
-					..'  if ('..test..') {\n'
+				local convert_code = 
+					  '  if ('..test..') {\n'
 					..'    '..typ..' arg = '..typesystem[typ].get('n')..';\n'
 					..'    '..fullname..' *ret = new '..newtype..';\n'
 					..'    lqtL_passudata(L, ret, "'..luaname..'*");\n'
 					..'    return ret;\n  }\n'
+
+				local item = { type = fullname, test = test, defect = typesystem[typ].defect or 0,
+					test_code = test_code, convert_code = convert_code }
+				table.insert(order, item)
 			end
 		end
 	end
+	
+	table.sort(order, function(a,b) return a.defect < b.defect end)
+	for _,v in ipairs(order) do
+		test_code = test_code .. v.test_code
+		convert_code = convert_code .. v.convert_code
+	end
+
 	test_code = test_code .. '  return false;'
 	convert_code = convert_code..'  return NULL;'
 

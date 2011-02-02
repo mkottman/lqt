@@ -6,7 +6,8 @@ lqt.classes = lqt.classes or {}
 -- Field explanation:
 -- * push - push the instance of a class onto Lua stack
 -- * get - retrieve the instance from Lua stack
--- * test - true if the stack index is an instance
+-- * raw_test - true if the stack index is an instance
+-- * test - true if the stack index is an instance, or if it is convertible to the type
 -- * bound - true for generated classes (false for native types)
 -- * foreign - comes from other module (like QtCore)
 
@@ -24,6 +25,7 @@ local pointer_t = function(fn, foreign)
 		test = function(n)
 			return 'lqtL_isudata(L, '..n..', "'..cn..'*")', 1
 		end,
+		raw_test = function(n) return 'lqtL_isudata(L, '..n..', "'..cn..'*")', 1 end,
 		onstack = cn..'*,',
 		bound = true,
 		foreign = foreign,
@@ -52,6 +54,7 @@ local pointer_const_t = function(fn, foreign)
 				return 'lqtL_isudata(L, '..n..', "'..cn..'*")', 1
 			end
 		end,
+		raw_test = function(n) return 'lqtL_isudata(L, '..n..', "'..cn..'*")', 1 end,
 		onstack = cn..'*,',
 		bound = true,
 		foreign = foreign,
@@ -118,6 +121,7 @@ local const_ref_t = function(fn, foreign)
 				return 'lqtL_isudata(L, '..n..', "'..cn..'*")', 1
 			end
 		end,
+		raw_test = function(n) return 'lqtL_isudata(L, '..n..', "'..cn..'*")', 1 end,
 		onstack = cn..'*,',
 		bound = true,
 		foreign = foreign,
