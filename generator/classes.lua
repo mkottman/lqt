@@ -2,6 +2,7 @@ require 'virtuals'
 require 'templates'
 require 'operators'
 require 'signalslot'
+require 'properties'
 
 module('classes', package.seeall)
 
@@ -452,14 +453,7 @@ function fill_wrapper_code(f)
 		local sget, sn = typesystem[f.xarg.member_of_class..'*'].get(stackn)
 		wrap = wrap .. '  ' .. f.xarg.member_of_class .. '* self = ' .. sget .. ';\n'
 		stackn = stackn + sn
-		wrap = wrap .. [[
-  if (NULL==self) {
-    lua_pushfstring(L, "Instance of %s has already been deleted in:\n", "]]..f.xarg.member_of_class..[[");
-    lqtL_pushtrace(L);
-    lua_concat(L, 2);
-    lua_error(L);
-  }
-]]
+		wrap = wrap .. '  lqtL_selfcheck(L, self, "'..f.xarg.member_of_class..'");\n'
 		--print(sget, sn)
 		if operators.is_operator(f.xarg.name) then
 			line, has_args = operators.call_line(f)
@@ -720,10 +714,17 @@ function print_single_class(c)
 	if c.virtual_overloads then
 		print_meta(c.virtual_overloads)
 	end
+	
+	local getters_setters = 'NULL, NULL'
+	if c.properties then
+		print_meta(c.properties)
+		getters_setters = 'lqt_getters'..c.xarg.id..', lqt_setters'..c.xarg.id
+	end
+	
 	print_meta('extern "C" LQT_EXPORT int luaopen_'..n..' (lua_State *L) {')
 	print_meta('\tlqtL_createclass(L, "'
 		..lua_name..'*", lqt_metatable'
-		..c.xarg.id..', lqt_base'
+		..c.xarg.id..', '..getters_setters..', lqt_base'
 		..c.xarg.id..');')
 	
 	if c.implicit then
@@ -894,6 +895,7 @@ function process(index, typesystem, filterfiles)
 	fill_wrappers()
 	virtuals.fill_virtual_overloads(classes) -- does that
 	virtuals.fill_shell_classes(classes) -- does that
+	properties.fill_properties(classes)
 	fill_implicit_wrappers()
 
 	signalslot.process(functions)

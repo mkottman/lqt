@@ -137,7 +137,7 @@ typedef struct {
     const char * name;
 } lqt_Class;
 
-int lqtL_createclass (lua_State *, const char *, luaL_Reg *, lqt_Base *);
+int lqtL_createclass (lua_State *, const char *, luaL_Reg *, luaL_Reg *, luaL_Reg *, lqt_Base *);
 
 /* functions to get/push special types */
 
@@ -165,6 +165,8 @@ void lqtL_register_super(lua_State *L);
 const char * lqtL_pushtrace(lua_State *L);
 void lqtL_pushudatatype(lua_State *L, int index);
 const char * lqtL_getarglist(lua_State *L);
+
+void lqtL_selfcheck(lua_State *L, void *self, const char *name);
 
 #endif // __LQT_COMMON_HPP
 
