@@ -31,10 +31,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/lib) 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/lib) 
 
-#set(CMAKE_VERBOSE_MAKEFILE TRUE)
-
-option(SYSTEM_LUA "Use installed Lua" TRUE) 
-
 find_package(Qt4 REQUIRED)
 set(QT_USE_QTCORE 1)
 set(QT_USE_QTGUI 1)
@@ -54,16 +50,8 @@ if(noqt)
 	#set(nomerge TRUE)
 endif()
 
-if(SYSTEM_LUA)
-	find_package(Lua51 REQUIRED)
-	set(LUA_INCLUDE_DIRS ${LUA_INCLUDE_DIR})
-	set(LUA_CMD lua)
-else()
-	add_subdirectory(lua)
-	set(LUA_CMD luaexec)
-	set(LUA_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/lua/lua/src)
-	set(LUA_LIBRARIES lua)
-endif()
+find_package(Lua51 REQUIRED)
+find_program(LUA_CMD NAMES lua lua5.1 lua51)
 
 if(MSVC)
 	set(CMAKE_SUPPRESS_REGENERATION TRUE) 
@@ -106,12 +94,8 @@ macro(project_source_group mode sources headers)
 endmacro()
 set(GROUP_CODE "Source Files")
 
-set(LQT_BUILDIN_CPPTOXML 1)
-if(LQT_BUILDIN_CPPTOXML)
-	add_subdirectory(cpptoxml)
-else()
-	#TODO find cpptpxml
-endif()
+
+add_subdirectory(cpptoxml)
 
 
 function(build_qt_lib_binding BINDING_HEADER)
@@ -196,7 +180,7 @@ function(build_qt_lib_binding BINDING_HEADER)
 
 	qt4_wrap_cpp(${COMMON}_MOC ${LQT_GEN_DIR}/${BINDING_NAME}_slot.hpp)
 	
-	include_directories(${CMAKE_SOURCE_DIR}/common ${LUA_INCLUDE_DIRS} ${QT_INCLUDES})
+	include_directories(${CMAKE_SOURCE_DIR}/common ${LUA_INCLUDE_DIR} ${QT_INCLUDES})
 
 	add_library(${BINDING_NAME} SHARED  ${BINDING_SRC}
 											${${COMMON}_SRC}
