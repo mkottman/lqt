@@ -55,7 +55,7 @@ find_program(LUA_CMD NAMES lua lua5.1 lua51)
 
 if(MSVC)
 	set(CMAKE_SUPPRESS_REGENERATION TRUE) 
-	add_definitions(-D_CRT_SECURE_NO_DEPRECATE -D_CRT_SECURE_NO_WARNINGS -D_SCL_SECURE_NO_WARNINGS -DLUA_BUILD_AS_DLL)
+	add_definitions(-D_CRT_SECURE_NO_DEPRECATE -D_CRT_SECURE_NO_WARNINGS -D_SCL_SECURE_NO_WARNINGS -DLUA_BUILD_AS_DLL /bigobj)
 	set(CMAKE_DEBUG_POSTFIX)
 endif()
 
@@ -188,7 +188,7 @@ function(build_qt_lib_binding BINDING_HEADER)
 											${${COMMON}_MOC})
 											
 	target_link_libraries(${BINDING_NAME} ${QT_LIBRARIES} ${LUA_LIBRARIES})		
-	set_target_properties(${BINDING_NAME} PROPERTIES PREFIX "")
+	set_target_properties(${BINDING_NAME} PROPERTIES PREFIX "" COMPILE_DEFINITIONS "MODULE_${BINDING_NAME}")
 
 	if(LQT_BUILDIN_CPPTOXML)
 		add_dependencies(generate_${BINDING_NAME}_xml  cpptoxml)
@@ -196,9 +196,6 @@ function(build_qt_lib_binding BINDING_HEADER)
 
 	add_dependencies(generate_${BINDING_NAME}_cpp  generate_${BINDING_NAME}_xml ${${BINDING_NAME}_DEPENDS})
 	add_dependencies(${BINDING_NAME} generate_${BINDING_NAME}_cpp)
-	if(NOT SYSTEM_LUA)
-		add_dependencies(generate_${BINDING_NAME}_cpp luaexec)
-	endif()
 endfunction()
 
 if(noqt)
