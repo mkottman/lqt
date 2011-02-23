@@ -443,7 +443,7 @@ int lqtL_qvariant_value(lua_State *L) {
 		case QVariant::LongLong: lua_pushnumber(L, self->toLongLong()); return 1;
 		case QVariant::ULongLong: lua_pushnumber(L, self->toULongLong()); return 1;
 		case QVariant::ByteArray: {
-			QByteArray &ba = self->toByteArray();
+			const QByteArray &ba = self->toByteArray();
 			lua_pushlstring(L, ba.data(), ba.size());
 			return 1;
 		};
