@@ -756,6 +756,10 @@ bool lqtL_canconvert(lua_State *L, int n, const char *to_type) {
         return true;
     int oldtop = lua_gettop(L);
     luaL_getmetatable(L, to_type);
+    if (lua_isnil(L, -1)) {
+        lua_settop(L, oldtop);
+        return false;
+    }
     lua_getfield(L, -1, "__test");
     if (lua_isnil(L, -1)) {
         lua_settop(L, oldtop);
@@ -772,6 +776,10 @@ void *lqtL_convert(lua_State *L, int n, const char *to_type) {
         return lqtL_toudata(L, n, to_type);
     int oldtop = lua_gettop(L);
     luaL_getmetatable(L, to_type);
+    if (lua_isnil(L, -1)) {
+        lua_settop(L, oldtop);
+        return false;
+    }
     lua_getfield(L, -1, "__convert");
     if (lua_isnil(L, -1)) {
         lua_settop(L, oldtop);
