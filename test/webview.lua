@@ -12,11 +12,14 @@ if address == 'nil' then
 	address = 'www.lua.org'
 end
 
-url = QUrl.new(QString.new('http://'..address))
+url = QUrl.new('http://'..address)
 
 print('Loading site  '..address..' ...')
 
 webView = QWebView.new_local()
+webView:connect('2loadFinished(bool)', function()
+	print('Loaded', webView:url():toEncoded())
+end)
 webView:setUrl(url)
 webView:show()
 

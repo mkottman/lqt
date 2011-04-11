@@ -178,26 +178,49 @@ static int lqtL_children(lua_State *L) {
 }
 
 static int lqtL_connect(lua_State *L) {
+    static int methodId = 0;
+
     QObject* sender = static_cast<QObject*>(lqtL_toudata(L, 1, "QObject*"));
     if (sender == NULL)
         return luaL_argerror(L, 1, "sender not QObject*");
-    const char *signal = luaL_checkstring(L, 2);
-    QObject* receiver = static_cast<QObject*>(lqtL_toudata(L, 3, "QObject*"));
-    if (receiver == NULL)
-        return luaL_argerror(L, 3, "receiver not QObject*");
-    const char *method = luaL_checkstring(L, 4);
 
+    const char *signal = luaL_checkstring(L, 2);
     const QMetaObject *senderMeta = sender->metaObject();
     int idxS = senderMeta->indexOfSignal(signal + 1);
     if (idxS == -1)
         return luaL_argerror(L, 2, qPrintable(QString("no such sender signal: '%1'").arg(signal + 1)));
 
-    const QMetaObject *receiverMeta = receiver->metaObject();
-    int idxR = receiverMeta->indexOfMethod(method + 1);
-    if (idxR == -1)
-        return luaL_argerror(L, 4, qPrintable(QString("no such receiver method: '%1'").arg(method + 1)));
+    QObject* receiver;
+    QString methodName;
 
-    bool ok = QObject::connect(sender, signal, receiver, method);
+    if (lua_type(L, 3) == LUA_TFUNCTION) {
+        receiver = sender;
+
+        // simulate sender:__addmethod('LQT_SLOT_X(signature)', function()...end)
+        QMetaMethod m = senderMeta->method(idxS);
+        methodName = QString(m.signature()).replace(QRegExp("^[^\\(]+"), QString("LQT_SLOT_%1").arg(methodId++));
+
+        lua_getfield(L, 1, "__addmethod");
+        lua_pushvalue(L, 1);
+        lua_pushstring(L, qPrintable(methodName));
+        lua_pushvalue(L, 3);
+        lua_call(L, 3, 0);
+        
+        methodName.prepend("1");
+    } else {
+        receiver = static_cast<QObject*>(lqtL_toudata(L, 3, "QObject*"));
+        if (receiver == NULL)
+            return luaL_argerror(L, 3, "receiver not QObject*");
+        const char *method = luaL_checkstring(L, 4);
+        methodName = method;
+
+        const QMetaObject *receiverMeta = receiver->metaObject();
+        int idxR = receiverMeta->indexOfMethod(method + 1);
+        if (idxR == -1)
+            return luaL_argerror(L, 4, qPrintable(QString("no such receiver method: '%1'").arg(method + 1)));
+    }
+
+    bool ok = QObject::connect(sender, signal, receiver, qPrintable(methodName));
     lua_pushboolean(L, ok);
     return 1;
 }
