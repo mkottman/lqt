@@ -29,6 +29,13 @@ Features
   * implicit conversion - i.e. write Lua strings where QString is expected, or numbers instead of QVariant
 * optional memory management - you can let the Lua GC destroy objects, or let Qt parent/child management do the work
 
+History
+-------
+
+## lqt 0.9
+
+* Public beta, most issues and API stabilized
+
 Building lqt
 ------------
 
@@ -63,20 +70,21 @@ A quick example of "Hello World!" button with signal/slot handling:
     app = QApplication.new(select('#',...) + 1, {'lua', ...})
 
     btn = QPushButton.new("Hello World!")
-    btn:__addmethod('quitApp()', function(self)
+    btn:connect('2pressed()', function(self)
         print("I'm about to close...")
         self:close()
     end)
-    btn:connect('2pressed()', btn, '1quitApp()')
     btn:setWindowTitle("A great example!")
     btn:resize(300,50)
     btn:show()
 
     app.exec()
 
-For more examples, check out the `test` folder and also the `doc`
+For more examples, check out the `test` folder and the `doc`
 folder for documentation on detailed usage - memory management,
-signal/slot handling, virtual method overloading, etc.
+signal/slot handling, virtual method overloading, etc. Also, have
+a look at the [examples](https://github.com/mkottman/lqt/wiki/Examples)
+and feel free to add your own!
 
 License
 -------
