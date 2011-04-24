@@ -355,8 +355,6 @@ int lqtL_qvariant_setValue(lua_State *L) {
 		self->setValue(*(QDate*)lqtL_toudata(L, 2, "QDate*"));
 	} else if (lqtL_testudata(L, 2, "QDateTime*")) {
 		self->setValue(*(QDateTime*)lqtL_toudata(L, 2, "QDateTime*"));
-	} else if (lqtL_testudata(L, 2, "QEasingCurve*")) {
-		self->setValue(*(QEasingCurve*)lqtL_toudata(L, 2, "QEasingCurve*"));
 	} else if (lqtL_testudata(L, 2, "QKeySequence*")) {
 		self->setValue(*(QKeySequence*)lqtL_toudata(L, 2, "QKeySequence*"));
 	} else if (lqtL_testudata(L, 2, "QLine*")) {
@@ -475,7 +473,6 @@ int lqtL_qvariant_value(lua_State *L) {
 		case QVariant::Char: lqtL_passudata(L, new QChar(self->value<QChar>()), "QChar*"); return 1;
 		case QVariant::Date: lqtL_passudata(L, new QDate(self->value<QDate>()), "QDate*"); return 1;
 		case QVariant::DateTime: lqtL_passudata(L, new QDateTime(self->value<QDateTime>()), "QDateTime*"); return 1;
-		case QVariant::EasingCurve: lqtL_passudata(L, new QEasingCurve(self->value<QEasingCurve>()), "QEasingCurve*"); return 1;
 		case QVariant::KeySequence: lqtL_passudata(L, new QKeySequence(self->value<QKeySequence>()), "QKeySequence*"); return 1;
 		case QVariant::Line: lqtL_passudata(L, new QLine(self->value<QLine>()), "QLine*"); return 1;
 		case QVariant::LineF: lqtL_passudata(L, new QLineF(self->value<QLineF>()), "QLineF*"); return 1;
