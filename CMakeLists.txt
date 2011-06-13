@@ -1,5 +1,6 @@
 #  Copyright (c) 2008 Peter Kuemmel 
 #  Copyright (c) 2008 Mauro Iazzi
+#  Copyright (c) 2011 Michal Kottman
 #  
 #  Permission is hereby granted, free of charge, to any person
 #  obtaining a copy of this software and associated documentation
@@ -182,7 +183,7 @@ function(build_qt_lib_binding BINDING_HEADER)
 	
 	include_directories(${CMAKE_SOURCE_DIR}/common ${LUA_INCLUDE_DIR} ${QT_INCLUDES})
 
-	add_library(${BINDING_NAME} SHARED  ${BINDING_SRC}
+	add_library(${BINDING_NAME} MODULE ${BINDING_SRC}
 											${${COMMON}_SRC}
 											${${COMMON}_HPP} 
 											${${COMMON}_MOC})
