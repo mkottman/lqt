@@ -381,6 +381,12 @@ local function generate_implicit_code(class_name, t)
 				
 				local newtype = fullname .. '(arg)'
 				if c.shell then newtype = 'lqt_shell_'..c.xarg.cname..'(L,arg)' end
+				
+				-- HACK: QVariant with 'char const*' argument - force it to QByteArray
+				if fullname == 'QVariant' and typ == 'char const*' then
+				    typ = 'QByteArray'
+				end
+				
 				local convert_code = 
 					  '  if ('..test..') {\n'
 					..'    '..typ..' arg = '..typesystem[typ].get('n')..';\n'
