@@ -40,7 +40,7 @@ Building lqt
 ------------
 
 Pre-compiled Windows binaries of lqt compiled against Qt 4.7 compatible
-with Lua for Windows [are available](https://github.com/downloads/mkottman/lqt/lqt_4.7_lfw_binaries.zip),
+with Lua for Windows [are available](https://github.com/mkottman/lqt/downloads),
 on other systems you need:
 
 * Lua 5.1
