@@ -52,7 +52,7 @@ if(noqt)
 endif()
 
 find_package(Lua51 REQUIRED)
-find_program(LUA_CMD NAMES lua lua5.1 lua51)
+find_program(LUA_CMD NAMES luajit lua lua5.1 lua51)
 
 if(MSVC)
 	set(CMAKE_SUPPRESS_REGENERATION TRUE) 
@@ -62,42 +62,9 @@ endif()
 
 if(MINGW)
 	set(CMAKE_SHARED_LINKER_FLAGS "-Wl,-add-stdcall-alias")
-	SET(CMAKE_VERBOSE_MAKEFILE ON)
 endif()
 
-
-macro(lqt_files name folder)
-	file(GLOB ${name}_sources ${folder}/*.cpp) 
-	file(GLOB ${name}_headers ${folder}/*.hpp) 
-	qt4_wrap_cpp(${name}_moc ${${name}_headers})
-	qt4_automoc(${${name}_sources})
-	set(${name}_src ${${name}_sources} ${${name}_moc})	
-	set(${name}_h ${${name}_headers})
-	source_group(generated FILES ${${name}_moc})
-	project_source_group("${GROUP_CODE}" ${name}_sources ${name}_headers)
-endmacro()
-
- 
-# folders in the msvc projects 
-# mode==flat  : headers and sources not in folders 
-# mode==split : standard behavior of cmake, split headers and sources 
-# mode==<other values> : code is in this folder 
-macro(project_source_group mode sources headers) 
-	if(${mode} MATCHES "flat") 
-		source_group("Source Files" Files) 
-		source_group("Header Files" Files) 
-		source_group("cmake" FILES CMakeLists.txt) 
-	else() 
-		if(NOT ${mode} MATCHES "split") 
-			source_group("${mode}" FILES ${${sources}} ${${headers}}) 
-		endif() 
-	endif() 
-endmacro()
-set(GROUP_CODE "Source Files")
-
-
 add_subdirectory(cpptoxml)
-
 
 function(build_qt_lib_binding BINDING_HEADER)
 
@@ -118,14 +85,14 @@ function(build_qt_lib_binding BINDING_HEADER)
 
 	if(NOT REUSE_FILES)
 		set (GEN_XML ${LQT_GEN_DIR}/${BINDING_NAME}.xml)
-		add_custom_target(generate_${BINDING_NAME}_xml 	COMMAND cpptoxml 
-								${BINDING_HEADER} 
+		add_custom_target(generate_${BINDING_NAME}_xml
+							COMMAND cpptoxml
+								${BINDING_HEADER}
 								-C ${PP_CONFIG}
 								-Q ${QT_INCLUDE_DIR} 
 								-o ${GEN_XML}
 							COMMENT "Generating XML: running cpptoxml on ${BINDING_NAME} "
 							VERBATIM)
-
 
 		math(EXPR MAX ${ARGC}-1)
 		if(MAX)
