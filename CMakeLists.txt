@@ -27,7 +27,6 @@ cmake_minimum_required(VERSION 2.6)
 
 project(lqt)
 
-
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/bin) 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/lib) 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/lib) 
@@ -54,15 +53,24 @@ endif()
 find_package(Lua51 REQUIRED)
 find_program(LUA_CMD NAMES luajit lua lua5.1 lua51)
 
-if(MSVC)
-	set(CMAKE_SUPPRESS_REGENERATION TRUE) 
-	add_definitions(-D_CRT_SECURE_NO_DEPRECATE -D_CRT_SECURE_NO_WARNINGS -D_SCL_SECURE_NO_WARNINGS -DLUA_BUILD_AS_DLL /bigobj)
-	set(CMAKE_DEBUG_POSTFIX)
-endif()
+if(WIN32)
+	if(MSVC)
+		set(CMAKE_SUPPRESS_REGENERATION TRUE)
+		add_definitions(-D_CRT_SECURE_NO_DEPRECATE -D_CRT_SECURE_NO_WARNINGS -D_SCL_SECURE_NO_WARNINGS -DLUA_BUILD_AS_DLL /bigobj)
+		set(CMAKE_DEBUG_POSTFIX)
+	endif()
+	if(MINGW)
+		set(CMAKE_SHARED_LINKER_FLAGS "-Wl,-add-stdcall-alias")
+	endif()
+	set(LUA_LIBS_FOR_MODULE ${LUA_LIBRARIES})
+else(WIN32)
+	set(LUA_LIBS__FOR_MODULE )
+endif(WIN32)
 
-if(MINGW)
-	set(CMAKE_SHARED_LINKER_FLAGS "-Wl,-add-stdcall-alias")
-endif()
+if(APPLE)
+   set(CMAKE_SHARED_MODULE_CREATE_CXX_FLAGS
+       "${CMAKE_SHARED_MODULE_CREATE_CXX_FLAGS} -flat_namespace -undefined dynamic_lookup")
+endif(APPLE)
 
 add_subdirectory(cpptoxml)
 
@@ -155,7 +163,7 @@ function(build_qt_lib_binding BINDING_HEADER)
 											${${COMMON}_HPP} 
 											${${COMMON}_MOC})
 											
-	target_link_libraries(${BINDING_NAME} ${QT_LIBRARIES} ${LUA_LIBRARIES})		
+	target_link_libraries(${BINDING_NAME} ${QT_LIBRARIES} ${LUA_LIBS_FOR_MODULE})
 	set_target_properties(${BINDING_NAME} PROPERTIES PREFIX "" COMPILE_DEFINITIONS "MODULE_${BINDING_NAME}")
 
 	if(LQT_BUILDIN_CPPTOXML)
