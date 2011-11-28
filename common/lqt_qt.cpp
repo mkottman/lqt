@@ -518,7 +518,12 @@ int lqtL_qvariant_value(lua_State *L) {
 	return 0;
 }
 
-void lqtL_qvariant_custom(lua_State *L) {
+#ifndef MODULE_qtgui
+void lqtL_qvariant_custom(lua_State *L)
+#else
+void lqtL_qvariant_custom_qtgui(lua_State *L)
+#endif
+{
 	lua_getfield(L, LUA_REGISTRYINDEX, "QVariant*");
 	int qvariant = lua_gettop(L);
 
@@ -529,5 +534,5 @@ void lqtL_qvariant_custom(lua_State *L) {
 	lua_pushliteral(L, "setValue");
 	lua_pushcfunction(L, lqtL_qvariant_setValue);
 	lua_rawset(L, qvariant);
-
 }
+

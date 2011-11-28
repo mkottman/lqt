@@ -64,7 +64,7 @@ if(WIN32)
 	endif()
 	set(LUA_LIBS_FOR_MODULE ${LUA_LIBRARIES})
 else(WIN32)
-	set(LUA_LIBS__FOR_MODULE )
+	set(LUA_LIBS_FOR_MODULE )
 endif(WIN32)
 
 if(APPLE)

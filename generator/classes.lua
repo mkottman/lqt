@@ -864,8 +864,10 @@ end
 	if qobject_present then
 		print_meta('\tlqtL_qobject_custom(L);')
 	end
-	if module_name == "qtcore" or module_name == "qtgui" then
+	if module_name == "qtcore" then
 		print_meta("\tlqtL_qvariant_custom(L);")
+	elseif module_name == "qtgui" then
+		print_meta("\tlqtL_qvariant_custom_qtgui(L);")
 	end
 	print_meta('\tlqtL_register_super(L);')
 	print_meta('\tlqtSlotAcceptor_'..module_name..' = new LqtSlotAcceptor(L);')
