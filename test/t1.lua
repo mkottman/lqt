@@ -3,7 +3,7 @@
 require'qtcore'
 require'qtgui'
 
-app = QApplication.new_local(1 + select('#', ...), {arg[0], ...})
+app = QApplication(1 + select('#', ...), {arg[0], ...})
 
 -- the conversion from Lua string to QString is automatic
 hello = QPushButton.new("Hello World!")

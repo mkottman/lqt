@@ -2,7 +2,7 @@ require'qtcore'
 
 local s = tostring{}
 
-local f=QFile.new('tmp_file')
+local f = QFile('tmp_file')
 print('open file => ', f:open{'WriteOnly'})
 print('write to file => ', f:write(s))
 print('flush file =>', f:flush())
