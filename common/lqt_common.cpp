@@ -438,6 +438,12 @@ void lqtL_unregister (lua_State *L, const void *p) {
 
 void lqtL_pushudata (lua_State *L, const void *p, const char *name) {
     bool already = false;
+    
+    if (p == NULL) {
+        lua_pushnil(L); // (1)
+        return;
+    }
+    
     lqtL_ensurepointer(L, p); // (1)
     if (lua_getmetatable(L, -1)) {
         // (2)
