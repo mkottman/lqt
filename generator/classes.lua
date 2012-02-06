@@ -34,7 +34,8 @@ function fix_arguments(index)
 			and (not string.match(a.xarg.defaultvalue, '^".*"$'))
 			and a.xarg.defaultvalue~='true'
 			and a.xarg.defaultvalue~='false'
-			and (not string.match(a.xarg.defaultvalue, '^0[xX]%d+$')) then
+			and (not string.match(a.xarg.defaultvalue, '^0[.xX][%da-fA-F]+$'))
+		then
 			local dv, call = string.match(a.xarg.defaultvalue, '(.-)(%(%))')
 			dv = dv or a.xarg.defaultvalue
 			call = call or ''
@@ -42,12 +43,19 @@ function fix_arguments(index)
 			while not fullnames[context..'::'..dv] and context~='' do
 				context = string.match(context, '^(.*)::') or ''
 			end
+			if not fullnames[context..'::'..dv] then
+				local class = fullnames[a.xarg.context]
+				if class.xarg.bases then
+					context = class.xarg.bases:match('[^;]+')
+				end
+			end
+			local firstChar = dv:sub(1,1)
 			if fullnames[context..'::'..dv] then
 				if fullnames[context..'::'..dv].xarg.name==fullnames[context..'::'..dv].xarg.member_of_class then
 					context = string.match(context, '^(.*)::') or ''
 				end
 				a.xarg.defaultvalue = context..'::'..dv..call
-			elseif fullnames[dv] then
+			elseif fullnames[dv] or dv == dv:upper() or firstChar == 'Q' or firstChar == "'" then
 				a.xarg.defaultvalue = dv..call
 			else
 				a.xarg.default = nil
