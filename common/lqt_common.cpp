@@ -772,12 +772,12 @@ void *lqtL_convert(lua_State *L, int n, const char *to_type) {
     luaL_getmetatable(L, to_type);
     if (lua_isnil(L, -1)) {
         lua_settop(L, oldtop);
-        return false;
+        return NULL;
     }
     lua_getfield(L, -1, "__convert");
     if (lua_isnil(L, -1)) {
         lua_settop(L, oldtop);
-        return false;
+        return NULL;
     }
     lqt_convertfunc func = (lqt_convertfunc) lua_touserdata(L, -1);
     lua_settop(L, oldtop);
