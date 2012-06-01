@@ -375,6 +375,9 @@ bool lqtL_isstring (lua_State *L, int i) {
 bool lqtL_isboolean (lua_State *L, int i) {
     return lua_type(L, i)==LUA_TBOOLEAN;
 }
+bool lqtL_islightuserdata (lua_State *L, int i) {
+    return lua_type(L, i)==LUA_TLIGHTUSERDATA;
+}
 bool lqtL_missarg (lua_State *L, int index, int n) {
     bool ret = true;
     int i = 0;
