@@ -81,6 +81,18 @@ base_types['char const*'] = {
 	end,
 	onstack = 'string,',
 }
+base_types['unsigned char*'] = {
+	get = function(j)
+		return '(unsigned char*)lua_touserdata(L, '..tostring(j)..')', 1
+	end,
+	push = function(j) -- must handle arguments (e.g. in virtual callbacks) and return values
+		return 'lua_pushlightuserdata(L, '..tostring(j)..')', 1
+	end,
+	test = function(j)
+		return 'lqtL_islightuserdata(L, '..tostring(j)..')', 1
+	end,
+	onstack = 'string,',
+}
 base_types['char'] = integer_type(3)
 base_types['unsigned char'] = integer_type(3)
 base_types['int'] = integer_type(1)
