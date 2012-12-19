@@ -9,34 +9,49 @@ function fill_virtuals(classes)
 	end
 	local function get_virtuals(c, includePrivate)
 		local ret = {}
+		local virtual_index = 0
+		local function add_overload(name, func)
+			virtual_index = virtual_index + 1
+			func.virtual_index = virtual_index
+			ret[name] = func
+		end
+
+		-- add virtual methods declared in the class
 		for _, f in ipairs(c) do
 			if f.label=='Function' and f.xarg.virtual=='1' then
 				local n = string.match(f.xarg.name, '~') or f.xarg.name
-				if n~='~' and n~='metaObject' then ret[n] = f end
+				if n~='~' and n~='metaObject' then
+					add_overload(n, f)
+				end
 			end
 		end
+
+		-- find virtual methods in base classes
 		for b in string.gmatch(c.xarg.bases or '', '([^;]+);') do
 			local base = byname[b]
 			if type(base)=='table' then
 				local bv = get_virtuals(base, true)
 				for n, f in pairs(bv) do
-					if not ret[n] then ret[n] = f end
+					if not ret[n] then add_overload(n, f) end
 				end
 			end
 		end
+
+		-- mark methods in class not explicitly marked as virtual, as C++
+		-- does not require that overriden methods are marked virtual
 		for _, f in ipairs(c) do
+			local n = string.match(f.xarg.name, '~') or f.xarg.name
 			if f.label=='Function'
 				and (includePrivate or f.xarg.access~='private')
-				and (ret[string.match(f.xarg.name, '~') or f.xarg.name]) then
+				and (ret[n])
+			then
 				f.xarg.virtual = '1'
-				local n = string.match(f.xarg.name, '~')or f.xarg.name
-				ret[n] = f
 			end
 		end
-		return ret
+		return ret, virtual_index
 	end
 	for c in pairs(classes) do
-		c.virtuals = get_virtuals(c)
+		c.virtuals, c.nvirtuals = get_virtuals(c)
 	end
 end
 
@@ -83,12 +98,19 @@ function virtual_overload(v)
 		fallback = fallback .. (i>1 and ', arg' or 'arg') .. i
 	end
 	proto = proto .. ')' .. (v.xarg.constant=='1' and ' const' or '')
-	fallback = (v.return_type and 'return this->' or 'this->') .. v.xarg.fullname .. '(' .. fallback .. ');'
+	fallback = (v.return_type and 'return this->' or 'this->') .. v.xarg.fullname .. '(' .. fallback .. ');' ..
+				(v.return_type and '' or ' return;')
 	if v.xarg.abstract then
 		fallback = 'luaL_error(L, "Abstract method %s not implemented! In %s", "' .. v.xarg.name .. '", lqtL_source(L,oldtop+1));'
 	end
-	ret = proto .. [[ {
-  int oldtop = lua_gettop(L);
+	ret = proto .. ' {\n'
+	ret = ret .. '  int oldtop = lua_gettop(L);\n'
+	ret = ret .. '  printf("Checking for override idx: %d name: %s class: %s value: %d in thread: %lx\\n", ' ..
+			v.virtual_index .. ', "'..v.xarg.name..'", "'.. v.xarg.member_of_class.. '", ' ..
+			'(int)(bool)hasOverride[' .. v.virtual_index .. '], QThread::currentThreadId());\n'
+	ret = ret .. '  if (!hasOverride[' .. v.virtual_index .. ']) { \n'
+	ret = ret .. '    ' .. fallback .. '\n  }\n'
+	ret = ret .. [[
   lqtL_pushudata(L, this, "]]..string.gsub(v.xarg.member_of_class, '::', '.')..[[*");
   lqtL_getoverload(L, -1, "]]..v.xarg.name..[[");
   lua_pushvalue(L, -1); // copy of function
@@ -138,8 +160,11 @@ end
 
 function fill_shell_class(c)
 	local shellname = 'lqt_shell_'..c.xarg.cname
-	local shell = 'class LQT_EXPORT ' .. shellname .. ' : public ' .. c.xarg.fullname .. ' {\npublic:\n'
+	local shell = 'class LQT_EXPORT ' .. shellname .. ' : public ' .. c.xarg.fullname .. ' {\n'
 	shell = shell .. '  lua_State *L;\n'
+	shell = shell .. '  QBitArray hasOverride;\n'
+	shell = shell .. 'public:\n'
+	shell = shell .. '  static int lqtAddOverride(lua_State *L);\n'
 	for _, constr in ipairs(c.constructors) do
 		if constr.xarg.access~='private' then
 			local cline = '  '..shellname..' (lua_State *l'
@@ -149,7 +174,7 @@ function fill_shell_class(c)
 				argline = argline .. (i>1 and ', arg' or 'arg') .. i
 			end
 			cline = cline .. ') : ' .. c.xarg.fullname
-				.. '(' .. argline .. '), L(l) '
+				.. '(' .. argline .. '), L(l), hasOverride(' .. c.nvirtuals .. ') '
 				.. '{\n    lqtL_register(L, this);\n'
 			if c.protected_enums then
 				cline = cline .. '    registerEnums();\n'
@@ -250,4 +275,10 @@ function print_virtual_overloads(classes)
 	return classes
 end
 
-
+function sort_by_index(c)
+	local res = {}
+	for name, virt in pairs(c.virtuals) do
+		res[virt.virtual_index] = virt
+	end
+	return res
+end

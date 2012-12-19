@@ -137,7 +137,7 @@ typedef struct {
     const char * name;
 } lqt_Class;
 
-int lqtL_createclass (lua_State *, const char *, luaL_Reg *, luaL_Reg *, luaL_Reg *, lqt_Base *);
+int lqtL_createclass (lua_State *, const char *, luaL_Reg *, luaL_Reg *, luaL_Reg *, lua_CFunction, lqt_Base *);
 
 /* functions to get/push special types */
 

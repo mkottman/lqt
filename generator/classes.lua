@@ -764,10 +764,17 @@ function print_single_class(c)
 		getters_setters = 'lqt_getters'..c.xarg.id..', lqt_setters'..c.xarg.id
 	end
 	
+	local shellname = 'lqt_shell_'..n
+
+	local overrides = 'NULL'
+	if c.shell then
+		overrides = shellname..'::lqtAddOverride'
+	end
+
 	print_meta('extern "C" LQT_EXPORT int luaopen_'..n..' (lua_State *L) {')
 	print_meta('\tlqtL_createclass(L, "'
 		..lua_name..'*", lqt_metatable'
-		..c.xarg.id..', '..getters_setters..', lqt_base'
+		..c.xarg.id..', '..getters_setters..', '..overrides..', lqt_base'
 		..c.xarg.id..');')
 	
 	if c.implicit then
@@ -784,6 +791,23 @@ function print_single_class(c)
 	print_meta'\treturn 0;'
 	print_meta'}'
 	print_meta''
+
+	if c.shell then
+		print_meta('int '..shellname..'::lqtAddOverride(lua_State *L) {')
+		print_meta('  '..shellname..' *self = static_cast<'..shellname..'*>('..typesystem[c.xarg.fullname..'*'].get(1)..');')
+		print_meta('  const char *name = luaL_checkstring(L, 2);')
+		print_meta('  // printf("Overriding %s in %s\\n", name, "'..shellname..'");')
+		local virt = virtuals.sort_by_index(c)
+		for _, v in pairs(virt) do
+			print_meta('  if (!strcmp(name, "'..v.xarg.name..'")) {')
+			print_meta('    self->hasOverride.setBit('..v.virtual_index..');')
+			print_meta('    // printf("-> updated %d to %d\\n", '..v.virtual_index..', (bool)self->hasOverride['..v.virtual_index..']);')
+			print_meta('    return 0;')
+			print_meta('  }')
+		end
+		print_meta('}\n\n')
+	end
+
 	if c.shell and c.qobject then
 		print_meta([[
 #include <QDebug>

@@ -194,8 +194,37 @@ static int lqtL_gcfunc (lua_State *L) {
     return 0; // (+0)
 }
 
+static void dumpStack(const char *msg, lua_State* l) {
+    int i;
+    int top = lua_gettop(l);
+ 
+    printf("=== %s: %d {\n", msg, top);
+ 
+    for (i = 1; i <= top; i++)
+    {  /* repeat for each level */
+        int t = lua_type(l, i);
+        switch (t) {
+            case LUA_TSTRING:  /* strings */
+                printf("string: '%s'\n", lua_tostring(l, i));
+                break;
+            case LUA_TBOOLEAN:  /* booleans */
+                printf("boolean %s\n",lua_toboolean(l, i) ? "true" : "false");
+                break;
+            case LUA_TNUMBER:  /* numbers */
+                printf("number: %g\n", lua_tonumber(l, i));
+                break;
+            default:  /* other values */
+                printf("%s: %p\n", lua_typename(l, t), lua_topointer(l, i));
+                break;
+        }
+    }
+    printf("} ===\n");  /* end the listing */
+}
+
 static int lqtL_newindexfunc (lua_State *L) {
     if (!lua_isuserdata(L, 1) && lua_islightuserdata(L, 1)) return 0;
+    
+    // first try a setter
     lua_getmetatable(L, 1);
     lua_pushliteral(L, "__set");
     lua_rawget(L, -2);
@@ -208,6 +237,17 @@ static int lqtL_newindexfunc (lua_State *L) {
             return setter(L);
         }
     }
+
+    // then try marking a method override
+    lua_settop(L, 4);
+    lua_pushliteral(L, "__override");
+    lua_rawget(L, -2);
+    if (lua_iscfunction(L, -1) && lua_isfunction(L, 3)) {
+        lua_CFunction addOverride = lua_tocfunction(L, -1);
+        addOverride(L);
+    }
+
+    // anyway, use the environment table for the userdata as per-object storage
     lua_settop(L, 3); // (=3)
     lua_getfenv(L, 1); // (+1)
     if (!lua_istable(L, -1)) {
@@ -293,7 +333,10 @@ static int lqtL_local_ctor(lua_State*L) {
     return lua_gettop(L);
 }
 
-int lqtL_createclass (lua_State *L, const char *name, luaL_Reg *mt, luaL_Reg *getters, luaL_Reg *setters, lqt_Base *bases) {
+int lqtL_createclass (lua_State *L, const char *name, luaL_Reg *mt,
+    luaL_Reg *getters, luaL_Reg *setters, lua_CFunction override,
+    lqt_Base *bases)
+{
     int len = 0;
     char *new_name = NULL;
     lqt_Base *bi = bases;
@@ -319,6 +362,10 @@ int lqtL_createclass (lua_State *L, const char *name, luaL_Reg *mt, luaL_Reg *ge
         lua_newtable(L);
         luaL_register(L, NULL, setters);
         lua_setfield(L, -2, "__set");
+    }
+    if (override) {
+        lua_pushcfunction(L, override);
+        lua_setfield(L, -2, "__override");
     }
     
     // set metafunctions

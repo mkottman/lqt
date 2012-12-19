@@ -56,6 +56,12 @@ for c in pairs(classes) do
 			or c.xarg.fullname=='QFutureWatcherBase' -- const virtual method causes it to be abstract
 			or c.xarg.fullname=='QEasingCurve'        -- wrapper for function: function pointer parsing problem
 			or c.xarg.fullname=='QHashData'        -- not in the docs at all. free_helper is not present during compilation
+
+			or c.xarg.fullname=='QWebSelectMethod'
+			or c.xarg.fullname=='QWebNotificationPresenter'
+			or c.xarg.fullname=='QWebHapticFeedbackPlayer'
+			or c.xarg.fullname=='QWebTouchModifier'
+
 			or string.match(c.xarg.fullname, '^QtConcurrent') -- does not make sense anyway, because we should duplicate the lua_State
 			or string.match(c.xarg.fullname, '^QAccessible') -- causes a lot of headaches, and not necessarry anyway (yet)
 			or string.match(c.xarg.fullname, 'Private$') -- should not bind these
