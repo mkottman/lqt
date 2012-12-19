@@ -479,6 +479,13 @@ function fill_wrapper_code(f)
 	local stack_args, defects = '', 0
 	local has_args = true
 	local wrap, line = '  int oldtop = lua_gettop(L);\n', ''
+
+	wrap = wrap .. '  printf("[%lx] %s :: %s (%d)\\n", ' ..
+		'QThread::currentThreadId(), ' ..
+		'"'..(f.xarg.member_of_class or f.xarg.fullname)..'", ' ..
+		'"'..f.xarg.name..'", '..
+		'oldtop);\n'
+
 	if f.xarg.abstract then
 		ignore(f.xarg.fullname, 'abstract method', f.xarg.member_of_class)
 		return nil

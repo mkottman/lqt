@@ -1,9 +1,30 @@
 #include "lqt_qt.hpp"
 
+#include <QThread>
+
+const char * callTypeToString(QMetaObject::Call call)
+{
+	switch(call) {
+case QMetaObject::InvokeMetaMethod: return "InvokeMetaMethod";
+case QMetaObject::ReadProperty: return "ReadProperty";
+case QMetaObject::WriteProperty: return "WriteProperty";
+case QMetaObject::ResetProperty: return "ResetProperty";
+case QMetaObject::QueryPropertyDesignable: return "QueryPropertyDesignable";
+case QMetaObject::QueryPropertyScriptable: return "QueryPropertyScriptable";
+case QMetaObject::QueryPropertyStored: return "QueryPropertyStored";
+case QMetaObject::QueryPropertyEditable: return "QueryPropertyEditable";
+case QMetaObject::QueryPropertyUser: return "QueryPropertyUser";
+case QMetaObject::CreateInstance: return "CreateInstance";
+	}
+	return "???";
+}
 
 int lqtL_qt_metacall (lua_State *L, QObject *self, QObject *acceptor,
         QMetaObject::Call call, const char *name,
-        int index, void **args) {
+        int index, void **args)
+{
+	printf("[%lx] metacall [%s] %s : %d\n", QThread::currentThreadId(), callTypeToString(call), name, index);
+
     int callindex = 0, oldtop = 0;
     oldtop = lua_gettop(L);
     lqtL_pushudata(L, self, name); // (1)

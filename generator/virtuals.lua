@@ -105,9 +105,13 @@ function virtual_overload(v)
 	end
 	ret = proto .. ' {\n'
 	ret = ret .. '  int oldtop = lua_gettop(L);\n'
-	ret = ret .. '  printf("Checking for override idx: %d name: %s class: %s value: %d in thread: %lx\\n", ' ..
-			v.virtual_index .. ', "'..v.xarg.name..'", "'.. v.xarg.member_of_class.. '", ' ..
-			'(int)(bool)hasOverride[' .. v.virtual_index .. '], QThread::currentThreadId());\n'
+	ret = ret .. '  printf("[%lx] virtual %s :: %s (%d) => %d\\n", ' ..
+			'QThread::currentThreadId(), ' ..
+			'"'.. v.xarg.member_of_class.. '", ' ..
+			'"'..v.xarg.name..'", '..
+			v.virtual_index .. ', '..
+			'(int)(bool)hasOverride[' .. v.virtual_index .. ']'..
+			');\n'
 	ret = ret .. '  if (!hasOverride[' .. v.virtual_index .. ']) { \n'
 	ret = ret .. '    ' .. fallback .. '\n  }\n'
 	ret = ret .. [[
