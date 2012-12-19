@@ -2,6 +2,7 @@
 
 #include <QThread>
 
+#ifdef VERBOSE_BUILD
 const char * callTypeToString(QMetaObject::Call call)
 {
 	switch(call) {
@@ -18,13 +19,16 @@ case QMetaObject::CreateInstance: return "CreateInstance";
 	}
 	return "???";
 }
+#endif
 
 int lqtL_qt_metacall (lua_State *L, QObject *self, QObject *acceptor,
         QMetaObject::Call call, const char *name,
         int index, void **args)
 {
+#ifdef VERBOSE_BUILD
 	printf("[%lx] metacall [%s] %s : %d\n", QThread::currentThreadId(), callTypeToString(call), name, index);
-
+#endif
+    
     int callindex = 0, oldtop = 0;
     oldtop = lua_gettop(L);
     lqtL_pushudata(L, self, name); // (1)

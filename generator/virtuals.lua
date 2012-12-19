@@ -8,11 +8,15 @@ function fill_virtuals(classes)
 		byname[c.xarg.fullname] = c
 	end
 	local function get_virtuals(c, includePrivate)
+		local methods = {}
+		for _, f in ipairs(c) do
+			if f.label=='Function' and f.xarg.virtual ~= '1' then
+				methods[f.xarg.name] = f
+			end
+		end
+
 		local ret = {}
-		local virtual_index = 0
 		local function add_overload(name, func)
-			virtual_index = virtual_index + 1
-			func.virtual_index = virtual_index
 			ret[name] = func
 		end
 
@@ -32,7 +36,17 @@ function fill_virtuals(classes)
 			if type(base)=='table' then
 				local bv = get_virtuals(base, true)
 				for n, f in pairs(bv) do
-					if not ret[n] then add_overload(n, f) end
+					-- print('found', n, 'in', b, 'for', c.xarg.name, 'have', not not ret[n])
+					if not ret[n] then
+						if methods[n] then
+							-- print('has', n, 'which is not marked virtual')
+							methods[n].xarg.virtual = '1'
+							add_overload(n, methods[n])
+						else
+							-- print('does not have', n)
+							add_overload(n, f)
+						end
+					end
 				end
 			end
 		end
@@ -43,11 +57,20 @@ function fill_virtuals(classes)
 			local n = string.match(f.xarg.name, '~') or f.xarg.name
 			if f.label=='Function'
 				and (includePrivate or f.xarg.access~='private')
-				and (ret[n])
+				and ret[n]
 			then
+				-- print('adding', c.xarg.name, n)
 				f.xarg.virtual = '1'
+				add_overload(n, f)
 			end
 		end
+
+		local virtual_index = 0
+		for n, f in pairs(ret) do
+			virtual_index = virtual_index + 1
+			f.virtual_index = virtual_index
+		end
+
 		return ret, virtual_index
 	end
 	for c in pairs(classes) do
@@ -61,13 +84,13 @@ end
 -- virtual methods call original virtual method if no corresponding Lua function is
 -- found, pure virtual (abstract) methods throw Lua error.
 function virtual_overload(v)
-	local ret = ''
 	if v.virtual_overload then return v end
 	-- make return type
 	if v.return_type and not typesystem[v.return_type] then
 		ignore(v.xarg.fullname, 'unknown return type', v.return_type)
 		return nil, 'return: '..v.return_type
 	end
+	local ret = ''
 	local rget, rn, ret_as = '', 0
 	if v.return_type then rget, rn, ret_as = typesystem[v.return_type].get'oldtop+2' end
 	local retget = ''
@@ -101,17 +124,19 @@ function virtual_overload(v)
 	fallback = (v.return_type and 'return this->' or 'this->') .. v.xarg.fullname .. '(' .. fallback .. ');' ..
 				(v.return_type and '' or ' return;')
 	if v.xarg.abstract then
-		fallback = 'luaL_error(L, "Abstract method %s not implemented! In %s", "' .. v.xarg.name .. '", lqtL_source(L,oldtop+1));'
+		fallback = 'luaL_error(L, "Abstract method %s for %s not implemented! In %s", "' .. v.xarg.name .. '", lqtL_source(L,oldtop+1));'
 	end
 	ret = proto .. ' {\n'
 	ret = ret .. '  int oldtop = lua_gettop(L);\n'
-	ret = ret .. '  printf("[%lx] virtual %s :: %s (%d) => %d\\n", ' ..
-			'QThread::currentThreadId(), ' ..
-			'"'.. v.xarg.member_of_class.. '", ' ..
-			'"'..v.xarg.name..'", '..
-			v.virtual_index .. ', '..
-			'(int)(bool)hasOverride[' .. v.virtual_index .. ']'..
-			');\n'
+	if VERBOSE_BUILD then
+		ret = ret .. '  printf("[%lx; %p] virtual %s :: %s (%d) => %d\\n", ' ..
+				'QThread::currentThreadId(), this, ' ..
+				'"'..v.xarg.member_of_class.. '", ' ..
+				'"'..v.xarg.name..'", '..
+				v.virtual_index .. ', '..
+				'(int)(bool)hasOverride[' .. v.virtual_index .. ']'..
+				');\n'
+	end
 	ret = ret .. '  if (!hasOverride[' .. v.virtual_index .. ']) { \n'
 	ret = ret .. '    ' .. fallback .. '\n  }\n'
 	ret = ret .. [[

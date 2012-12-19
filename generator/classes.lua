@@ -480,12 +480,6 @@ function fill_wrapper_code(f)
 	local has_args = true
 	local wrap, line = '  int oldtop = lua_gettop(L);\n', ''
 
-	wrap = wrap .. '  printf("[%lx] %s :: %s (%d)\\n", ' ..
-		'QThread::currentThreadId(), ' ..
-		'"'..(f.xarg.member_of_class or f.xarg.fullname)..'", ' ..
-		'"'..f.xarg.name..'", '..
-		'oldtop);\n'
-
 	if f.xarg.abstract then
 		ignore(f.xarg.fullname, 'abstract method', f.xarg.member_of_class)
 		return nil
@@ -511,8 +505,22 @@ function fill_wrapper_code(f)
 		else
 			line = 'self->'..f.xarg.fullname..'('
 		end
+		if VERBOSE_BUILD then
+			wrap = wrap .. '  printf("[%lx; %p] %s :: %s (%d)\\n", ' ..
+				'QThread::currentThreadId(), self, ' ..
+				'"'..(f.xarg.member_of_class or f.xarg.fullname)..'", ' ..
+				'"'..f.xarg.name..'", '..
+				'oldtop);\n'
+		end
 	else
 		line = f.xarg.fullname..'('
+		if VERBOSE_BUILD then
+			wrap = wrap .. '  printf("[%lx; static] %s :: %s (%d)\\n", ' ..
+					'QThread::currentThreadId(), ' ..
+					'"'..(f.xarg.member_of_class or f.xarg.fullname)..'", ' ..
+					'"'..f.xarg.name..'", '..
+					'oldtop);\n'
+		end
 	end
 	for i, a in ipairs(f.arguments) do
 		if not typesystem[a.xarg.type_name] then
@@ -803,12 +811,16 @@ function print_single_class(c)
 		print_meta('int '..shellname..'::lqtAddOverride(lua_State *L) {')
 		print_meta('  '..shellname..' *self = static_cast<'..shellname..'*>('..typesystem[c.xarg.fullname..'*'].get(1)..');')
 		print_meta('  const char *name = luaL_checkstring(L, 2);')
-		print_meta('  // printf("Overriding %s in %s\\n", name, "'..shellname..'");')
+		if VERBOSE_BUILD then
+			print_meta('  printf("Overriding \'%s\' in %s [%p]\\n", name, "'..shellname..'", self);')
+		end
 		local virt = virtuals.sort_by_index(c)
 		for _, v in pairs(virt) do
 			print_meta('  if (!strcmp(name, "'..v.xarg.name..'")) {')
 			print_meta('    self->hasOverride.setBit('..v.virtual_index..');')
-			print_meta('    // printf("-> updated %d to %d\\n", '..v.virtual_index..', (bool)self->hasOverride['..v.virtual_index..']);')
+			if VERBOSE_BUILD then
+				print_meta('    printf("-> updated %d to %d\\n", '..v.virtual_index..', (bool)self->hasOverride['..v.virtual_index..']);')
+			end
 			print_meta('    return 0;')
 			print_meta('  }')
 		end

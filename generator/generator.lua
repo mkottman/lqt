@@ -66,6 +66,8 @@ do
 		elseif argi=='-c' then
 			i = i + 1
 			template_file = select(i, ...)
+		elseif argi=='-v' then
+			VERBOSE_BUILD = true
 		else
 			filename = filename and error'duplicate filename' or argi
 		end

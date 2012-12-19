@@ -45,6 +45,13 @@ set(QT_USE_QTSQL 1)
 set(QT_USE_QTXMLPATTERNS 1)
 include(${QT_USE_FILE})
 
+set(EXTRA_LUA_OPTIONS )
+option(VERBOSE_BUILD "Create a verbose build which logs every binding call" OFF)
+if(VERBOSE_BUILD)
+	add_definitions(-DVERBOSE_BUILD)
+	set(EXTRA_LUA_OPTIONS -v)
+endif()
+
 if(noqt)
 	set(QT_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/test)
 	#set(nomerge TRUE)
@@ -114,7 +121,8 @@ function(build_qt_lib_binding BINDING_HEADER)
 		add_custom_target(generate_${BINDING_NAME}_cpp
 							COMMAND ${LUA_CMD}
 								"${CMAKE_SOURCE_DIR}/generator/generator.lua" 
-								${GEN_XML} 
+								${GEN_XML}
+								${EXTRA_LUA_OPTIONS}
 								-i ${BINDING_HEADER} -i lqt_qt.hpp 
 								-n ${BINDING_NAME} 
 								-t ${CMAKE_SOURCE_DIR}/generator/qtypes.lua
