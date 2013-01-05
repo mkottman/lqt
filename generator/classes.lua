@@ -616,14 +616,10 @@ function print_wrappers()
 		local meta = {}
 		local wrappers = ''
 		for _, f in ipairs(c.methods) do
-			-- FIXME: should we really discard virtual functions?
-			-- if the virtual overload in the shell uses rawget
-			-- on the environment then we can leave these in the
-			-- metatable
 			if f.wrapper_code and not f.ignore then
-				local out = 'static int lqt_bind'..f.xarg.id
-				..' (lua_State *L) {\n'.. f.wrapper_code .. '}\n'
-				if f.xarg.access=='public' then
+				if f.xarg.access~='private' then
+					local out = 'static int lqt_bind'..f.xarg.id
+					..' (lua_State *L) {\n'.. f.wrapper_code .. '}\n'
 					--print_meta(out)
 					wrappers = wrappers .. out .. '\n'
 					meta[f] = f.xarg.name
@@ -633,9 +629,9 @@ function print_wrappers()
 		if not c.abstract then
 			for _, f in ipairs(c.constructors) do
 				if f.wrapper_code then
-					local out = 'static int lqt_bind'..f.xarg.id
-					    ..' (lua_State *L) {\n'.. f.wrapper_code .. '}\n'
 					if f.xarg.access=='public' then
+						local out = 'static int lqt_bind'..f.xarg.id
+						    ..' (lua_State *L) {\n'.. f.wrapper_code .. '}\n'
 						--print_meta(out)
 						wrappers = wrappers .. out .. '\n'
 						meta[f] = 'new'
@@ -767,10 +763,20 @@ function print_single_class(c)
 		print_meta(c.implicit.test)
 		print_meta(c.implicit.convert)
 	end
-	
+
 	print_meta(c.wrappers)
-	if c.virtual_overloads then
-		print_meta(c.virtual_overloads)
+
+	local virtual_methods
+	if c.shell then
+		virtual_methods = virtuals.sort_by_index(c)
+		local shellname = 'lqt_shell_'..c.xarg.cname
+		for _, v in ipairs(virtual_methods) do
+			if v.virtual_overload then
+				local method = string.gsub(v.virtual_overload, ';;', shellname..'::', 1)
+				method = string.gsub(method, 'VIRTUAL_INDEX', v.virtual_index)
+				print_meta(method)
+			end
+		end
 	end
 	
 	local getters_setters = 'NULL, NULL'
@@ -814,8 +820,7 @@ function print_single_class(c)
 		if VERBOSE_BUILD then
 			print_meta('  printf("Overriding \'%s\' in %s [%p]\\n", name, "'..shellname..'", self);')
 		end
-		local virt = virtuals.sort_by_index(c)
-		for _, v in pairs(virt) do
+		for _, v in ipairs(virtual_methods) do
 			print_meta('  if (!strcmp(name, "'..v.xarg.name..'")) {')
 			print_meta('    self->hasOverride.setBit('..v.virtual_index..');')
 			if VERBOSE_BUILD then
@@ -990,7 +995,6 @@ end
 
 function output()
 	virtuals.print_shell_classes(classes) -- does that, and outputs headers
-	virtuals.print_virtual_overloads(classes) -- does that
 
 	print_wrappers(classes) -- just compiles metatable list
 	print_metatables(classes) -- just collects the wrappers + generates dispatchers

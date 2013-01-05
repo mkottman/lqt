@@ -67,8 +67,8 @@ function fill_virtuals(classes)
 
 		local virtual_index = 0
 		for n, f in pairs(ret) do
-			virtual_index = virtual_index + 1
 			f.virtual_index = virtual_index
+			virtual_index = virtual_index + 1
 		end
 
 		return ret, virtual_index
@@ -133,11 +133,11 @@ function virtual_overload(v)
 				'QThread::currentThreadId(), this, ' ..
 				'"'..v.xarg.member_of_class.. '", ' ..
 				'"'..v.xarg.name..'", '..
-				v.virtual_index .. ', '..
-				'(int)(bool)hasOverride[' .. v.virtual_index .. ']'..
+				'VIRTUAL_INDEX, '..
+				'(int)(bool)hasOverride[VIRTUAL_INDEX]'..
 				');\n'
 	end
-	ret = ret .. '  if (!hasOverride[' .. v.virtual_index .. ']) { \n'
+	ret = ret .. '  if (!hasOverride[VIRTUAL_INDEX]) { \n'
 	ret = ret .. '    ' .. fallback .. '\n  }\n'
 	ret = ret .. [[
   lqtL_pushudata(L, this, "]]..string.gsub(v.xarg.member_of_class, '::', '.')..[[*");
@@ -172,6 +172,7 @@ end
 function fill_virtual_overloads(classes)
 	for c in pairs(classes) do
 		if c.virtuals then
+			local vidx = 0
 			for i, v in pairs(c.virtuals) do
 				if v.xarg.access~='private' then
 					local vret, err = virtual_overload(v)
@@ -269,6 +270,8 @@ function print_shell_classes(classes)
 		end
 		print_head('#ifndef LQT_HEAD_'..n)
 		print_head('#define LQT_HEAD_'..n)
+		print_head('/* ugly ugly ugly, but needed to access protected members from outside */')
+		print_head('#define protected public')
 		print_head(output_includes)
 		--print_head('#include <'..string.match(c.xarg.fullname, '^[^:]+')..'>')
 		print_head''
@@ -288,26 +291,15 @@ function print_shell_classes(classes)
 	return classes
 end
 
-function print_virtual_overloads(classes)
-	for c in pairs(classes) do
-		if c.shell then
-			local vo = ''
-			local shellname = 'lqt_shell_'..c.xarg.cname
-			for _,v in pairs(c.virtuals) do
-				if v.virtual_overload then
-					vo = vo .. string.gsub(v.virtual_overload, ';;', shellname..'::', 1)
-				end
-			end
-			c.virtual_overloads = vo
-		end
-	end
-	return classes
-end
-
 function sort_by_index(c)
 	local res = {}
+	local vidx = 0
 	for name, virt in pairs(c.virtuals) do
-		res[virt.virtual_index] = virt
+		virt.virtual_index = vidx
+		res[#res + 1] = virt
+		vidx = vidx + 1
 	end
+	table.sort(res, function(v1, v2) return v1.virtual_index < v2.virtual_index end)
+	c.nvirtuals = vidx
 	return res
 end

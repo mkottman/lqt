@@ -10,6 +10,9 @@ function copy_signals(functions)
 	for f in pairs(functions) do
 		if f.xarg.signal=='1' then
 			signals[f] = true
+			if f.xarg.access == 'protected' then
+				f.xarg.access = 'public'
+			end
 		end
 	end
 end
