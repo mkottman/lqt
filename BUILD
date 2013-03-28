@@ -38,7 +38,7 @@ build> lqt.sln
 Example lua files are in lqt/test, LUA_CPATH is needed:
 
 Linux:
-build> export LUA_CPATH=$PWD/lib/lib?.so
+build> export LUA_CPATH="./lib/?.so"
 build> ./bin/lua ../lqt/test/webview.lua
 
 Windows (debug build):
